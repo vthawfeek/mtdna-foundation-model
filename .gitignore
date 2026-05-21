@@ -30,9 +30,6 @@ mlruns/
 .idea/
 *.swp
 
-# Reports
-reports/
-
 # Misc
 .env
 *.log
