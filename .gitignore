@@ -1,0 +1,38 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+dist/
+build/
+
+# Data (tracked by DVC, not git)
+data/raw/
+data/interim/
+data/processed/
+
+# Models
+models/
+
+# Experiment tracking
+mlruns/
+.mlflow/
+
+# DVC
+.dvc/cache/
+.dvc/tmp/
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+
+# Reports
+reports/
+
+# Misc
+.env
+*.log
