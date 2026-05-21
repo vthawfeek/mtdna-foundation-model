@@ -3,12 +3,12 @@ Execute Day $ARGUMENTS of the mtDNA Foundation Model project.
 ## Context
 
 Working directory: /home/user/Documents/Personal/ai_lab/mtdna_foundation_model
-Plan file: /home/user/.claude/plans/i-want-to-build-idempotent-starlight.md
+Plan file: PLAN.md (in the repo root — this is the primary copy tracked in git)
 GitHub repo: https://github.com/vthawfeek/mtdna-foundation-model
 
 ## Instructions
 
-1. Read the plan file and find the section titled "### Day $ARGUMENTS:". Execute every task listed there, in order. Do not skip tasks. If a task produces an error, fix the error before moving on.
+1. Read PLAN.md and find the section titled "### Day $ARGUMENTS:". Execute every task listed there, in order. Do not skip tasks. If a task produces an error, fix the error before moving on.
 
 2. For each source file created or modified, follow these rules:
    - All Python code must pass `uv run ruff check mtdna_fm/ tests/`
@@ -45,13 +45,15 @@ GitHub repo: https://github.com/vthawfeek/mtdna-foundation-model
    ```
    Both must pass before committing. Fix any failures first.
 
-5. Stage and commit:
-   - Stage: all new and modified files under mtdna_fm/, tests/, configs/, docs/, notebooks/, reports/, .claude/, .github/
+5. Mark the day complete in CLAUDE.md: find the line for Day $ARGUMENTS in the "Current status" section and add "COMPLETE (commit <hash>)" to it.
+
+6. Stage and commit:
+   - Stage: all new and modified files under mtdna_fm/, tests/, configs/, docs/, notebooks/, reports/, .claude/, .github/, PLAN.md, CLAUDE.md
    - Do NOT stage: data/, models/, mlruns/, .venv/, *.pyc, __pycache__/
    - Commit message format: `day $ARGUMENTS: <short description of what was built>`
    - Add co-author: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
 
-6. Push to GitHub:
+7. Push to GitHub:
    ```
    git push origin main
    ```
