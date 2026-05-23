@@ -63,6 +63,19 @@ GitHub repo: https://github.com/vthawfeek/mtdna-foundation-model
    git push -u origin main
    ```
 
+8. If Day $ARGUMENTS is in the milestone list [1, 4, 7, 10, 13, 14, 17, 20, 21, 22, 25, 26, 28],
+   generate content drafts by following all the steps in `~/.claude/commands/blog-draft.md` for Day $ARGUMENTS.
+
+   The blog-draft steps will:
+   - Read the report just written and `.publish-config.yml`
+   - Generate a blog post, X thread, and LinkedIn post
+   - Write them to `reports/day-$ARGUMENTS-blog.md`, `reports/day-$ARGUMENTS-x.txt`, `reports/day-$ARGUMENTS-linkedin.txt`
+   - Commit and push the three draft files
+   - Print a preview
+
+   Do NOT call `publish.py social` or `publish.py blog` here. Stop after drafting.
+   The day is not complete until the content preview has been printed.
+
 ## Important
 
 - Follow the plan precisely. The plan has specific file names, function signatures, and architecture decisions — use them.

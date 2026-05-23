@@ -960,22 +960,27 @@ GitHub Release with the showcase notebook attached and a brief description of wh
 
 Posts should be about what you actually found, not announcements. The target audience is other ML practitioners and biomedical scientists, not recruiters. If the post would not be interesting to someone who already knows what a foundation model is, rewrite it.
 
-| Day | Platform | What to post |
-|-----|----------|--------------|
-| 1 | X | Project start: why mtDNA, what problem, what novelty. Keep it short. |
-| 4 | X | D-loop entropy figure with explanation of why it matters for the model design |
-| 7 | LinkedIn | Blog Post 1 with genuine discussion of the biology |
-| 10 | X | Pre-training loss curve screenshot (even early, to show the convergence trajectory) |
-| 13 | X | Attention heatmap at step 25k showing structure emerging |
-| 14 | LinkedIn | Blog Post 2 on circular PE with the equations |
-| 17 | X | Haplogroup k-NN accuracy before and after fine-tuning (concrete numbers) |
-| 20 | X | Ancient DNA TSNE figure with paleoanthropology context |
-| 20 | LinkedIn | Same figure, longer explanation of what it means scientifically |
-| 21 | X | Model on HuggingFace Hub, 5-line usage example |
-| 22 | X | Gradio demo screenshot or GIF |
-| 25 | X | Showcase notebook phylogenetic TSNE (the best figure in the project) |
-| 26 | LinkedIn | Blog Post 4 (the honest retrospective) |
-| 28 | X | 10-tweet retrospective thread |
+**Publishing is automated.** On milestone days, `/day N` generates content drafts (blog, X thread, LinkedIn) and commits them. Run `/blog-send N` after reviewing to publish to WordPress and schedule via Buffer.
+
+Profiles: X [@vthawfeek](https://x.com/vthawfeek) | LinkedIn [tvarusai](https://www.linkedin.com/in/tvarusai/) | Blog [rokpayprsizors.wordpress.com](https://rokpayprsizors.wordpress.com/)
+
+| Day | Blog title | X angle | LinkedIn angle |
+|-----|-----------|---------|---------------|
+| 1 | "Building the Project Scaffold: Why mtDNA Needs Its Own Foundation Model" | Why circular topology breaks standard PE | Architectural differences that motivated a dedicated model |
+| 4 | "D-loop Entropy and Why mtDNA Preprocessing Isn't Trivial" | D-loop entropy figure + one-sentence interpretation | What the D-loop analysis revealed about sequence diversity |
+| 7 | "Why Mitochondrial DNA Needs Its Own Foundation Model" | Core argument: circular PE, heteroplasmy channel | Full blog post with 2-sentence context |
+| 10 | "Pre-training BERT on 16,569 Base Pairs: Loss Curves and Surprises" | Pre-training loss screenshot + what was surprising | Training setup and what the convergence shape reveals |
+| 13 | "What the Attention Heads See After 25k Steps" | Attention heatmap + biological interpretation | What the visualization tells us about learned structure |
+| 14 | "Building the mtDNA-FM Tokenizer and Circular Positional Encoding" | Key insight from the circular PE maths | Engineering deep-dive summary |
+| 17 | "Fine-tuning for Haplogroup Classification: Numbers and Decisions" | Accuracy before and after fine-tuning (real numbers) | Fine-tuning decisions and what worked |
+| 20 | "Ancient DNA and Foundation Models: An Unexpected Application" | Ancient DNA TSNE with paleoanthropology context | What embedding ancient genomes reveals scientifically |
+| 21 | "mtDNA-FM is Live on HuggingFace Hub" | 5-line usage example + model card link | Model capabilities and how to use it |
+| 22 | "Building a Gradio Demo for mtDNA Analysis in a Day" | Demo screenshot or GIF + what it does | Why a live demo matters for model adoption |
+| 25 | "Phylogenetic Reconstruction from Foundation Model Embeddings" | TSNE with haplogroup clusters + interpretation | What the embedding space reveals about evolution |
+| 26 | "Building a Production-Quality Foundation Model in 4 Weeks" | Most honest take: what took longest and why | Retrospective with real numbers and tradeoffs |
+| 28 | "mtDNA-FM v0.1.0: Release Notes and What Comes Next" | 4-tweet retrospective thread | Project completion and open questions |
+
+All posts link back to the corresponding blog post. Blog posts are published to WordPress; X and LinkedIn are scheduled via Buffer at 9am EST on the next weekday (LinkedIn prefers Tue-Thu).
 
 ---
 
