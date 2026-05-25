@@ -66,14 +66,11 @@ def main(
     elif source == "ncbi-refseq":
         _run_ncbi_refseq(output_dir, force)
     elif source == "gnomad":
-        typer.echo("[gnomad] Not yet implemented — coming Day 5")
-        raise typer.Exit(code=1)
+        _run_gnomad(output_dir, force)
     elif source == "clinvar":
-        typer.echo("[clinvar] Not yet implemented — coming Day 5")
-        raise typer.Exit(code=1)
+        _run_clinvar(output_dir, force)
     elif source == "phylotree":
-        typer.echo("[phylotree] Not yet implemented — coming Day 5")
-        raise typer.Exit(code=1)
+        _run_phylotree(output_dir, force)
 
 
 def _run_hmtdb(output_dir: Path, force: bool) -> None:
@@ -94,3 +91,24 @@ def _run_ncbi_refseq(output_dir: Path, force: bool) -> None:
         force=force,
     )
     typer.echo(f"[ncbi-refseq] FASTA → {fasta}")
+
+
+def _run_gnomad(output_dir: Path, force: bool) -> None:
+    from mtdna_fm.data.variant_downloader import download_gnomad_chrm
+
+    vcf = download_gnomad_chrm(output_dir, force=force)
+    typer.echo(f"[gnomad] chrM VCF → {vcf}")
+
+
+def _run_clinvar(output_dir: Path, force: bool) -> None:
+    from mtdna_fm.data.variant_downloader import download_clinvar_chrm
+
+    vcf = download_clinvar_chrm(output_dir, force=force)
+    typer.echo(f"[clinvar] chrM VCF → {vcf}")
+
+
+def _run_phylotree(output_dir: Path, force: bool) -> None:
+    from mtdna_fm.data.variant_downloader import download_phylotree
+
+    csv = download_phylotree(output_dir, force=force)
+    typer.echo(f"[phylotree] Build 17 CSV → {csv}")

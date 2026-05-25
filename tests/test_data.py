@@ -233,15 +233,44 @@ class TestDownloadCLI:
         result = runner.invoke(app, ["--source", "invalid-source"])
         assert result.exit_code != 0
 
-    def test_unimplemented_source_exits_with_error(self) -> None:
+    def test_valid_source_gnomad_calls_download(self, tmp_path: Path) -> None:
         from typer.testing import CliRunner
 
         from mtdna_fm.scripts.download import app
 
         runner = CliRunner()
-        result = runner.invoke(app, ["--source", "gnomad"])
-        assert result.exit_code != 0
-        assert "Not yet implemented" in result.output
+        with patch("mtdna_fm.scripts.download._run_gnomad") as mock_run:
+            result = runner.invoke(
+                app, ["--source", "gnomad", "--output", str(tmp_path)]
+            )
+        mock_run.assert_called_once_with(tmp_path, False)
+        assert result.exit_code == 0
+
+    def test_valid_source_clinvar_calls_download(self, tmp_path: Path) -> None:
+        from typer.testing import CliRunner
+
+        from mtdna_fm.scripts.download import app
+
+        runner = CliRunner()
+        with patch("mtdna_fm.scripts.download._run_clinvar") as mock_run:
+            result = runner.invoke(
+                app, ["--source", "clinvar", "--output", str(tmp_path)]
+            )
+        mock_run.assert_called_once_with(tmp_path, False)
+        assert result.exit_code == 0
+
+    def test_valid_source_phylotree_calls_download(self, tmp_path: Path) -> None:
+        from typer.testing import CliRunner
+
+        from mtdna_fm.scripts.download import app
+
+        runner = CliRunner()
+        with patch("mtdna_fm.scripts.download._run_phylotree") as mock_run:
+            result = runner.invoke(
+                app, ["--source", "phylotree", "--output", str(tmp_path)]
+            )
+        mock_run.assert_called_once_with(tmp_path, False)
+        assert result.exit_code == 0
 
     def test_valid_source_hmtdb_calls_download(self, tmp_path: Path) -> None:
         from typer.testing import CliRunner
@@ -579,3 +608,335 @@ class TestSaveSplits:
         paths = save_splits(df, tmp_path)
         loaded = pd.read_parquet(paths["train"])
         assert "split" not in loaded.columns
+
+
+# ---------------------------------------------------------------------------
+# variant_processor tests
+# ---------------------------------------------------------------------------
+
+
+def _make_vcf(tmp_path: Path, filename: str, lines: list[str]) -> Path:
+    """Write a minimal VCF file for testing."""
+    path = tmp_path / filename
+    header = (
+        "##fileformat=VCFv4.2\n"
+        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
+    )
+    path.write_text(header + "\n".join(lines) + "\n")
+    return path
+
+
+class TestGnomadParser:
+    def test_parses_pass_snp(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_gnomad_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path,
+            "gnomad.vcf",
+            ["chrM\t73\t.\tA\tG\t.\tPASS\tAF=0.987;mean_hl=0.99;n_het=12345;n_hom_var=55000"],
+        )
+        df = parse_gnomad_chrm_vcf(vcf)
+        assert len(df) == 1
+        assert df.iloc[0]["pos"] == 73
+        assert df.iloc[0]["ref"] == "A"
+        assert df.iloc[0]["alt"] == "G"
+        assert abs(df.iloc[0]["af"] - 0.987) < 1e-6
+        assert df.iloc[0]["n_het"] == 12345
+        assert df.iloc[0]["n_hom"] == 55000
+
+    def test_skips_non_pass(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_gnomad_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path,
+            "gnomad.vcf",
+            [
+                "chrM\t73\t.\tA\tG\t.\tPASS\tAF=0.5",
+                "chrM\t152\t.\tT\tC\t.\tFAIL\tAF=0.1",
+            ],
+        )
+        df = parse_gnomad_chrm_vcf(vcf)
+        assert len(df) == 1
+        assert df.iloc[0]["pos"] == 73
+
+    def test_skips_indels(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_gnomad_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path,
+            "gnomad.vcf",
+            [
+                "chrM\t73\t.\tA\tGG\t.\tPASS\tAF=0.5",
+                "chrM\t100\t.\tAT\tA\t.\tPASS\tAF=0.2",
+            ],
+        )
+        df = parse_gnomad_chrm_vcf(vcf)
+        assert len(df) == 0
+
+    def test_empty_vcf_returns_empty_dataframe(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_gnomad_chrm_vcf
+
+        vcf = tmp_path / "empty.vcf"
+        vcf.write_text("##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n")
+        df = parse_gnomad_chrm_vcf(vcf)
+        assert len(df) == 0
+        assert set(df.columns) == {"pos", "ref", "alt", "af", "het_level", "n_het", "n_hom"}
+
+    def test_schema_columns(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_gnomad_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path, "gnomad.vcf", ["chrM\t73\t.\tA\tG\t.\tPASS\tAF=0.9"]
+        )
+        df = parse_gnomad_chrm_vcf(vcf)
+        assert set(df.columns) == {"pos", "ref", "alt", "af", "het_level", "n_het", "n_hom"}
+
+
+class TestClinvarParser:
+    def test_extracts_pathogenic_label_1(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_clinvar_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path,
+            "clinvar.vcf",
+            ["chrM\t3243\t.\tA\tG\t.\t.\tCLNSIG=Pathogenic"],
+        )
+        df = parse_clinvar_chrm_vcf(vcf)
+        assert len(df) == 1
+        assert df.iloc[0]["label"] == 1
+        assert df.iloc[0]["pos"] == 3243
+
+    def test_skips_vus_and_benign(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_clinvar_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path,
+            "clinvar.vcf",
+            [
+                "chrM\t3243\t.\tA\tG\t.\t.\tCLNSIG=Pathogenic",
+                "chrM\t100\t.\tT\tC\t.\t.\tCLNSIG=Uncertain_significance",
+                "chrM\t200\t.\tG\tA\t.\t.\tCLNSIG=Benign",
+            ],
+        )
+        df = parse_clinvar_chrm_vcf(vcf)
+        assert len(df) == 1
+        assert df.iloc[0]["pos"] == 3243
+
+    def test_add_benign_proxies(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import add_benign_proxies
+
+        pathogenic = pd.DataFrame(
+            {"pos": [3243], "ref": ["A"], "alt": ["G"], "label": [1]}
+        )
+        gnomad = pd.DataFrame(
+            {
+                "pos": [73, 3243, 263],
+                "ref": ["A", "A", "A"],
+                "alt": ["G", "G", "G"],
+                "af": [0.987, 0.0001, 0.95],
+                "het_level": [0.99, 0.5, 0.98],
+                "n_het": [1000, 5, 2000],
+                "n_hom": [50000, 1, 40000],
+            }
+        )
+        result = add_benign_proxies(pathogenic, gnomad, af_threshold=0.01)
+        # pathogenic 3243 stays, common gnomad 73 + 263 added as benign
+        # gnomad 3243 has af=0.0001 < 0.01 threshold, excluded
+        # gnomad 3243 (af=0.0001) excluded by threshold; gnomad 3243 with
+        # af > threshold would be excluded by pathogenic overlap check
+        labels = dict(zip(result["pos"], result["label"], strict=False))
+        assert labels[3243] == 1
+        assert labels[73] == 0
+        assert labels[263] == 0
+
+    def test_benign_proxies_do_not_duplicate_pathogenic(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import add_benign_proxies
+
+        pathogenic = pd.DataFrame(
+            {"pos": [73], "ref": ["A"], "alt": ["G"], "label": [1]}
+        )
+        gnomad = pd.DataFrame(
+            {
+                "pos": [73],
+                "ref": ["A"],
+                "alt": ["G"],
+                "af": [0.987],
+                "het_level": [0.99],
+                "n_het": [1000],
+                "n_hom": [50000],
+            }
+        )
+        result = add_benign_proxies(pathogenic, gnomad)
+        # 73 A>G is in pathogenic — it must not appear again with label=0
+        assert len(result) == 1
+        assert result.iloc[0]["label"] == 1
+
+    def test_schema_columns(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_clinvar_chrm_vcf
+
+        vcf = _make_vcf(
+            tmp_path,
+            "clinvar.vcf",
+            ["chrM\t3243\t.\tA\tG\t.\t.\tCLNSIG=Pathogenic"],
+        )
+        df = parse_clinvar_chrm_vcf(vcf)
+        assert set(df.columns) == {"pos", "ref", "alt", "label"}
+
+
+class TestPhylotreeParser:
+    def _make_csv(self, tmp_path: Path, rows: list[dict]) -> Path:
+        df = pd.DataFrame(rows)
+        path = tmp_path / "phylotree.csv"
+        df.to_csv(path, index=False)
+        return path
+
+    def test_parses_standard_mutation_string(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_phylotree_csv
+
+        csv = self._make_csv(
+            tmp_path,
+            [
+                {"haplogroup": "A", "mutation": "73A>G"},
+                {"haplogroup": "A", "mutation": "263A>G"},
+                {"haplogroup": "H", "mutation": "3243A>G"},
+            ],
+        )
+        df = parse_phylotree_csv(csv)
+        assert len(df) == 3
+        assert df.iloc[0]["pos"] == 73
+        assert df.iloc[0]["ref"] == "A"
+        assert df.iloc[0]["alt"] == "G"
+        assert df.iloc[0]["haplogroup"] == "A"
+
+    def test_strips_back_mutation_prefix(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_phylotree_csv
+
+        csv = self._make_csv(
+            tmp_path,
+            [{"haplogroup": "B", "mutation": "!16519T>C"}],
+        )
+        df = parse_phylotree_csv(csv)
+        assert len(df) == 1
+        assert df.iloc[0]["pos"] == 16519
+        assert df.iloc[0]["ref"] == "T"
+        assert df.iloc[0]["alt"] == "C"
+
+    def test_skips_non_snp_mutations(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_phylotree_csv
+
+        csv = self._make_csv(
+            tmp_path,
+            [
+                {"haplogroup": "A", "mutation": "73A>G"},      # valid SNP
+                {"haplogroup": "A", "mutation": "315.1C"},     # insertion
+                {"haplogroup": "A", "mutation": "np"},         # non-standard
+            ],
+        )
+        df = parse_phylotree_csv(csv)
+        assert len(df) == 1
+        assert df.iloc[0]["pos"] == 73
+
+    def test_wrong_columns_raises(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_phylotree_csv
+
+        bad_csv = tmp_path / "bad.csv"
+        bad_csv.write_text("clade,var\nA,73A>G\n")
+        with pytest.raises(ValueError, match="haplogroup.*mutation"):
+            parse_phylotree_csv(bad_csv)
+
+    def test_schema_columns(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import parse_phylotree_csv
+
+        csv = self._make_csv(
+            tmp_path,
+            [{"haplogroup": "A", "mutation": "73A>G"}],
+        )
+        df = parse_phylotree_csv(csv)
+        assert set(df.columns) == {"pos", "ref", "alt", "haplogroup"}
+
+
+class TestBuildParquets:
+    def _gnomad_vcf(self, tmp_path: Path) -> Path:
+        return _make_vcf(
+            tmp_path,
+            "gnomad.vcf",
+            [
+                "chrM\t73\t.\tA\tG\t.\tPASS\tAF=0.987;mean_hl=0.99;n_het=12000;n_hom_var=55000",
+                "chrM\t152\t.\tT\tC\t.\tPASS\tAF=0.02;mean_hl=0.99;n_het=500;n_hom_var=1000",
+            ],
+        )
+
+    def _clinvar_vcf(self, tmp_path: Path) -> Path:
+        return _make_vcf(
+            tmp_path,
+            "clinvar.vcf",
+            ["chrM\t3243\t.\tA\tG\t.\t.\tCLNSIG=Pathogenic"],
+        )
+
+    def _phylotree_csv(self, tmp_path: Path) -> Path:
+        df = pd.DataFrame(
+            [
+                {"haplogroup": "A", "mutation": "73A>G"},
+                {"haplogroup": "H", "mutation": "263A>G"},
+            ]
+        )
+        path = tmp_path / "phylotree.csv"
+        df.to_csv(path, index=False)
+        return path
+
+    def test_build_gnomad_parquet_creates_file(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import GNOMAD_PARQUET, build_gnomad_parquet
+
+        vcf = self._gnomad_vcf(tmp_path)
+        out_dir = tmp_path / "processed"
+        build_gnomad_parquet(vcf, out_dir)
+        assert (out_dir / GNOMAD_PARQUET).exists()
+
+    def test_build_gnomad_parquet_is_idempotent(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import GNOMAD_PARQUET, build_gnomad_parquet
+
+        vcf = self._gnomad_vcf(tmp_path)
+        out_dir = tmp_path / "processed"
+        path1 = build_gnomad_parquet(vcf, out_dir)
+        # second call should return immediately without re-parsing
+        mtime1 = (out_dir / GNOMAD_PARQUET).stat().st_mtime
+        build_gnomad_parquet(vcf, out_dir)
+        mtime2 = (out_dir / GNOMAD_PARQUET).stat().st_mtime
+        assert mtime1 == mtime2
+        assert path1 == out_dir / GNOMAD_PARQUET
+
+    def test_build_clinvar_parquet_creates_file(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import CLINVAR_PARQUET, build_clinvar_parquet
+
+        vcf = self._clinvar_vcf(tmp_path)
+        out_dir = tmp_path / "processed"
+        build_clinvar_parquet(vcf, out_dir)
+        assert (out_dir / CLINVAR_PARQUET).exists()
+
+    def test_build_haplogroup_markers_parquet_creates_file(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import (
+            HAPLOGROUP_PARQUET,
+            build_haplogroup_markers_parquet,
+        )
+
+        csv = self._phylotree_csv(tmp_path)
+        out_dir = tmp_path / "processed"
+        build_haplogroup_markers_parquet(csv, out_dir)
+        assert (out_dir / HAPLOGROUP_PARQUET).exists()
+
+    def test_clinvar_parquet_with_gnomad_has_benign_rows(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.variant_processor import CLINVAR_PARQUET, build_clinvar_parquet
+
+        vcf = self._clinvar_vcf(tmp_path)
+        gnomad_vcf = self._gnomad_vcf(tmp_path)
+        out_dir = tmp_path / "processed"
+
+        # First build gnomad parquet so build_clinvar can read it
+        from mtdna_fm.data.variant_processor import GNOMAD_PARQUET, build_gnomad_parquet
+
+        build_gnomad_parquet(gnomad_vcf, out_dir)
+        build_clinvar_parquet(vcf, out_dir, gnomad_parquet=out_dir / GNOMAD_PARQUET)
+
+        result = pd.read_parquet(out_dir / CLINVAR_PARQUET)
+        assert 1 in result["label"].values
+        assert 0 in result["label"].values
