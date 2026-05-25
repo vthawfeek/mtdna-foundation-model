@@ -4,6 +4,8 @@ The mitochondrial D-loop starts at position 576 of the 16,569-bp human genome an
 
 That asymmetry shapes every decision in the Day 4 preprocessing pipeline.
 
+This is part of an open-source project to build the first dedicated foundation model for mitochondrial DNA. mtDNA mutations are the primary cause of over 350 inherited diseases, including MELAS (mitochondrial encephalomyopathy), Leigh syndrome, and Leber hereditary optic neuropathy, and the mitochondrial genome is the reference used for maternal ancestry and population genetics. Every existing genomics language model treats mtDNA as a short fragment of linear DNA. This project starts from first principles: circular architecture, heteroplasmy-aware embeddings, and a vocabulary and preprocessing pipeline designed for the 16,569-bp closed loop rather than adapted from nuclear genome tools.
+
 ## What "preprocessing" means here
 
 Preprocessing for a DNA foundation model is not the same as normalising tabular features or resizing images. The raw FASTA files from HmtDB and NCBI contain sequences that differ in length (anywhere from 16,519 to 16,819 bp), character set (IUPAC ambiguity codes like R, Y, W, S, K, M alongside the standard ACGTN), and one quirk specific to circular genomes: some databases append the first 200 bases to the end of the sequence so that analysis tools running sliding windows don't miss the circular junction region.
@@ -97,3 +99,10 @@ The `het_level_vector` column is null at this stage. It will hold a float array 
 - Pipeline handles sequences from 16,519 bp (short cross-species) to 16,819 bp (with junction duplicate) without errors
 
 The preprocessing pipeline is the last thing between raw data and the PyTorch Dataset class on Day 6. It needs to be correct before the model sees any training examples. Getting it right in the test suite now means the rest of the project can assume clean, 16,569-bp, all-uppercase, N-flagged sequences without defensive checks scattered through the training code.
+
+## Key takeaways
+- Padding a circular genome at the D-loop (position 576) preserves canonical coordinates for all 37 mitochondrial genes; padding at the 3' end corrupts them for any downstream model that relies on fixed gene positions.
+- Junction duplicates appended by sequence databases corrupt length normalization silently: the output is 16,569 bp as expected, but ~150 bp of cytochrome b is replaced by junction sequence.
+- Shannon entropy at the D-loop boundary (position 576) rises 7x in a single step; this is the sharpest biologically meaningful boundary in the human mitochondrial genome.
+- HV1 and HV2 are physically one base apart on the circular genome but 16,310 positions apart in standard BERT positional encoding — the strongest concrete argument for circular PE.
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/25/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-2/ -->

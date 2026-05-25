@@ -8,5 +8,5 @@ Three non-obvious preprocessing steps for circular genomes:
 ---
 The entropy jump at position 576 is biologically real. HV1 (ends at 16,383) and HV2 (starts at 73) are part of the same control region. Standard BERT PE treats them as 16,568 positions apart. Circular PE treats them as one step apart.
 ---
-Day 4 done: preprocessing pipeline, 27 new unit tests, EDA notebook. Full writeup:
-https://github.com/vthawfeek/mtdna-foundation-model
+Building the first mtDNA foundation model for pathogenic variant detection and haplogroup classification. Day 4 preprocessing pipeline writeup:
+https://rokpayprsizors.wordpress.com/2026/05/25/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-2/

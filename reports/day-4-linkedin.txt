@@ -1,4 +1,6 @@
-The D-loop region of human mtDNA is roughly 7x more variable than the protein-coding regions. That asymmetry shapes every preprocessing decision in the pipeline I built today for the mtDNA foundation model.
+mtDNA mutations are the primary cause of over 350 inherited diseases, including MELAS and Leigh syndrome, and the mitochondrial genome is the reference used for maternal ancestry tracing. I'm building the first dedicated foundation model for this genome. The preprocessing pipeline built on Day 4 turns out to involve several non-obvious decisions.
+
+The D-loop region of human mtDNA is roughly 7x more variable than the protein-coding regions. That asymmetry shapes every preprocessing decision in the pipeline.
 
 Three steps turned out to be less obvious than expected. First: some sequence databases append the first 200 bases of a circular genome to the end so analysis tools don't miss the junction region. Leaving this in corrupts length normalization by trimming real sequence instead of the duplicate. Second: padding short sequences at position 576 (the D-loop start) rather than the 3' end preserves canonical gene coordinates for all 37 mitochondrial genes. Third: scikit-learn's StratifiedShuffleSplit requires at least 2 samples per class, so singleton haplogroups need to be merged into a fallback bucket before splitting.
 
@@ -6,4 +8,4 @@ The entropy analysis also gave a cleaner argument for circular positional encodi
 
 Next: variant datasets (gnomAD, ClinVar, PhyloTree) for the fine-tuning tasks.
 
-Full writeup: https://github.com/vthawfeek/mtdna-foundation-model
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/25/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-2/
