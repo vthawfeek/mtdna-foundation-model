@@ -10,3 +10,23 @@ stages:
     outs:
       - data/raw/ncbi:
           persist: true
+
+  preprocess:
+    cmd: >-
+      uv run mtdna-preprocess
+      --hmtdb data/raw/hmtdb
+      --ncbi data/raw/ncbi
+      --output-dir data/processed
+    deps:
+      - data/raw/hmtdb
+      - data/raw/ncbi
+      - mtdna_fm/data/preprocessor.py
+      - mtdna_fm/scripts/preprocess.py
+    outs:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/processed/test.parquet
+    params:
+      - configs/data.yaml:
+          - target_length
+          - min_n_fraction

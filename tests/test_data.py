@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import pandas as pd
 import pytest
 
 # ---------------------------------------------------------------------------
@@ -280,3 +281,301 @@ class TestDownloadCLI:
                 ["--source", "ncbi-refseq", "--output", str(tmp_path), "--force"],
             )
         mock_run.assert_called_once_with(tmp_path, True)
+
+
+# ---------------------------------------------------------------------------
+# preprocessor tests
+# ---------------------------------------------------------------------------
+
+
+class TestCleanSequence:
+    def test_uppercase(self) -> None:
+        from mtdna_fm.data.preprocessor import clean_sequence
+
+        assert clean_sequence("acgtacgt") == "ACGTACGT"
+
+    def test_non_acgtn_replaced_with_n(self) -> None:
+        from mtdna_fm.data.preprocessor import clean_sequence
+
+        # IUPAC ambiguity codes (r, y, w, s, k, m) are not ACGTN → each becomes N
+        result = clean_sequence("ACGTrywskm")
+        assert result == "ACGTNNNNNN"  # 6 non-ACGTN chars → 6 Ns
+
+    def test_trailing_junction_duplicate_removed(self) -> None:
+        from mtdna_fm.data.preprocessor import JUNCTION_DUPLICATE_CHECK_BASES, clean_sequence
+
+        n = JUNCTION_DUPLICATE_CHECK_BASES
+        prefix = "A" * n
+        middle = "G" * 300
+        seq = prefix + middle + prefix  # last n bases == first n bases
+        cleaned = clean_sequence(seq)
+        assert len(cleaned) == n + 300
+        assert not cleaned.endswith("A" * n + "A")  # trailing dup gone
+
+    def test_no_false_positive_removal(self) -> None:
+        from mtdna_fm.data.preprocessor import JUNCTION_DUPLICATE_CHECK_BASES, clean_sequence
+
+        n = JUNCTION_DUPLICATE_CHECK_BASES
+        # Last n bases differ from first n bases — nothing should be stripped
+        seq = "A" * n + "G" * n + "T" * 100
+        cleaned = clean_sequence(seq)
+        assert len(cleaned) == len(seq)
+
+    def test_n_passthrough(self) -> None:
+        from mtdna_fm.data.preprocessor import clean_sequence
+
+        assert clean_sequence("NNNN") == "NNNN"
+
+
+class TestNormalizeLength:
+    def test_exact_length_unchanged(self) -> None:
+        from mtdna_fm.data.preprocessor import normalize_length
+
+        seq = "A" * 16569
+        assert normalize_length(seq) == seq
+
+    def test_short_padded_to_target(self) -> None:
+        from mtdna_fm.data.preprocessor import normalize_length
+
+        result = normalize_length("A" * 1000)
+        assert len(result) == 16569
+
+    def test_long_trimmed_to_target(self) -> None:
+        from mtdna_fm.data.preprocessor import normalize_length
+
+        result = normalize_length("A" * 20000)
+        assert len(result) == 16569
+
+    def test_padding_inserted_at_dloop_position(self) -> None:
+        from mtdna_fm.data.preprocessor import normalize_length
+
+        # Use a small target so we can reason about character positions easily
+        seq = "G" * 100
+        result = normalize_length(seq, target_length=200, pad_position=50)
+        assert len(result) == 200
+        # First 50 chars are G (original bases before insert point)
+        assert result[:50] == "G" * 50
+        # Insert point onwards should contain Ns
+        assert "N" in result[50:]
+
+    def test_padded_sequence_ends_with_original_suffix(self) -> None:
+        from mtdna_fm.data.preprocessor import normalize_length
+
+        seq = "ACGT" * 25  # 100 bp
+        result = normalize_length(seq, target_length=200, pad_position=50)
+        # Original bases after pad_position should be preserved at the end
+        assert result[200 - 50 :] == seq[50:]
+
+    def test_custom_target_length(self) -> None:
+        from mtdna_fm.data.preprocessor import normalize_length
+
+        for target in (100, 500, 1000):
+            assert len(normalize_length("A" * 50, target_length=target, pad_position=25)) == target
+
+
+class TestStratifiedSplit:
+    def test_split_column_added(self) -> None:
+        from mtdna_fm.data.preprocessor import stratified_split
+
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(100)],
+                "haplogroup": ["H"] * 50 + ["L"] * 50,
+            }
+        )
+        result = stratified_split(df)
+        assert "split" in result.columns
+
+    def test_approximate_fractions(self) -> None:
+        from mtdna_fm.data.preprocessor import stratified_split
+
+        n = 1000
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(n)],
+                "haplogroup": ["H"] * (n // 2) + ["L"] * (n // 2),
+            }
+        )
+        result = stratified_split(df, train_frac=0.8, val_frac=0.1)
+        counts = result["split"].value_counts()
+        assert abs(counts.get("train", 0) / n - 0.8) < 0.05
+        assert abs(counts.get("val", 0) / n - 0.1) < 0.05
+        assert abs(counts.get("test", 0) / n - 0.1) < 0.05
+
+    def test_unlabelled_rows_go_to_train(self) -> None:
+        from mtdna_fm.data.preprocessor import stratified_split
+
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(100)],
+                "haplogroup": ["H"] * 50 + [None] * 50,
+            }
+        )
+        result = stratified_split(df)
+        assert (result[result["haplogroup"].isna()]["split"] == "train").all()
+
+    def test_reproducible_with_same_seed(self) -> None:
+        from mtdna_fm.data.preprocessor import stratified_split
+
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(200)],
+                "haplogroup": ["H"] * 100 + ["L"] * 100,
+            }
+        )
+        r1 = stratified_split(df, random_state=42)
+        r2 = stratified_split(df, random_state=42)
+        assert (r1["split"] == r2["split"]).all()
+
+    def test_different_seeds_give_different_splits(self) -> None:
+        from mtdna_fm.data.preprocessor import stratified_split
+
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(500)],
+                "haplogroup": ["H"] * 250 + ["L"] * 250,
+            }
+        )
+        r1 = stratified_split(df, random_state=1)
+        r2 = stratified_split(df, random_state=99)
+        assert not (r1["split"] == r2["split"]).all()
+
+    def test_few_labeled_rows_fallback(self) -> None:
+        from mtdna_fm.data.preprocessor import stratified_split
+
+        # < 10 labeled rows: all go to train, no error
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(5)],
+                "haplogroup": ["H"] * 5,
+            }
+        )
+        result = stratified_split(df)
+        assert (result["split"] == "train").all()
+
+
+class TestPreprocessSequences:
+    def test_sequences_normalized_to_target_length(self) -> None:
+        from mtdna_fm.data.preprocessor import preprocess_sequences
+
+        df = pd.DataFrame(
+            {
+                "accession": ["s1", "s2"],
+                "sequence": ["ACGT" * 25, "A" * 20000],  # short and long
+                "haplogroup": [None, None],
+                "species": ["homo_sapiens", "homo_sapiens"],
+                "geographic_origin": [None, None],
+                "het_level_vector": [None, None],
+            }
+        )
+        result = preprocess_sequences(df, target_length=16569)
+        assert (result["sequence"].str.len() == 16569).all()
+
+    def test_qc_pass_column_added(self) -> None:
+        from mtdna_fm.data.preprocessor import preprocess_sequences
+
+        df = pd.DataFrame(
+            {
+                "accession": ["good", "bad"],
+                "sequence": ["ACGT" * 4000 + "A" * 569, "N" * 16569],
+                "haplogroup": [None, None],
+                "species": ["homo_sapiens", "homo_sapiens"],
+                "geographic_origin": [None, None],
+                "het_level_vector": [None, None],
+            }
+        )
+        result = preprocess_sequences(df, target_length=16569, min_n_fraction=0.1)
+        assert "qc_pass" in result.columns
+        assert result.loc[result["accession"] == "good", "qc_pass"].iloc[0]
+        assert not result.loc[result["accession"] == "bad", "qc_pass"].iloc[0]
+
+    def test_length_raw_column_reflects_pre_norm_length(self) -> None:
+        from mtdna_fm.data.preprocessor import preprocess_sequences
+
+        df = pd.DataFrame(
+            {
+                "accession": ["s1"],
+                "sequence": ["ACGT" * 25],  # 100 bp
+                "haplogroup": [None],
+                "species": ["homo_sapiens"],
+                "geographic_origin": [None],
+                "het_level_vector": [None],
+            }
+        )
+        result = preprocess_sequences(df, target_length=16569)
+        assert result["length_raw"].iloc[0] == 100
+
+
+class TestBuildRecordDataframe:
+    def test_parses_fasta_into_dataframe(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.preprocessor import build_record_dataframe
+
+        fasta = tmp_path / "test.fasta"
+        fasta.write_text(">seq1 description\nACGTACGT\n>seq2\nTTTTGGGG\n")
+        df = build_record_dataframe(fasta)
+        assert len(df) == 2
+        assert list(df["accession"]) == ["seq1", "seq2"]
+
+    def test_schema_columns_present(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.preprocessor import build_record_dataframe
+
+        fasta = tmp_path / "test.fasta"
+        fasta.write_text(">s1\nACGT\n")
+        df = build_record_dataframe(fasta)
+        for col in ("accession", "sequence", "haplogroup", "species", "geographic_origin",
+                    "het_level_vector"):
+            assert col in df.columns
+
+    def test_metadata_merge(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.preprocessor import build_record_dataframe
+
+        fasta = tmp_path / "test.fasta"
+        fasta.write_text(">s1\nACGT\n>s2\nTTTT\n")
+        meta = pd.DataFrame({"accession": ["s1"], "haplogroup": ["H1a"]})
+        df = build_record_dataframe(fasta, metadata_df=meta)
+        assert df.loc[df["accession"] == "s1", "haplogroup"].iloc[0] == "H1a"
+        # s2 has no metadata entry — haplogroup should be NaN
+        assert pd.isna(df.loc[df["accession"] == "s2", "haplogroup"].iloc[0])
+
+    def test_empty_fasta_raises(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.preprocessor import build_record_dataframe
+
+        fasta = tmp_path / "empty.fasta"
+        fasta.write_text("")
+        with pytest.raises(ValueError, match="No sequences found"):
+            build_record_dataframe(fasta)
+
+
+class TestSaveSplits:
+    def test_creates_three_parquet_files(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.preprocessor import save_splits
+
+        df = pd.DataFrame(
+            {
+                "accession": [f"s{i}" for i in range(10)],
+                "sequence": ["ACGT"] * 10,
+                "haplogroup": [None] * 10,
+                "species": ["homo_sapiens"] * 10,
+                "geographic_origin": [None] * 10,
+                "het_level_vector": [None] * 10,
+                "split": ["train"] * 8 + ["val"] * 1 + ["test"] * 1,
+            }
+        )
+        paths = save_splits(df, tmp_path)
+        assert set(paths.keys()) == {"train", "val", "test"}
+        for path in paths.values():
+            assert path.exists()
+
+    def test_split_column_excluded_from_output(self, tmp_path: Path) -> None:
+        from mtdna_fm.data.preprocessor import save_splits
+
+        df = pd.DataFrame(
+            {
+                "accession": ["s1"],
+                "sequence": ["ACGT"],
+                "split": ["train"],
+            }
+        )
+        paths = save_splits(df, tmp_path)
+        loaded = pd.read_parquet(paths["train"])
+        assert "split" not in loaded.columns

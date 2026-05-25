@@ -1,0 +1,19 @@
+# Data preprocessing configuration
+target_length: 16569       # rCRS length (all output sequences are padded/trimmed to this)
+pad_position: 576          # D-loop start: padding inserted here so coding coordinates stay canonical
+min_n_fraction: 0.10       # sequences with > 10% N bases are flagged qc_pass=False
+
+# Train/val/test split fractions (must sum to 1.0)
+train_frac: 0.80
+val_frac: 0.10
+# test_frac = 1 - train_frac - val_frac = 0.10
+
+# Circular junction duplicate detection: strip trailing suffix if it equals the first n bases
+junction_duplicate_check_bases: 200
+
+# Batch sizes for FASTA parsing (not chunked; kept here for DVC param tracking)
+hmtdb_fasta: "data/raw/hmtdb/sequences.fasta"
+hmtdb_metadata: "data/raw/hmtdb/metadata.parquet"
+ncbi_fasta: "data/raw/ncbi/vertebrate_mtdna.fasta"
+
+processed_dir: "data/processed"
