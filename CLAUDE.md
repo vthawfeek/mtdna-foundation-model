@@ -18,7 +18,7 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 3: COMPLETE (commit dabd8c5) — data download clients (HmtDB, NCBI Entrez)
 - Day 4: COMPLETE (commit 78b869a) — preprocessing pipeline + EDA notebook
 - Day 5: COMPLETE (commit 41ec618) — variant datasets (gnomAD, ClinVar, PhyloTree)
-- Day 6: COMPLETE (commit TBD) — PyTorch Dataset classes (MtDNADataset, VariantDataset)
+- Day 6: COMPLETE (commit 33169c2) — PyTorch Dataset classes (MtDNADataset, VariantDataset)
 - Day 7: GitHub CI + Blog Post 1
 - Day 8-14: model architecture + pre-training
 - Day 15-21: fine-tuning + evaluation + HuggingFace Hub
