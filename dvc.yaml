@@ -1,0 +1,12 @@
+stages:
+  download_hmtdb:
+    cmd: uv run mtdna-download --source hmtdb --output data/raw/hmtdb
+    outs:
+      - data/raw/hmtdb:
+          persist: true
+
+  download_ncbi:
+    cmd: uv run mtdna-download --source ncbi-refseq --output data/raw/ncbi
+    outs:
+      - data/raw/ncbi:
+          persist: true
