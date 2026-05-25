@@ -1,0 +1,12 @@
+The D-loop in human mtDNA has ~7x higher Shannon entropy than the coding region. Sharp boundary at position 576. This is why padding goes there and not at the 3' end.
+---
+Three non-obvious preprocessing steps for circular genomes:
+
+1. Strip junction duplicates (databases append the first 200bp to the end so sliding windows cover the junction)
+2. Pad at the D-loop start, not the 3' end (preserves gene coordinates)
+3. Merge singleton haplogroups before StratifiedShuffleSplit (or it crashes)
+---
+The entropy jump at position 576 is biologically real. HV1 (ends at 16,383) and HV2 (starts at 73) are part of the same control region. Standard BERT PE treats them as 16,568 positions apart. Circular PE treats them as one step apart.
+---
+Day 4 done: preprocessing pipeline, 27 new unit tests, EDA notebook. Full writeup:
+https://github.com/vthawfeek/mtdna-foundation-model

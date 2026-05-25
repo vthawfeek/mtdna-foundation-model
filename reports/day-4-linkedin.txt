@@ -1,0 +1,9 @@
+The D-loop region of human mtDNA is roughly 7x more variable than the protein-coding regions. That asymmetry shapes every preprocessing decision in the pipeline I built today for the mtDNA foundation model.
+
+Three steps turned out to be less obvious than expected. First: some sequence databases append the first 200 bases of a circular genome to the end so analysis tools don't miss the junction region. Leaving this in corrupts length normalization by trimming real sequence instead of the duplicate. Second: padding short sequences at position 576 (the D-loop start) rather than the 3' end preserves canonical gene coordinates for all 37 mitochondrial genes. Third: scikit-learn's StratifiedShuffleSplit requires at least 2 samples per class, so singleton haplogroups need to be merged into a fallback bucket before splitting.
+
+The entropy analysis also gave a cleaner argument for circular positional encoding. HV1 (ending near position 16,383) and HV2 (starting at position 73) are both high-entropy control-region segments, biologically adjacent, but separated by the coordinate origin of the reference sequence. Standard positional embeddings treat them as 16,310 positions apart.
+
+Next: variant datasets (gnomAD, ClinVar, PhyloTree) for the fine-tuning tasks.
+
+Full writeup: https://github.com/vthawfeek/mtdna-foundation-model
