@@ -1,5 +1,5 @@
 """
-Tests for data download clients.
+Tests for data download clients and PyTorch Dataset classes.
 
 All tests here are unit tests that run without network access. Integration
 tests (which actually hit HmtDB or NCBI) are marked with
@@ -12,6 +12,7 @@ import json
 from pathlib import Path
 from unittest.mock import patch
 
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -940,3 +941,221 @@ class TestBuildParquets:
         result = pd.read_parquet(out_dir / CLINVAR_PARQUET)
         assert 1 in result["label"].values
         assert 0 in result["label"].values
+
+
+# ---------------------------------------------------------------------------
+# MtDNADataset tests (Day 6)
+# ---------------------------------------------------------------------------
+
+
+def _make_dataset(
+    n_seqs: int = 2,
+    genome_length: int = 100,
+    window_size: int = 20,
+    stride: int = 10,
+    k: int = 3,
+    with_het: bool = False,
+):
+    """Helper: build a tiny MtDNADataset for fast unit tests."""
+    from mtdna_fm.data.dataset import MtDNADataset
+    from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+    rng = np.random.default_rng(42)
+    sequences = [
+        "".join(rng.choice(list("ACGT"), size=genome_length)) for _ in range(n_seqs)
+    ]
+    vocab = KmerVocabulary.build(k=k)
+
+    het_vectors = None
+    if with_het:
+        het_vectors = [rng.uniform(0.0, 1.0, size=genome_length).astype(np.float32) for _ in range(n_seqs)]
+
+    return MtDNADataset(
+        sequences=sequences,
+        vocabulary=vocab,
+        k=k,
+        window_size=window_size,
+        stride=stride,
+        genome_length=genome_length,
+        het_level_vectors=het_vectors,
+    )
+
+
+class TestMtDNADataset:
+    def test_dataset_length(self) -> None:
+        """Window count equals ceil(genome_length / stride) per sequence."""
+        genome_length, stride, n_seqs = 100, 10, 2
+        dataset = _make_dataset(n_seqs=n_seqs, genome_length=genome_length, stride=stride)
+        expected = len(range(0, genome_length, stride)) * n_seqs
+        assert len(dataset) == expected
+
+    def test_all_positions_covered(self) -> None:
+        """Every genomic position appears in at least one window's position_ids."""
+        genome_length, stride = 100, 10
+        dataset = _make_dataset(n_seqs=1, genome_length=genome_length, stride=stride)
+        all_positions: set[int] = set()
+        for i in range(len(dataset)):
+            item = dataset[i]
+            all_positions.update(item["position_ids"].tolist())
+        assert all_positions == set(range(genome_length))
+
+    def test_circular_junction_window(self) -> None:
+        """At least one window spans the genome end/start boundary."""
+        genome_length, window_size, stride = 100, 20, 10
+        dataset = _make_dataset(
+            n_seqs=1, genome_length=genome_length, window_size=window_size, stride=stride
+        )
+        # The window starting at token 90 wraps: positions 90-99 and 0-9
+        junction_found = False
+        for i in range(len(dataset)):
+            item = dataset[i]
+            positions = item["position_ids"].tolist()
+            if max(positions) >= genome_length - 1 and min(positions) == 0:
+                junction_found = True
+                break
+        assert junction_found, "No window spanning the circular genome junction was found"
+
+    def test_het_values_range(self) -> None:
+        """All returned het_values are in [0.0, 1.0]."""
+        dataset = _make_dataset(n_seqs=2, genome_length=100, with_het=True)
+        for i in range(len(dataset)):
+            item = dataset[i]
+            assert float(item["het_values"].min()) >= 0.0
+            assert float(item["het_values"].max()) <= 1.0
+
+    def test_output_tensor_shapes(self) -> None:
+        """All returned tensors have the expected window_size length."""
+        window_size = 20
+        dataset = _make_dataset(n_seqs=1, genome_length=100, window_size=window_size)
+        item = dataset[0]
+        for key in ("input_ids", "attention_mask", "position_ids", "het_values"):
+            assert item[key].shape == (window_size,), f"{key} shape mismatch"
+
+    def test_labels_propagated(self) -> None:
+        """Labels from the sequence level are inherited by every window."""
+        from mtdna_fm.data.dataset import MtDNADataset
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        rng = np.random.default_rng(0)
+        genome_length, stride = 100, 10
+        seq = "".join(rng.choice(list("ACGT"), size=genome_length))
+        vocab = KmerVocabulary.build(k=3)
+        dataset = MtDNADataset(
+            sequences=[seq],
+            vocabulary=vocab,
+            k=3,
+            window_size=20,
+            stride=stride,
+            genome_length=genome_length,
+            labels=[7],
+        )
+        for i in range(len(dataset)):
+            assert int(dataset[i]["labels"]) == 7
+
+    def test_from_dataframe(self) -> None:
+        """from_dataframe constructs a dataset with the correct length."""
+        from mtdna_fm.data.dataset import MtDNADataset
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        rng = np.random.default_rng(0)
+        genome_length, stride = 100, 10
+        n_seqs = 3
+        seqs = ["".join(rng.choice(list("ACGT"), size=genome_length)) for _ in range(n_seqs)]
+        df = pd.DataFrame({"sequence": seqs, "het_level_vector": [None] * n_seqs})
+        vocab = KmerVocabulary.build(k=3)
+        dataset = MtDNADataset.from_dataframe(
+            df, vocab, k=3, window_size=20, stride=stride, genome_length=genome_length
+        )
+        expected = len(range(0, genome_length, stride)) * n_seqs
+        assert len(dataset) == expected
+
+
+# ---------------------------------------------------------------------------
+# VariantDataset tests (Day 6)
+# ---------------------------------------------------------------------------
+
+
+def _make_variant_df(positions: list[int], label: int = 1) -> pd.DataFrame:
+    """Helper: make a simple variant DataFrame with dummy SNPs."""
+    return pd.DataFrame({
+        "pos": positions,          # 1-based VCF positions
+        "ref": ["A"] * len(positions),
+        "alt": ["G"] * len(positions),
+        "label": [label] * len(positions),
+    })
+
+
+class TestVariantDataset:
+    def _reference(self, genome_length: int = 100) -> str:
+        rng = np.random.default_rng(99)
+        return "".join(rng.choice(list("ACGT"), size=genome_length))
+
+    def test_length_equals_snp_count(self) -> None:
+        from mtdna_fm.data.variant_dataset import VariantDataset
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        ref = self._reference(100)
+        vocab = KmerVocabulary.build(k=3)
+        df = _make_variant_df(positions=[10, 50, 80])
+        dataset = VariantDataset(ref, df, vocab, k=3, window_size=20, genome_length=100)
+        assert len(dataset) == 3
+
+    def test_indels_excluded(self) -> None:
+        from mtdna_fm.data.variant_dataset import VariantDataset
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        ref = self._reference(100)
+        vocab = KmerVocabulary.build(k=3)
+        df = pd.DataFrame({
+            "pos": [10, 20, 30],
+            "ref": ["A", "AT", "A"],    # middle row is indel
+            "alt": ["G", "G", "GC"],    # last row is indel
+            "label": [1, 0, 0],
+        })
+        dataset = VariantDataset(ref, df, vocab, k=3, window_size=20, genome_length=100)
+        assert len(dataset) == 1  # only pos=10 A>G is a valid SNP
+
+    def test_output_tensor_shapes(self) -> None:
+        from mtdna_fm.data.variant_dataset import VariantDataset
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        ref = self._reference(100)
+        vocab = KmerVocabulary.build(k=3)
+        df = _make_variant_df(positions=[50])
+        window_size = 20
+        dataset = VariantDataset(ref, df, vocab, k=3, window_size=window_size, genome_length=100)
+        item = dataset[0]
+        for key in ("input_ids", "attention_mask", "position_ids", "het_values"):
+            assert item[key].shape == (window_size,), f"{key} shape mismatch"
+
+    def test_label_returned(self) -> None:
+        from mtdna_fm.data.variant_dataset import VariantDataset
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        ref = self._reference(100)
+        vocab = KmerVocabulary.build(k=3)
+        df = pd.DataFrame({"pos": [10, 50], "ref": ["A", "A"], "alt": ["G", "G"], "label": [1, 0]})
+        dataset = VariantDataset(ref, df, vocab, k=3, window_size=20, genome_length=100)
+        assert int(dataset[0]["label"]) == 1
+        assert int(dataset[1]["label"]) == 0
+
+    def test_snp_applied_to_reference(self) -> None:
+        """The mutated token at the variant position differs from the reference."""
+        from mtdna_fm.data.variant_dataset import VariantDataset
+        from mtdna_fm.tokenizer.tokenize import tokenize_sequence
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+        genome_length = 100
+        ref = "A" * genome_length  # all-A reference
+        vocab = KmerVocabulary.build(k=3)
+        # Variant at VCF pos=50 (0-based 49): A>G
+        df = pd.DataFrame({"pos": [50], "ref": ["A"], "alt": ["G"], "label": [1]})
+        dataset = VariantDataset(ref, df, vocab, k=3, window_size=20, genome_length=genome_length)
+        item = dataset[0]
+
+        # The window should contain a token encoding a G-containing k-mer at position 49
+        ref_tokens = tokenize_sequence(ref, vocab, k=3, stride=1, max_seq_len=genome_length, circular=True)
+        variant_token_in_ref = ref_tokens["input_ids"][49]
+        variant_token_in_window = item["input_ids"][item["variant_offset"].item()].item()
+        # The k-mer at position 49 of the mutant differs from the reference k-mer
+        assert variant_token_in_window != variant_token_in_ref
