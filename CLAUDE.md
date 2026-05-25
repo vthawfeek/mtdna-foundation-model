@@ -15,7 +15,7 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 
 - Day 1: COMPLETE (commit 12d614c) — scaffold, pyproject.toml, CLI stubs, CI
 - Day 2: COMPLETE (commit 3e1f9d9) — tokenizer (`KmerVocabulary` + `tokenize_sequence`)
-- Day 3: data download clients (HmtDB, NCBI Entrez)
+- Day 3: COMPLETE (commit dabd8c5) — data download clients (HmtDB, NCBI Entrez)
 - Day 4: preprocessing pipeline + EDA notebook
 - Day 5: variant datasets (gnomAD, ClinVar, PhyloTree)
 - Day 6: PyTorch Dataset class
