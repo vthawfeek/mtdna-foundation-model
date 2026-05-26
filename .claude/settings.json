@@ -1,0 +1,14 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm -f notebooks/notebooks/01_data_exploration.ipynb && uv run jupyter nbconvert --to notebook --execute notebooks/01_data_exploration.ipynb --output 01_data_exploration.ipynb --output-dir notebooks/ --ExecutePreprocessor.timeout=600 2>&1)",
+      "Bash(python3 -c ' *)",
+      "Bash(python3 -)",
+      "Bash(python -c \"from mtdna_fm.tokenizer.vocabulary import KmerVocabulary; v=KmerVocabulary.build\\(k=6\\); assert len\\(v\\)==4102, f'Expected 4102, got {len\\(v\\)}'; print\\(f'Vocabulary size: {len\\(v\\)} OK'\\)\")",
+      "Bash(python -c ' *)"
+    ],
+    "additionalDirectories": [
+      "/home/user/Documents/Personal/ai_lab/mtdna_foundation_model/notebooks/notebooks"
+    ]
+  }
+}

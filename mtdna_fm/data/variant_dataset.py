@@ -107,9 +107,7 @@ class VariantDataset(Dataset):
         variant_offset = half if pos_0 >= half else (pos_0 - window_start) % n
 
         return {
-            "input_ids": torch.tensor(
-                [tokens["input_ids"][j] for j in indices], dtype=torch.long
-            ),
+            "input_ids": torch.tensor([tokens["input_ids"][j] for j in indices], dtype=torch.long),
             "attention_mask": torch.tensor(
                 [tokens["attention_mask"][j] for j in indices], dtype=torch.long
             ),

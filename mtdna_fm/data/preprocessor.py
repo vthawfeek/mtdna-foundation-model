@@ -101,9 +101,7 @@ def stratified_split(
     # Merge rare classes (< 2 samples) so StratifiedShuffleSplit doesn't error
     counts = pd.Series(labels).value_counts()
     rare = set(counts[counts < 2].index.tolist())
-    strat_labels = (
-        np.where(np.isin(labels, list(rare)), "_rare", labels) if rare else labels
-    )
+    strat_labels = np.where(np.isin(labels, list(rare)), "_rare", labels) if rare else labels
 
     test_frac = round(1.0 - train_frac - val_frac, 10)
     sss1 = StratifiedShuffleSplit(
@@ -149,8 +147,7 @@ def build_record_dataframe(
     """
     fasta_path = Path(fasta_path)
     rows = [
-        {"accession": rec.id, "sequence": str(rec.seq)}
-        for rec in SeqIO.parse(fasta_path, "fasta")
+        {"accession": rec.id, "sequence": str(rec.seq)} for rec in SeqIO.parse(fasta_path, "fasta")
     ]
     if not rows:
         raise ValueError(f"No sequences found in {fasta_path}")
@@ -166,9 +163,7 @@ def build_record_dataframe(
         if "accession" not in metadata_df.columns:
             metadata_df = metadata_df.rename(columns={metadata_df.columns[0]: "accession"})
         merge_cols = ["accession"] + [
-            c
-            for c in ("haplogroup", "species", "geographic_origin")
-            if c in metadata_df.columns
+            c for c in ("haplogroup", "species", "geographic_origin") if c in metadata_df.columns
         ]
         if len(merge_cols) > 1:
             df = df.drop(columns=[c for c in merge_cols[1:]], errors="ignore")

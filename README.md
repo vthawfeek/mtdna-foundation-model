@@ -1,7 +1,7 @@
 # mtDNA Foundation Model
 
-[![CI](https://github.com/YOUR_USERNAME/mtdna-foundation-model/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/mtdna-foundation-model/actions/workflows/ci.yml)
-[![HuggingFace](https://img.shields.io/badge/HuggingFace-mtdna--fm-yellow)](https://huggingface.co/YOUR_USERNAME/mtdna-foundation-model)
+[![CI](https://github.com/vthawfeek/mtdna-foundation-model/actions/workflows/ci.yml/badge.svg)](https://github.com/vthawfeek/mtdna-foundation-model/actions/workflows/ci.yml)
+[![HuggingFace](https://img.shields.io/badge/HuggingFace-mtdna--fm-yellow)](https://huggingface.co/vthawfeek/mtdna-foundation-model)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 
 The first dedicated foundation model for mitochondrial DNA. Pre-trained on 77k+ complete mitochondrial genomes with two architectural novelties: circular positional encoding (because mtDNA is circular, not linear) and a heteroplasmy projection channel that encodes per-position variant allele fractions alongside k-mer token IDs.
@@ -15,7 +15,7 @@ pip install mtdna-fm
 ```python
 from mtdna_fm.inference.api import MtDNAEmbedder
 
-embedder = MtDNAEmbedder.from_pretrained("YOUR_USERNAME/mtdna-foundation-model")
+embedder = MtDNAEmbedder.from_pretrained("vthawfeek/mtdna-foundation-model")
 embedding = embedder.embed_genome(sequence)   # shape: (256,)
 ```
 
@@ -51,7 +51,7 @@ Model size: 6 layers, 8 heads, 256 hidden dimensions, ~6M parameters. Tokenizati
 ## Reproducibility
 
 ```bash
-git clone https://github.com/YOUR_USERNAME/mtdna-foundation-model
+git clone https://github.com/vthawfeek/mtdna-foundation-model
 cd mtdna-foundation-model
 uv sync
 dvc repro

@@ -62,9 +62,7 @@ GNOMAD_BGZ_URL = (
 )
 GNOMAD_TBI_URL = GNOMAD_BGZ_URL + ".tbi"
 
-CLINVAR_VCF_GZ_URL = (
-    "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz"
-)
+CLINVAR_VCF_GZ_URL = "https://ftp.ncbi.nlm.nih.gov/pub/clinvar/vcf_GRCh38/clinvar.vcf.gz"
 
 # Flat CSV derived from PhyloTree Build 17 (rCRS-referenced, SNPs only)
 PHYLOTREE_CSV_URL = (
@@ -83,9 +81,10 @@ def _stream_download(url: str, dest: Path, desc: str = "") -> None:
     resp = requests.get(url, stream=True, timeout=120)
     resp.raise_for_status()
     total = int(resp.headers.get("content-length", 0))
-    with open(dest, "wb") as fh, tqdm(
-        total=total, unit="B", unit_scale=True, desc=desc or dest.name
-    ) as bar:
+    with (
+        open(dest, "wb") as fh,
+        tqdm(total=total, unit="B", unit_scale=True, desc=desc or dest.name) as bar,
+    ):
         for chunk in resp.iter_content(chunk_size=65536):
             fh.write(chunk)
             bar.update(len(chunk))

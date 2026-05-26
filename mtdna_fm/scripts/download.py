@@ -53,8 +53,7 @@ def main(
     """Download a raw dataset. Idempotent by default."""
     if source not in VALID_SOURCES:
         typer.echo(
-            f"[error] Unknown source '{source}'. "
-            f"Valid options: {', '.join(VALID_SOURCES)}",
+            f"[error] Unknown source '{source}'. Valid options: {', '.join(VALID_SOURCES)}",
             err=True,
         )
         raise typer.Exit(code=1)

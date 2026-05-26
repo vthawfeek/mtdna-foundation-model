@@ -30,9 +30,7 @@ HMTDB_FASTA_URL = "https://www.hmtdb.uniba.it/hmtdb2/allsequences.fasta"
 HMTDB_METADATA_URL = "https://www.hmtdb.uniba.it/hmtdb2/allmetadata.csv"
 
 # NCBI fallback: same dataset via Entrez
-NCBI_FALLBACK_QUERY = (
-    "human[Organism] AND mitochondrion[Filter] AND complete genome[Title]"
-)
+NCBI_FALLBACK_QUERY = "human[Organism] AND mitochondrion[Filter] AND complete genome[Title]"
 
 # Expected output filenames
 FASTA_FILENAME = "sequences.fasta"
@@ -52,9 +50,10 @@ def _download_file(url: str, dest: Path, desc: str = "") -> None:
     resp = requests.get(url, stream=True, timeout=60)
     resp.raise_for_status()
     total = int(resp.headers.get("content-length", 0))
-    with open(dest, "wb") as f, tqdm(
-        total=total, unit="B", unit_scale=True, desc=desc or dest.name
-    ) as bar:
+    with (
+        open(dest, "wb") as f,
+        tqdm(total=total, unit="B", unit_scale=True, desc=desc or dest.name) as bar,
+    ):
         for chunk in resp.iter_content(chunk_size=65536):
             f.write(chunk)
             bar.update(len(chunk))
@@ -118,9 +117,7 @@ def _download_fasta_from_hmtdb(dest: Path, expected_sha256: str | None) -> None:
         if expected_sha256 is not None:
             actual = _sha256(tmp_path)
             if actual != expected_sha256.lower():
-                raise ValueError(
-                    f"SHA256 mismatch: expected {expected_sha256}, got {actual}"
-                )
+                raise ValueError(f"SHA256 mismatch: expected {expected_sha256}, got {actual}")
         shutil.move(str(tmp_path), str(dest))
     finally:
         if tmp_path.exists():

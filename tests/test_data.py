@@ -55,12 +55,10 @@ class TestHmtdbClient:
         fasta_path.write_text(">seq1\nACGT\n")
         metadata_path.write_bytes(b"fake parquet")
 
-        with patch(
-            "mtdna_fm.data.hmtdb_client._download_fasta_from_hmtdb"
-        ) as mock_dl, patch(
-            "mtdna_fm.data.hmtdb_client._download_metadata_from_hmtdb"
-        ) as mock_meta, patch(
-            "mtdna_fm.data.hmtdb_client._validate_fasta"
+        with (
+            patch("mtdna_fm.data.hmtdb_client._download_fasta_from_hmtdb") as mock_dl,
+            patch("mtdna_fm.data.hmtdb_client._download_metadata_from_hmtdb") as mock_meta,
+            patch("mtdna_fm.data.hmtdb_client._validate_fasta"),
         ):
             mock_dl.return_value = None
             mock_meta.return_value = None
@@ -85,12 +83,10 @@ class TestHmtdbClient:
         new_dir = tmp_path / "nested" / "hmtdb"
         assert not new_dir.exists()
 
-        with patch(
-            "mtdna_fm.data.hmtdb_client._download_fasta_from_hmtdb"
-        ), patch(
-            "mtdna_fm.data.hmtdb_client._download_metadata_from_hmtdb"
-        ), patch(
-            "mtdna_fm.data.hmtdb_client._validate_fasta"
+        with (
+            patch("mtdna_fm.data.hmtdb_client._download_fasta_from_hmtdb"),
+            patch("mtdna_fm.data.hmtdb_client._download_metadata_from_hmtdb"),
+            patch("mtdna_fm.data.hmtdb_client._validate_fasta"),
         ):
             download_hmtdb(new_dir)
 
@@ -102,14 +98,16 @@ class TestHmtdbClient:
 
         from mtdna_fm.data.hmtdb_client import download_hmtdb
 
-        with patch(
-            "mtdna_fm.data.hmtdb_client._download_fasta_from_hmtdb",
-            side_effect=requests.ConnectionError("offline"),
-        ), patch(
-            "mtdna_fm.data.hmtdb_client._ncbi_fallback",
-            return_value=(tmp_path / "sequences.fasta", tmp_path / "metadata.parquet"),
-        ) as mock_fallback, patch(
-            "mtdna_fm.data.hmtdb_client._validate_fasta"
+        with (
+            patch(
+                "mtdna_fm.data.hmtdb_client._download_fasta_from_hmtdb",
+                side_effect=requests.ConnectionError("offline"),
+            ),
+            patch(
+                "mtdna_fm.data.hmtdb_client._ncbi_fallback",
+                return_value=(tmp_path / "sequences.fasta", tmp_path / "metadata.parquet"),
+            ) as mock_fallback,
+            patch("mtdna_fm.data.hmtdb_client._validate_fasta"),
         ):
             download_hmtdb(tmp_path)
 
@@ -185,14 +183,16 @@ class TestNcbiClient:
         fasta_path = new_dir / fasta_name
 
         # Simulate a single completed batch so the fetch loop body is skipped
-        with patch(
-            "mtdna_fm.data.ncbi_client._esearch",
-            return_value=(1, "webenv", "1"),
-        ), patch(
-            "mtdna_fm.data.ncbi_client._efetch_batch",
-            return_value=">seq1\nACGT\n",
-        ), patch(
-            "mtdna_fm.data.ncbi_client._save_progress"
+        with (
+            patch(
+                "mtdna_fm.data.ncbi_client._esearch",
+                return_value=(1, "webenv", "1"),
+            ),
+            patch(
+                "mtdna_fm.data.ncbi_client._efetch_batch",
+                return_value=">seq1\nACGT\n",
+            ),
+            patch("mtdna_fm.data.ncbi_client._save_progress"),
         ):
             # Pre-create fasta so the complete check passes
             new_dir.mkdir(parents=True)
@@ -241,9 +241,7 @@ class TestDownloadCLI:
 
         runner = CliRunner()
         with patch("mtdna_fm.scripts.download._run_gnomad") as mock_run:
-            result = runner.invoke(
-                app, ["--source", "gnomad", "--output", str(tmp_path)]
-            )
+            result = runner.invoke(app, ["--source", "gnomad", "--output", str(tmp_path)])
         mock_run.assert_called_once_with(tmp_path, False)
         assert result.exit_code == 0
 
@@ -254,9 +252,7 @@ class TestDownloadCLI:
 
         runner = CliRunner()
         with patch("mtdna_fm.scripts.download._run_clinvar") as mock_run:
-            result = runner.invoke(
-                app, ["--source", "clinvar", "--output", str(tmp_path)]
-            )
+            result = runner.invoke(app, ["--source", "clinvar", "--output", str(tmp_path)])
         mock_run.assert_called_once_with(tmp_path, False)
         assert result.exit_code == 0
 
@@ -267,9 +263,7 @@ class TestDownloadCLI:
 
         runner = CliRunner()
         with patch("mtdna_fm.scripts.download._run_phylotree") as mock_run:
-            result = runner.invoke(
-                app, ["--source", "phylotree", "--output", str(tmp_path)]
-            )
+            result = runner.invoke(app, ["--source", "phylotree", "--output", str(tmp_path)])
         mock_run.assert_called_once_with(tmp_path, False)
         assert result.exit_code == 0
 
@@ -280,9 +274,7 @@ class TestDownloadCLI:
 
         runner = CliRunner()
         with patch("mtdna_fm.scripts.download._run_hmtdb") as mock_run:
-            result = runner.invoke(
-                app, ["--source", "hmtdb", "--output", str(tmp_path)]
-            )
+            result = runner.invoke(app, ["--source", "hmtdb", "--output", str(tmp_path)])
         mock_run.assert_called_once_with(tmp_path, False)
         assert result.exit_code == 0
 
@@ -293,9 +285,7 @@ class TestDownloadCLI:
 
         runner = CliRunner()
         with patch("mtdna_fm.scripts.download._run_ncbi_refseq") as mock_run:
-            result = runner.invoke(
-                app, ["--source", "ncbi-refseq", "--output", str(tmp_path)]
-            )
+            result = runner.invoke(app, ["--source", "ncbi-refseq", "--output", str(tmp_path)])
         mock_run.assert_called_once_with(tmp_path, False)
         assert result.exit_code == 0
 
@@ -552,8 +542,14 @@ class TestBuildRecordDataframe:
         fasta = tmp_path / "test.fasta"
         fasta.write_text(">s1\nACGT\n")
         df = build_record_dataframe(fasta)
-        for col in ("accession", "sequence", "haplogroup", "species", "geographic_origin",
-                    "het_level_vector"):
+        for col in (
+            "accession",
+            "sequence",
+            "haplogroup",
+            "species",
+            "geographic_origin",
+            "het_level_vector",
+        ):
             assert col in df.columns
 
     def test_metadata_merge(self, tmp_path: Path) -> None:
@@ -619,10 +615,7 @@ class TestSaveSplits:
 def _make_vcf(tmp_path: Path, filename: str, lines: list[str]) -> Path:
     """Write a minimal VCF file for testing."""
     path = tmp_path / filename
-    header = (
-        "##fileformat=VCFv4.2\n"
-        "#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
-    )
+    header = "##fileformat=VCFv4.2\n#CHROM\tPOS\tID\tREF\tALT\tQUAL\tFILTER\tINFO\n"
     path.write_text(header + "\n".join(lines) + "\n")
     return path
 
@@ -686,9 +679,7 @@ class TestGnomadParser:
     def test_schema_columns(self, tmp_path: Path) -> None:
         from mtdna_fm.data.variant_processor import parse_gnomad_chrm_vcf
 
-        vcf = _make_vcf(
-            tmp_path, "gnomad.vcf", ["chrM\t73\t.\tA\tG\t.\tPASS\tAF=0.9"]
-        )
+        vcf = _make_vcf(tmp_path, "gnomad.vcf", ["chrM\t73\t.\tA\tG\t.\tPASS\tAF=0.9"])
         df = parse_gnomad_chrm_vcf(vcf)
         assert set(df.columns) == {"pos", "ref", "alt", "af", "het_level", "n_het", "n_hom"}
 
@@ -726,9 +717,7 @@ class TestClinvarParser:
     def test_add_benign_proxies(self, tmp_path: Path) -> None:
         from mtdna_fm.data.variant_processor import add_benign_proxies
 
-        pathogenic = pd.DataFrame(
-            {"pos": [3243], "ref": ["A"], "alt": ["G"], "label": [1]}
-        )
+        pathogenic = pd.DataFrame({"pos": [3243], "ref": ["A"], "alt": ["G"], "label": [1]})
         gnomad = pd.DataFrame(
             {
                 "pos": [73, 3243, 263],
@@ -753,9 +742,7 @@ class TestClinvarParser:
     def test_benign_proxies_do_not_duplicate_pathogenic(self, tmp_path: Path) -> None:
         from mtdna_fm.data.variant_processor import add_benign_proxies
 
-        pathogenic = pd.DataFrame(
-            {"pos": [73], "ref": ["A"], "alt": ["G"], "label": [1]}
-        )
+        pathogenic = pd.DataFrame({"pos": [73], "ref": ["A"], "alt": ["G"], "label": [1]})
         gnomad = pd.DataFrame(
             {
                 "pos": [73],
@@ -828,9 +815,9 @@ class TestPhylotreeParser:
         csv = self._make_csv(
             tmp_path,
             [
-                {"haplogroup": "A", "mutation": "73A>G"},      # valid SNP
-                {"haplogroup": "A", "mutation": "315.1C"},     # insertion
-                {"haplogroup": "A", "mutation": "np"},         # non-standard
+                {"haplogroup": "A", "mutation": "73A>G"},  # valid SNP
+                {"haplogroup": "A", "mutation": "315.1C"},  # insertion
+                {"haplogroup": "A", "mutation": "np"},  # non-standard
             ],
         )
         df = parse_phylotree_csv(csv)
@@ -961,14 +948,14 @@ def _make_dataset(
     from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
 
     rng = np.random.default_rng(42)
-    sequences = [
-        "".join(rng.choice(list("ACGT"), size=genome_length)) for _ in range(n_seqs)
-    ]
+    sequences = ["".join(rng.choice(list("ACGT"), size=genome_length)) for _ in range(n_seqs)]
     vocab = KmerVocabulary.build(k=k)
 
     het_vectors = None
     if with_het:
-        het_vectors = [rng.uniform(0.0, 1.0, size=genome_length).astype(np.float32) for _ in range(n_seqs)]
+        het_vectors = [
+            rng.uniform(0.0, 1.0, size=genome_length).astype(np.float32) for _ in range(n_seqs)
+        ]
 
     return MtDNADataset(
         sequences=sequences,
@@ -1077,12 +1064,14 @@ class TestMtDNADataset:
 
 def _make_variant_df(positions: list[int], label: int = 1) -> pd.DataFrame:
     """Helper: make a simple variant DataFrame with dummy SNPs."""
-    return pd.DataFrame({
-        "pos": positions,          # 1-based VCF positions
-        "ref": ["A"] * len(positions),
-        "alt": ["G"] * len(positions),
-        "label": [label] * len(positions),
-    })
+    return pd.DataFrame(
+        {
+            "pos": positions,  # 1-based VCF positions
+            "ref": ["A"] * len(positions),
+            "alt": ["G"] * len(positions),
+            "label": [label] * len(positions),
+        }
+    )
 
 
 class TestVariantDataset:
@@ -1106,12 +1095,14 @@ class TestVariantDataset:
 
         ref = self._reference(100)
         vocab = KmerVocabulary.build(k=3)
-        df = pd.DataFrame({
-            "pos": [10, 20, 30],
-            "ref": ["A", "AT", "A"],    # middle row is indel
-            "alt": ["G", "G", "GC"],    # last row is indel
-            "label": [1, 0, 0],
-        })
+        df = pd.DataFrame(
+            {
+                "pos": [10, 20, 30],
+                "ref": ["A", "AT", "A"],  # middle row is indel
+                "alt": ["G", "G", "GC"],  # last row is indel
+                "label": [1, 0, 0],
+            }
+        )
         dataset = VariantDataset(ref, df, vocab, k=3, window_size=20, genome_length=100)
         assert len(dataset) == 1  # only pos=10 A>G is a valid SNP
 
@@ -1154,7 +1145,9 @@ class TestVariantDataset:
         item = dataset[0]
 
         # The window should contain a token encoding a G-containing k-mer at position 49
-        ref_tokens = tokenize_sequence(ref, vocab, k=3, stride=1, max_seq_len=genome_length, circular=True)
+        ref_tokens = tokenize_sequence(
+            ref, vocab, k=3, stride=1, max_seq_len=genome_length, circular=True
+        )
         variant_token_in_ref = ref_tokens["input_ids"][49]
         variant_token_in_window = item["input_ids"][item["variant_offset"].item()].item()
         # The k-mer at position 49 of the mutant differs from the reference k-mer

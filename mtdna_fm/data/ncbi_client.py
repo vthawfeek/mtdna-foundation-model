@@ -28,9 +28,7 @@ logger = logging.getLogger(__name__)
 Entrez.email = os.getenv("NCBI_EMAIL", "thawfeek.varusai@biorelate.com")
 
 # Vertebrate complete mtDNA genomes: the cross-species pre-training corpus
-VERTEBRATE_QUERY = (
-    "vertebrata[Organism] AND complete genome[Title] AND mitochondrion[Filter]"
-)
+VERTEBRATE_QUERY = "vertebrata[Organism] AND complete genome[Title] AND mitochondrion[Filter]"
 # Human mtDNA: matches HmtDB coverage, used as fallback
 HUMAN_QUERY = "human[Organism] AND mitochondrion[Filter] AND complete genome[Title]"
 
@@ -112,9 +110,10 @@ def download_ncbi_mtdna(
     n_batches = (total + batch_size - 1) // batch_size
     mode = "ab" if fasta_path.exists() else "wb"
 
-    with open(fasta_path, mode) as out_fasta, tqdm(
-        total=total, desc="NCBI fetch", unit="seq"
-    ) as bar:
+    with (
+        open(fasta_path, mode) as out_fasta,
+        tqdm(total=total, desc="NCBI fetch", unit="seq") as bar,
+    ):
         for batch_idx in range(n_batches):
             batch_key = str(batch_idx)
             if progress.get(batch_key) == "done":
@@ -185,9 +184,7 @@ def _save_progress(path: Path, progress: dict[str, str]) -> None:
         json.dump(progress, f)
 
 
-def _progress_complete(
-    progress: dict[str, str], total: int, batch_size: int
-) -> bool:
+def _progress_complete(progress: dict[str, str], total: int, batch_size: int) -> bool:
     n_batches = (total + batch_size - 1) // batch_size
     return all(progress.get(str(i)) == "done" for i in range(n_batches))
 

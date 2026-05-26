@@ -67,7 +67,11 @@ def main(
         combined, target_length=target_length, min_n_fraction=min_n_fraction
     )
     qc_pass = int(combined["qc_pass"].sum())
+    qc_fail = len(combined) - qc_pass
     console.print(f"QC pass: {qc_pass:,} / {len(combined):,}")
+    if qc_fail:
+        console.print(f"  Removing {qc_fail:,} sequences with >{min_n_fraction:.0%} N content")
+        combined = combined[combined["qc_pass"]].reset_index(drop=True)
 
     console.print("Stratifying train/val/test split (80/10/10 by haplogroup) ...")
     combined = stratified_split(combined, label_col="haplogroup")

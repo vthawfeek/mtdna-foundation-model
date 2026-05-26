@@ -107,9 +107,7 @@ class MtDNADataset(Dataset):
         indices = [(window_start + i) % n for i in range(self.window_size)]
 
         result: dict = {
-            "input_ids": torch.tensor(
-                [tokens["input_ids"][j] for j in indices], dtype=torch.long
-            ),
+            "input_ids": torch.tensor([tokens["input_ids"][j] for j in indices], dtype=torch.long),
             "attention_mask": torch.tensor(
                 [tokens["attention_mask"][j] for j in indices], dtype=torch.long
             ),
@@ -123,9 +121,7 @@ class MtDNADataset(Dataset):
 
         if self._labels is not None:
             label = self._labels[seq_idx]
-            result["labels"] = torch.tensor(
-                -1 if label is None else label, dtype=torch.long
-            )
+            result["labels"] = torch.tensor(-1 if label is None else label, dtype=torch.long)
 
         return result
 
@@ -145,16 +141,13 @@ class MtDNADataset(Dataset):
         het_vectors: list[np.ndarray | None] | None = None
         if het_col is not None and het_col in df.columns:
             het_vectors = [
-                np.asarray(v, dtype=np.float32) if v is not None else None
-                for v in df[het_col]
+                np.asarray(v, dtype=np.float32) if v is not None else None for v in df[het_col]
             ]
 
         labels: list[int | None] | None = None
         if label_col is not None and label_col in df.columns:
             labels = [
-                int(v)
-                if v is not None and not (isinstance(v, float) and math.isnan(v))
-                else None
+                int(v) if v is not None and not (isinstance(v, float) and math.isnan(v)) else None
                 for v in df[label_col]
             ]
 

@@ -134,9 +134,7 @@ def parse_gnomad_chrm_vcf(vcf_path: Path) -> pd.DataFrame:
                 }
             )
     if not records:
-        return pd.DataFrame(
-            columns=["pos", "ref", "alt", "af", "het_level", "n_het", "n_hom"]
-        )
+        return pd.DataFrame(columns=["pos", "ref", "alt", "af", "het_level", "n_het", "n_hom"])
     return pd.DataFrame(records)
 
 
@@ -211,9 +209,7 @@ def add_benign_proxies(
         path_keys = set(
             zip(pathogenic_df["pos"], pathogenic_df["ref"], pathogenic_df["alt"], strict=False)
         )
-        mask = common.apply(
-            lambda r: (r["pos"], r["ref"], r["alt"]) not in path_keys, axis=1
-        )
+        mask = common.apply(lambda r: (r["pos"], r["ref"], r["alt"]) not in path_keys, axis=1)
         common = common[mask]
 
     benign = common[["pos", "ref", "alt"]].copy()
@@ -333,7 +329,5 @@ def build_haplogroup_markers_parquet(csv_path: Path, output_dir: Path) -> Path:
     output_dir.mkdir(parents=True, exist_ok=True)
     df = parse_phylotree_csv(csv_path)
     df.to_parquet(output_path, index=False)
-    logger.info(
-        "PhyloTree: wrote %d haplogroup markers to %s", len(df), output_path
-    )
+    logger.info("PhyloTree: wrote %d haplogroup markers to %s", len(df), output_path)
     return output_path
