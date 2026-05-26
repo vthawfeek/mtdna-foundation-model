@@ -1,0 +1,10 @@
+Standard BERT positional encoding treats position 1 and position 16,569 of mitochondrial DNA as 16,568 apart. They share a phosphodiester bond. Here's why that breaks, and the fix:
+---
+mtDNA is circular. The D-loop control region wraps around the 16569/1 junction. Any attention head modeling promoter structure is working with corrupted positional signals if the PE is linear. The circular fix replaces pos/10000^(...) with (2pi*pos/16569)/10000^(...).
+---
+The second problem: heteroplasmy. The m.3243A>G MELAS mutation is asymptomatic at 30% and causes encephalomyopathy above 70%. Standard DNA models accept one base per position. mtDNA-FM accepts a continuous het_level per position, projected into embedding space alongside the k-mer ID.
+---
+Week 1 numbers: 101 tests passing, 152k training windows from 47k genomes, 4,102-token vocabulary built deterministically, CI running on GitHub. Model architecture starts next week. #bioinformatics #machinelearning
+---
+Building the first foundation model for mitochondrial DNA, the genome behind MELAS, Leigh syndrome, and maternal ancestry tracing. No existing model handles circular topology or heteroplasmy. Full writeup:
+https://rokpayprsizors.wordpress.com/2026/05/26/why-mitochondrial-dna-needs-its-own-foundation-model/
