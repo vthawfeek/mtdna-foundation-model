@@ -27,6 +27,36 @@ class KmerVocabulary:
         self._token_to_id = token_to_id
         self._id_to_token = {v: k for k, v in token_to_id.items()}
 
+    # ── Convenience accessors ──────────────────────────────────────────────────
+    @property
+    def pad_token_id(self) -> int:
+        return PAD_TOKEN_ID
+
+    @property
+    def cls_token_id(self) -> int:
+        return CLS_TOKEN_ID
+
+    @property
+    def mask_token_id(self) -> int:
+        return MASK_TOKEN_ID
+
+    @property
+    def unk_token_id(self) -> int:
+        return UNK_TOKEN_ID
+
+    @property
+    def sep_token_id(self) -> int:
+        return SEP_TOKEN_ID
+
+    @property
+    def het_token_id(self) -> int:
+        return HET_TOKEN_ID
+
+    @property
+    def n_special(self) -> int:
+        """Number of special tokens (real k-mer IDs start at this index)."""
+        return len(SPECIAL_TOKENS)
+
     @classmethod
     def build(cls, k: int = 6) -> "KmerVocabulary":
         """Build vocabulary of all 4^k k-mers plus 6 special tokens."""
