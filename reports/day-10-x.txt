@@ -1,0 +1,27 @@
+Before training starts, you already know what the loss will be.
+
+For a 4,102-token k-mer vocabulary, the theoretical random baseline MLM loss is log(4,102) = 8.32.
+
+Smoke test confirmed: initial loss = 8.3244. Now the training can begin.
+---
+Gradient accumulation is an arithmetic identity, not an approximation.
+
+16 sequences × 8 micro-steps = 128 effective batch. Memory cost of 16, gradient quality of 128.
+
+The math: sum 8 micro-gradients before stepping = identical to gradient of one 128-sample batch.
+---
+Phase 2 of pre-training cannot resume Phase 1's optimizer.
+
+AdamW stores per-parameter moment estimates calibrated to 50k steps of cross-species gradients.
+
+Resuming them on human mtDNA data = wrong curvature correction at the worst possible moment.
+---
+The fix: load only encoder weights (keys starting with "mtdna."), discard the rest.
+
+Prediction heads reinitialize fresh. Optimizer starts clean. Phase 2 adapts correctly.
+
+This is the standard domain-adaptive pre-training pattern, but it's easy to get wrong.
+---
+Building the first foundation model for mitochondrial DNA. mtDNA mutations drive over 350 inherited diseases. Training is running. Full writeup on the trainer architecture:
+
+https://rokpayprsizors.wordpress.com/2026/05/27/pre-training-bert-on-16569-base-pairs/
