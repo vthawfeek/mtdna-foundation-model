@@ -20,7 +20,8 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 5: COMPLETE (commit 41ec618) — variant datasets (gnomAD, ClinVar, PhyloTree)
 - Day 6: COMPLETE (commit 33169c2) — PyTorch Dataset classes (MtDNADataset, VariantDataset)
 - Day 7: COMPLETE (commit d43cb47) — CI hardening (ruff format gate, lint+test jobs), Week 1 exit criteria verified
-- Day 8-14: model architecture + pre-training
+- Day 8: COMPLETE — model architecture (MtDNAConfig, CircularPE, MtDNAEmbeddings, transformer, MtDNAModel, MtDNAForMaskedModeling)
+- Day 9-14: masking + loss + pre-training launch
 - Day 15-21: fine-tuning + evaluation + HuggingFace Hub
 - Day 22-28: demo, docs, release
 

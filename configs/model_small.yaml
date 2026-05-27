@@ -1,0 +1,16 @@
+model_type: "mtdna_fm"
+vocab_size: 4102
+hidden_size: 256
+num_hidden_layers: 6
+num_attention_heads: 8
+intermediate_size: 1024
+max_seq_len: 514          # 512 k-mer tokens + CLS + SEP
+genome_length: 16569
+use_circular_encoding: true
+use_het_projection: true
+dropout_prob: 0.1
+attention_dropout_prob: 0.1
+layer_norm_eps: 1.0e-12
+pad_token_id: 0
+cls_token_id: 1
+mask_token_id: 2
