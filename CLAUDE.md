@@ -22,7 +22,8 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 7: COMPLETE (commit d43cb47) — CI hardening (ruff format gate, lint+test jobs), Week 1 exit criteria verified
 - Day 8: COMPLETE — model architecture (MtDNAConfig, CircularPE, MtDNAEmbeddings, transformer, MtDNAModel, MtDNAForMaskedModeling)
 - Day 9: COMPLETE — masking collator (BERT 80/10/10 + D-loop blacklist), combined MLM+het loss, 20 new tests
-- Day 10-14: pre-training launch + test suite + analysis notebook
+- Day 10: COMPLETE — MtDNATrainer (cosine LR, gradient accum, MLflow, checkpoint rotation, Phase 2 encoder loading), Phase 1+2 configs, 21 new tests
+- Day 11-14: test suite expansion + analysis notebook + Phase 2 launch
 - Day 15-21: fine-tuning + evaluation + HuggingFace Hub
 - Day 22-28: demo, docs, release
 

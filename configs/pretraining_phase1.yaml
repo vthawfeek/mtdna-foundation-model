@@ -1,0 +1,24 @@
+data:
+  train_parquet: "data/processed/train.parquet"
+  val_parquet: "data/processed/val.parquet"
+  species_filter: "all"     # Phase 1: all vertebrates (117k cross-species + 35k human)
+
+batch_size: 16
+gradient_accumulation_steps: 8     # effective batch = 128
+num_workers: 4
+learning_rate: 1.0e-4
+weight_decay: 0.01
+warmup_steps: 2000
+max_steps: 50000
+max_grad_norm: 1.0
+fp16: false                         # CPU-safe; set to true for CUDA
+gradient_checkpointing: true
+mask_prob: 0.15
+mlm_weight: 1.0
+het_weight: 0.0                     # No het loss in Phase 1 (cross-species has no het data)
+save_steps: 5000
+eval_steps: 2500
+log_steps: 100
+keep_last_n_checkpoints: 3
+mlflow_experiment: "mtdna_fm_pretraining_phase1"
+output_dir: "models/phase1_v1"

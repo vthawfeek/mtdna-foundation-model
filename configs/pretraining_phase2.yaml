@@ -1,0 +1,26 @@
+resume_from: "models/phase1_v1"       # Load Phase 1 encoder weights (fresh optimizer)
+
+data:
+  train_parquet: "data/processed/train.parquet"
+  val_parquet: "data/processed/val.parquet"
+  species_filter: "homo_sapiens"    # Phase 2: human only
+
+batch_size: 16
+gradient_accumulation_steps: 8
+num_workers: 4
+learning_rate: 3.0e-5               # Lower than Phase 1: finer adjustment on human data
+weight_decay: 0.01
+warmup_steps: 500
+max_steps: 25000
+max_grad_norm: 1.0
+fp16: false
+gradient_checkpointing: true
+mask_prob: 0.15
+mlm_weight: 1.0
+het_weight: 0.3                     # Enable heteroplasmy prediction on human HmtDB data
+save_steps: 2500
+eval_steps: 1000
+log_steps: 50
+keep_last_n_checkpoints: 3
+mlflow_experiment: "mtdna_fm_pretraining_phase2"
+output_dir: "models/phase2_v1"
