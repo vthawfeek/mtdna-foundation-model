@@ -1,8 +1,8 @@
 # D-loop Entropy and Why mtDNA Preprocessing Isn't Trivial
 
-The mitochondrial D-loop starts at position 576 of the 16,569-bp human genome and ends around position 16,024. That leaves 448 bases of coding sequence wrapping around the circular chromosome before the D-loop begins again. Computing Shannon entropy across tens of thousands of aligned sequences reveals something that textbooks state but doesn't fully land until you see it in your own data: the D-loop is roughly seven times more variable than the rest of the genome. Not twice as variable. Seven times.
+The mitochondrial D-loop wraps around both ends of the linearised 16,569-bp rCRS: it runs from position 16,024 through to position 576, with the protein-coding, tRNA, and rRNA genes occupying the middle (positions 577–16,023). Computing Shannon entropy across 37,500 real human mitochondrial sequences from NCBI confirms what published phylogenetic studies consistently report: the hypervariable sub-regions HV1 (~16,024–16,383) and HV2 (~73–340) are substantially more polymorphic than the coding genes, with HV1 showing ~1.05× higher entropy than the coding average in raw unaligned data — and published alignment-based analyses showing 3–7× across properly aligned corpora.
 
-That asymmetry shapes every decision in the Day 4 preprocessing pipeline.
+That asymmetry, and one structural fact that flows from it, shapes every decision in the Day 4 preprocessing pipeline.
 
 This is part of an open-source project to build the first dedicated foundation model for mitochondrial DNA. mtDNA mutations are the primary cause of over 350 inherited diseases, including MELAS (mitochondrial encephalomyopathy), Leigh syndrome, and Leber hereditary optic neuropathy, and the mitochondrial genome is the reference used for maternal ancestry and population genetics. Every existing genomics language model treats mtDNA as a short fragment of linear DNA. This project starts from first principles: circular architecture, heteroplasmy-aware embeddings, and a vocabulary and preprocessing pipeline designed for the 16,569-bp closed loop rather than adapted from nuclear genome tools.
 
@@ -47,15 +47,19 @@ The padding position matters for the same reason as the junction check: gene coo
 
 For sequences much shorter than rCRS (rare, but present in cross-species datasets), the D-loop region absorbs the padding. This is biologically appropriate: the D-loop is the control region, it is the most tolerant of insertions, and positioning the padding there rather than inside a protein-coding gene avoids teaching the model spurious patterns in functional regions.
 
+![Raw sequence length distribution across 155,115 sequences. Red dashed line marks the 16,569 bp rCRS target length. Most sequences fall within ±50 bp of target.](docs/figures/length_distribution.png)
+
 ### Step 3: stratified_split
 
 The split uses `StratifiedShuffleSplit` from scikit-learn to produce 80/10/10 train/val/test partitions with proportional haplogroup representation in each. The implementation hits one non-obvious edge case: some haplogroups in the HmtDB corpus have only a single representative. `StratifiedShuffleSplit` requires at least 2 samples per class to estimate proportions. The fix: merge singleton classes into a `_rare` bin for the split calculation, then restore the original labels.
 
 Cross-species sequences (NCBI vertebrate mtDNA) have no haplogroup label and go directly to train. They are used for Phase 1 MLM pre-training only and never appear in the val or test splits, which are evaluated on human sequences with known haplogroup labels.
 
+![Top 20 haplogroups in the HmtDB human corpus. Haplogroup H dominates (most common European lineage). L-root haplogroups represent African/ancestral lineages.](docs/figures/haplogroup_distribution.png)
+
 ## The D-loop entropy analysis
 
-The EDA notebook computes per-position Shannon entropy across the corpus:
+The EDA notebook computes per-position Shannon entropy across 37,500 real human sequences from NCBI:
 
 ```python
 bases = list("ACGTN")
@@ -63,17 +67,21 @@ freqs = np.stack([(seq_matrix == b).mean(axis=0) for b in bases], axis=0)
 pos_entropy = np.array([scipy_entropy(freqs[:, pos] + 1e-9, base=2) for pos in range(RCRS_LENGTH)])
 ```
 
-This is simple: at each genomic position, count the frequency of each of the five possible characters across all sequences, then compute the information-theoretic entropy of that frequency distribution. High entropy means many different bases appear at that position across different individuals; low entropy means most sequences agree on the same base.
+At each genomic position, the entropy of the nucleotide frequency distribution is computed. High entropy means many different bases appear at that position across individuals; low entropy means most sequences agree.
 
-The result: mean entropy in the D-loop is approximately 7x higher than in coding regions. The jump at position 576 is sharp. The protein-coding genes (MT-ND1 through MT-ND6, MT-CO1 through MT-CO3, MT-CYB, and the ATP synthase subunits) show entropy close to zero at most positions, reflecting strong evolutionary constraint. The D-loop shows broad high-entropy bands corresponding to the hypervariable regions (HV1 at positions 16,024-16,383 and HV2 at positions 73-340) that are used clinically for haplogroup assignment.
+![Shannon entropy across 16,569 bp positions. Orange shading marks the D-loop control region (positions 16,024–576). 50 bp moving average applied. HV1 and HV2 are both elevated-variability segments at opposite ends of the linear coordinate space.](docs/figures/positional_entropy.png)
 
-This asymmetry is one reason the preprocessing decisions above matter as much as they do. The model will see the D-loop region differently from the rest of the genome in terms of the token prediction task. Positions that are highly variable are harder to predict from context, which means they contribute more to the MLM loss and more to the gradient signal. If the D-loop boundary is blurred by incorrect padding or junction artifact, the model learns a smoothed version of the entropy landscape rather than the sharp boundary that actually exists.
+One subtlety when working with raw (unaligned) sequences: the D-loop control region contains poly-C stretches whose length varies between individuals and haplogroups. This natural indel variation smears each genuinely variable position across neighbouring columns in the fixed-length matrix, suppressing per-position entropy in the D-loop relative to coding regions — where indels are rare under purifying selection. Properly quantifying the D-loop/coding variability ratio requires multiple-sequence alignment first.
+
+What the raw analysis shows on the real corpus: coding-region entropy averages 1.47 bits per position; HV1 (positions 16,024–16,383) averages 1.55 bits (1.05× higher). Published alignment-based studies report D-loop/coding ratios of 3–7× depending on the population sample and the specific sub-region compared. The biological variability is real; the exact number depends on the analysis method.
+
+This matters for the preprocessing decisions above. Variable positions are harder for the model to predict from context, contributing more to the MLM loss and the gradient signal. Whether the true ratio is 3× or 7×, the D-loop/coding boundary is a real feature of the entropy landscape that the model must learn — and that learning is undermined if the boundary is blurred by incorrect padding or junction artefacts.
 
 ## Why circular PE is the right response
 
 The entropy analysis also shows why circular positional encoding matters beyond a vague "mtDNA is circular" argument. Consider the junction: positions 16,024 through 16,569 (the end of HV1 and the terminal coding sequence) and positions 1 through 576 (the beginning of HV2 and the tRNA cluster) are biologically contiguous. A model using standard BERT positional embeddings represents position 16,569 and position 1 as 16,568 positions apart, which is the furthest possible distance in the encoding space. A model using circular positional encoding, where the angle `2*pi*pos/genome_length` wraps continuously, represents them as one step apart.
 
-The EDA shows that HV1 (ending near position 16,383) and HV2 (starting at position 73) have similar entropy profiles: both are high-variability regions used for haplogroup assignment. They are part of the same biological control region, separated only by the coordinate origin convention of the rCRS. A model that cannot represent their proximity cannot learn that they form a single functional unit.
+Across 37,500 real human sequences, HV1 (ending near position 16,383) and HV2 (starting at position 73) are both elevated-variability regions used clinically for haplogroup assignment. They are part of the same biological control region, separated only by the coordinate origin convention of the rCRS. A model that cannot represent their proximity cannot learn that they form a single functional unit.
 
 ## What the pipeline produces
 
@@ -97,12 +105,19 @@ The `het_level_vector` column is null at this stage. It will hold a float array 
 - 0 ruff errors across mtdna_fm/ and tests/
 - All five preprocessor functions independently unit-tested
 - Pipeline handles sequences from 16,519 bp (short cross-species) to 16,819 bp (with junction duplicate) without errors
+- Real corpus: 37,500 human sequences (NCBI) + 117,615 vertebrate sequences → 155,115 total
+- QC pass rate: 155,009 / 155,115 (99.93%) — only 106 sequences exceed the 10% N threshold
+
+![N-content distribution across the corpus. Red dashed line marks the 10% QC threshold. 99.93% of sequences pass (106 sequences fail).](docs/figures/n_content_distribution.png)
+
+- Train / val / test split: 152,590 / 1,262 / 1,263 (stratified by haplogroup)
+- Raw sequence lengths: 54.4% shorter than rCRS, 21.6% exact, 24.0% longer — most within ±50 bp
 
 The preprocessing pipeline is the last thing between raw data and the PyTorch Dataset class on Day 6. It needs to be correct before the model sees any training examples. Getting it right in the test suite now means the rest of the project can assume clean, 16,569-bp, all-uppercase, N-flagged sequences without defensive checks scattered through the training code.
 
 ## Key takeaways
 - Padding a circular genome at the D-loop (position 576) preserves canonical coordinates for all 37 mitochondrial genes; padding at the 3' end corrupts them for any downstream model that relies on fixed gene positions.
 - Junction duplicates appended by sequence databases corrupt length normalization silently: the output is 16,569 bp as expected, but ~150 bp of cytochrome b is replaced by junction sequence.
-- Shannon entropy at the D-loop boundary (position 576) rises 7x in a single step; this is the sharpest biologically meaningful boundary in the human mitochondrial genome.
+- Shannon entropy at the D-loop boundary (position 576) rises measurably in real data; published alignment-based analyses report 3–7× D-loop/coding ratios depending on population sample and alignment method.
 - HV1 and HV2 are physically one base apart on the circular genome but 16,310 positions apart in standard BERT positional encoding — the strongest concrete argument for circular PE.
-<!-- published: https://rokpayprsizors.wordpress.com/2026/05/25/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-2/ -->
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/26/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-3/ -->

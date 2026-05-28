@@ -25,7 +25,8 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 10: COMPLETE — MtDNATrainer (cosine LR, gradient accum, MLflow, checkpoint rotation, Phase 2 encoder loading), Phase 1+2 configs, 21 new tests
 - Day 11: COMPLETE — test suite expansion (76% → 80% coverage, 193 tests), gradient checkpointing added to model
 - Day 12: COMPLETE — test suite completion (80% → 97% coverage, 236 tests), full coverage of download clients, variant_downloader, CLI scripts, and model internals
-- Day 13-14: analysis notebook + Phase 2 launch
+- Day 13: COMPLETE — pre-training analysis notebook (training curves, attention heatmaps, zero-shot k-NN 9.5% vs 4% random)
+- Day 14: Phase 2 launch + Blog Post 2
 - Day 15-21: fine-tuning + evaluation + HuggingFace Hub
 - Day 22-28: demo, docs, release
 

@@ -4,4 +4,4 @@ This is the core problem this project addresses. Mitochondrial DNA mutations dri
 
 Week 1 of building mtDNA-FM from scratch is complete: 101 tests passing, 152k training windows from 47k human mitochondrial genomes, circular positional encoding implemented, and a heteroplasmy projection channel that accepts a continuous per-position float alongside the k-mer sequence. CI is running on GitHub. Model architecture starts next week.
 
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/26/why-mitochondrial-dna-needs-its-own-foundation-model/
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/26/why-mitochondrial-dna-needs-its-own-foundation-model-2/

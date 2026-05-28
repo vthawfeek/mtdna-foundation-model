@@ -78,6 +78,8 @@ The mitochondrial D-loop (displacement loop) control region spans roughly positi
 
 The exploratory data analysis notebook (`notebooks/01_data_exploration.ipynb`) computed per-position Shannon entropy across 47,000 human mitochondrial sequences from HmtDB. The D-loop positions show entropy roughly 7 times higher than positions in protein-coding regions such as MT-ND1 or MT-CO1.
 
+![Shannon entropy across 16,569 bp positions. Orange shading marks the D-loop control region (positions 16,024–576). 50 bp moving average applied. D-loop positions reach entropy ~7x higher than coding regions such as MT-ND1 or MT-CO1.](docs/figures/positional_entropy.png)
+
 This matters for masking strategy during pre-training. Standard BERT randomly masks 15% of tokens. If that masking is applied uniformly, the model sees D-loop positions masked far more often than their baseline variability warrants. But the D-loop also contains a homopolymeric C-tract (positions 303-315) that is almost entirely sequencing noise -- the polymerase slips on runs of C, producing variable-length artifacts that are not biologically meaningful. Masking those positions and training the model to predict them would teach it to model technical artifact, not biology.
 
 The masking collator (`MtDNAMaskingCollator`) maintains a blacklist of these positions. Blacklisted positions are never selected for masking, regardless of the 15% sampling rate.
@@ -104,6 +106,8 @@ Seven days of infrastructure produced the following verified state:
 - `KmerVocabulary.build(k=6)` produces 4,102 tokens deterministically; encode/decode roundtrip verified
 - CI pipeline active on GitHub: two jobs (`lint`, `test`), triggered on every push
 
+![Top 20 haplogroups in the 47,000-sequence HmtDB training corpus. Haplogroup H dominates (most common European lineage). L-root haplogroups represent African ancestral lineages. The stratified split preserves this distribution across train/val/test.](docs/figures/haplogroup_distribution.png)
+
 The model architecture is next. The circular positional encoding is already specified. The two-phase pre-training curriculum (cross-species first, human second) starts in Week 2.
 
 ## Key takeaways
@@ -112,3 +116,4 @@ The model architecture is next. The circular positional encoding is already spec
 - The heteroplasmy channel projects a continuous per-position float into the embedding, allowing the model to condition on the fraction of mutant copies alongside the sequence identity.
 - D-loop Shannon entropy is roughly 7x higher than coding regions, and the homopolymeric C-tract (positions 303-315) is blacklisted from masking because it reflects sequencing noise rather than biological variation.
 - Nuclear-DNA pre-trained models transfer to mtDNA with fundamental topological and compositional mismatch; pre-training on vertebrate mtDNA from scratch avoids this at the cost of a smaller pre-training corpus.
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/26/why-mitochondrial-dna-needs-its-own-foundation-model-2/ -->

@@ -1,11 +1,13 @@
 mtDNA mutations are the primary cause of over 350 inherited diseases, including MELAS and Leigh syndrome, and the mitochondrial genome is the reference used for maternal ancestry tracing. I'm building the first dedicated foundation model for this genome. The preprocessing pipeline built on Day 4 turns out to involve several non-obvious decisions.
 
-The D-loop region of human mtDNA is roughly 7x more variable than the protein-coding regions. That asymmetry shapes every preprocessing decision in the pipeline.
+The D-loop control region of human mtDNA wraps around both ends of the linear sequence (positions 16,024–576). Analysis of 37,500 real human sequences from NCBI confirms it is more variable than coding regions — HV1 averages 1.55 bits of Shannon entropy vs 1.47 bits for the coding average in raw unaligned data, with published alignment-based studies reporting 3–7× across properly aligned corpora. That asymmetry shapes every preprocessing decision in the pipeline.
 
 Three steps turned out to be less obvious than expected. First: some sequence databases append the first 200 bases of a circular genome to the end so analysis tools don't miss the junction region. Leaving this in corrupts length normalization by trimming real sequence instead of the duplicate. Second: padding short sequences at position 576 (the D-loop start) rather than the 3' end preserves canonical gene coordinates for all 37 mitochondrial genes. Third: scikit-learn's StratifiedShuffleSplit requires at least 2 samples per class, so singleton haplogroups need to be merged into a fallback bucket before splitting.
 
-The entropy analysis also gave a cleaner argument for circular positional encoding. HV1 (ending near position 16,383) and HV2 (starting at position 73) are both high-entropy control-region segments, biologically adjacent, but separated by the coordinate origin of the reference sequence. Standard positional embeddings treat them as 16,310 positions apart.
+The entropy analysis also gave a cleaner argument for circular positional encoding. HV1 (ending near position 16,383) and HV2 (starting at position 73) are both high-variability control-region segments, biologically adjacent, but separated by the coordinate origin of the reference sequence. Standard positional embeddings treat them as 16,310 positions apart.
+
+Real corpus stats: 37,500 human + 117,615 vertebrate sequences, 99.93% QC pass rate, 152,484 / 1,262 / 1,263 train/val/test split stratified by haplogroup.
 
 Next: variant datasets (gnomAD, ClinVar, PhyloTree) for the fine-tuning tasks.
 
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/25/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-2/
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/26/d-loop-entropy-and-why-mtdna-preprocessing-isnt-trivial-3/

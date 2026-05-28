@@ -135,3 +135,5 @@ A loss of 2.5 at step 50k corresponds to perplexity = e^2.5 = 12.2, meaning the 
 - Gradient accumulation is an arithmetic identity: summing N micro-step gradients is exactly equivalent to computing the gradient on an N-times-larger batch, with no memory overhead beyond one additional scalar division per micro-step.
 - Phase 2 domain-adaptive pre-training must start with a fresh optimizer. Resuming Phase 1 optimizer moments applies cross-species gradient curvature estimates to human-specific data, resisting adaptation at the most critical early steps.
 - Deriving k-mer size from vocab_size (`k = log₄(vocab_size - n_special)`) makes the trainer vocabulary-agnostic and enables unit testing with small synthetic vocabularies without any mocking.
+
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/28/pre-training-bert-on-16569-base-pairs-what-8-32-means/ -->
