@@ -1152,3 +1152,456 @@ class TestVariantDataset:
         variant_token_in_window = item["input_ids"][item["variant_offset"].item()].item()
         # The k-mer at position 49 of the mutant differs from the reference k-mer
         assert variant_token_in_window != variant_token_in_ref
+
+
+# ---------------------------------------------------------------------------
+# hmtdb_client internal function tests (Day 12)
+# ---------------------------------------------------------------------------
+
+
+class TestHmtdbClientInternals:
+    def test_download_file_streams_content(self, tmp_path: Path) -> None:
+        """_download_file writes streamed chunks to dest path."""
+        from unittest.mock import MagicMock
+
+        from mtdna_fm.data.hmtdb_client import _download_file
+
+        dest = tmp_path / "out.fasta"
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.headers = {"content-length": "8"}
+        mock_resp.iter_content.return_value = [b"ACGT", b"TTTT"]
+
+        with patch("mtdna_fm.data.hmtdb_client.requests.get", return_value=mock_resp):
+            _download_file("http://fake/seq.fasta", dest, desc="test")
+
+        assert dest.read_bytes() == b"ACGTTTTT"
+
+    def test_download_fasta_from_hmtdb_no_sha256(self, tmp_path: Path) -> None:
+        """_download_fasta_from_hmtdb moves file to dest when sha256 is None."""
+        from mtdna_fm.data.hmtdb_client import _download_fasta_from_hmtdb
+
+        dest = tmp_path / "sequences.fasta"
+        content = b">seq1\nACGT\n"
+
+        def fake_dl(url, path, **kwargs):
+            path.write_bytes(content)
+
+        with patch("mtdna_fm.data.hmtdb_client._download_file", side_effect=fake_dl):
+            _download_fasta_from_hmtdb(dest, expected_sha256=None)
+
+        assert dest.exists()
+        assert dest.read_bytes() == content
+
+    def test_download_fasta_from_hmtdb_sha256_match(self, tmp_path: Path) -> None:
+        """_download_fasta_from_hmtdb succeeds when the provided sha256 matches."""
+        import hashlib
+
+        from mtdna_fm.data.hmtdb_client import _download_fasta_from_hmtdb
+
+        content = b">seq1\nACGT\n"
+        expected = hashlib.sha256(content).hexdigest()
+        dest = tmp_path / "sequences.fasta"
+
+        def fake_dl(url, path, **kwargs):
+            path.write_bytes(content)
+
+        with patch("mtdna_fm.data.hmtdb_client._download_file", side_effect=fake_dl):
+            _download_fasta_from_hmtdb(dest, expected_sha256=expected)
+
+        assert dest.read_bytes() == content
+
+    def test_download_fasta_from_hmtdb_sha256_mismatch_raises(self, tmp_path: Path) -> None:
+        """_download_fasta_from_hmtdb raises ValueError on SHA256 mismatch."""
+        from mtdna_fm.data.hmtdb_client import _download_fasta_from_hmtdb
+
+        dest = tmp_path / "sequences.fasta"
+
+        def fake_dl(url, path, **kwargs):
+            path.write_bytes(b">seq1\nACGT\n")
+
+        with (
+            patch("mtdna_fm.data.hmtdb_client._download_file", side_effect=fake_dl),
+            pytest.raises(ValueError, match="SHA256 mismatch"),
+        ):
+            _download_fasta_from_hmtdb(dest, expected_sha256="0000deadbeef")
+
+    def test_download_metadata_from_hmtdb_writes_parquet(self, tmp_path: Path) -> None:
+        """_download_metadata_from_hmtdb writes a parquet file from CSV content."""
+
+        import pandas as pd
+
+        from mtdna_fm.data.hmtdb_client import _download_metadata_from_hmtdb
+
+        csv_content = b"accession,haplogroup\nACC001,H\nACC002,L\n"
+        dest = tmp_path / "metadata.parquet"
+
+        def fake_dl(url, path, **kwargs):
+            path.write_bytes(csv_content)
+
+        with patch("mtdna_fm.data.hmtdb_client._download_file", side_effect=fake_dl):
+            _download_metadata_from_hmtdb(dest)
+
+        assert dest.exists()
+        df = pd.read_parquet(dest)
+        assert len(df) == 2
+        assert "accession" in df.columns
+
+    def test_ncbi_fallback_builds_metadata_parquet(self, tmp_path: Path) -> None:
+        """_ncbi_fallback writes a parquet metadata file from FASTA headers."""
+        from mtdna_fm.data.hmtdb_client import FASTA_FILENAME, _ncbi_fallback
+
+        fasta_path = tmp_path / FASTA_FILENAME
+        fasta_path.write_text(">NC_001\nACGT\n>NC_002\nTTTT\n")
+
+        with patch(
+            "mtdna_fm.data.ncbi_client.download_ncbi_mtdna",
+            return_value=fasta_path,
+        ):
+            result_fasta, result_meta = _ncbi_fallback(tmp_path)
+
+        assert result_fasta == fasta_path
+        assert result_meta.exists()
+        import pandas as pd
+
+        df = pd.read_parquet(result_meta)
+        assert len(df) == 2
+
+    def test_validate_fasta_zero_records_raises(self, tmp_path: Path) -> None:
+        """_validate_fasta raises ValueError when the FASTA has no records."""
+        from mtdna_fm.data.hmtdb_client import _validate_fasta
+
+        empty_fasta = tmp_path / "empty.fasta"
+        empty_fasta.write_text("")  # valid path but no FASTA records
+        with pytest.raises(ValueError, match="0 records"):
+            _validate_fasta(empty_fasta)
+
+    def test_extract_zip_fasta_success(self, tmp_path: Path) -> None:
+        """extract_zip_fasta extracts a .fasta from a valid zip archive."""
+        import hashlib
+        import zipfile
+
+        from mtdna_fm.data.hmtdb_client import extract_zip_fasta
+
+        fasta_content = b">seq1\nACGT\n"
+        zip_path = tmp_path / "archive.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("sequences.fasta", fasta_content)
+
+        expected_sha = hashlib.sha256(zip_path.read_bytes()).hexdigest()
+        out_dir = tmp_path / "extracted"
+        result = extract_zip_fasta(zip_path, out_dir, expected_sha256=expected_sha)
+
+        assert result.exists()
+        assert result.read_bytes() == fasta_content
+
+    def test_extract_zip_fasta_no_fasta_inside_raises(self, tmp_path: Path) -> None:
+        """extract_zip_fasta raises ValueError when zip has no .fasta member."""
+        import hashlib
+        import zipfile
+
+        from mtdna_fm.data.hmtdb_client import extract_zip_fasta
+
+        zip_path = tmp_path / "empty.zip"
+        with zipfile.ZipFile(zip_path, "w") as zf:
+            zf.writestr("readme.txt", "no fasta here")
+
+        expected_sha = hashlib.sha256(zip_path.read_bytes()).hexdigest()
+        with pytest.raises(ValueError, match="No FASTA file found"):
+            extract_zip_fasta(zip_path, tmp_path, expected_sha256=expected_sha)
+
+
+# ---------------------------------------------------------------------------
+# ncbi_client internal function tests (Day 12)
+# ---------------------------------------------------------------------------
+
+
+class TestNcbiClientInternals:
+    def test_rate_delay_without_api_key(self) -> None:
+        """_rate_delay returns the base delay when no API key is set."""
+        import os
+
+        from mtdna_fm.data.ncbi_client import _BASE_DELAY, _rate_delay
+
+        with patch.dict(os.environ, {}, clear=False):
+            env = {k: v for k, v in os.environ.items() if k != "NCBI_API_KEY"}
+            with patch.dict(os.environ, env, clear=True):
+                delay = _rate_delay()
+        assert delay == _BASE_DELAY
+
+    def test_rate_delay_with_api_key(self) -> None:
+        """_rate_delay returns 0.11 when NCBI_API_KEY is set."""
+        import os
+
+        from mtdna_fm.data.ncbi_client import _rate_delay
+
+        with patch.dict(os.environ, {"NCBI_API_KEY": "fakekey123"}):
+            delay = _rate_delay()
+        assert delay == 0.11
+
+    def test_configure_api_key_sets_entrez_key(self) -> None:
+        """_configure_api_key sets Entrez.api_key when NCBI_API_KEY env var is present."""
+        import os
+
+        from Bio import Entrez
+
+        from mtdna_fm.data.ncbi_client import _configure_api_key
+
+        with patch.dict(os.environ, {"NCBI_API_KEY": "mykey999"}):
+            _configure_api_key()
+
+        assert Entrez.api_key == "mykey999"
+
+    def test_esearch_parses_record(self) -> None:
+        """_esearch returns (count, web_env, query_key) from Entrez response."""
+        from unittest.mock import MagicMock
+
+        from mtdna_fm.data.ncbi_client import _esearch
+
+        mock_handle = MagicMock()
+        mock_record = {"Count": "42", "WebEnv": "webenv_abc", "QueryKey": "1"}
+        with (
+            patch("mtdna_fm.data.ncbi_client.Entrez.esearch", return_value=mock_handle),
+            patch("mtdna_fm.data.ncbi_client.Entrez.read", return_value=mock_record),
+        ):
+            count, web_env, query_key = _esearch("test query", "nucleotide")
+
+        assert count == 42
+        assert web_env == "webenv_abc"
+        assert query_key == "1"
+
+    def test_efetch_batch_returns_string(self) -> None:
+        """_efetch_batch returns FASTA text from the Entrez handle."""
+        from unittest.mock import MagicMock
+
+        from mtdna_fm.data.ncbi_client import _efetch_batch
+
+        mock_handle = MagicMock()
+        mock_handle.read.return_value = ">seq1\nACGT\n"
+        with patch("mtdna_fm.data.ncbi_client.Entrez.efetch", return_value=mock_handle):
+            result = _efetch_batch(
+                db="nucleotide",
+                web_env="wenv",
+                query_key="1",
+                retstart=0,
+                retmax=1,
+            )
+        assert ">seq1" in result
+
+    def test_zero_results_raises_runtime_error(self, tmp_path: Path) -> None:
+        """download_ncbi_mtdna raises RuntimeError when the query returns 0 hits."""
+        from mtdna_fm.data.ncbi_client import download_ncbi_mtdna
+
+        with patch(
+            "mtdna_fm.data.ncbi_client._esearch",
+            return_value=(0, "wenv", "1"),
+        ), pytest.raises(RuntimeError, match="0 results"):
+            download_ncbi_mtdna(query="nothing", output_dir=tmp_path)
+
+    def test_force_deletes_existing_fasta(self, tmp_path: Path) -> None:
+        """download_ncbi_mtdna with force=True deletes and re-downloads the FASTA."""
+        from mtdna_fm.data.ncbi_client import download_ncbi_mtdna
+
+        fasta_path = tmp_path / "vertebrate_mtdna.fasta"
+        fasta_path.write_text(">old\nAAAA\n")
+
+        with (
+            patch(
+                "mtdna_fm.data.ncbi_client._esearch",
+                return_value=(1, "wenv", "1"),
+            ),
+            patch(
+                "mtdna_fm.data.ncbi_client._efetch_batch",
+                return_value=">new\nCCCC\n",
+            ),
+            patch("mtdna_fm.data.ncbi_client._save_progress"),
+            patch("mtdna_fm.data.ncbi_client.time.sleep"),
+        ):
+            result = download_ncbi_mtdna(
+                query="test",
+                output_dir=tmp_path,
+                output_filename="vertebrate_mtdna.fasta",
+                batch_size=1,
+                force=True,
+            )
+
+        assert result.read_text().startswith(">new")
+
+    def test_batch_fetch_loop_writes_fasta(self, tmp_path: Path) -> None:
+        """download_ncbi_mtdna writes fetched FASTA content when starting fresh."""
+        from mtdna_fm.data.ncbi_client import download_ncbi_mtdna
+
+        fasta_name = "test_fetch.fasta"
+
+        with (
+            patch(
+                "mtdna_fm.data.ncbi_client._esearch",
+                return_value=(2, "wenv_xyz", "1"),
+            ),
+            patch(
+                "mtdna_fm.data.ncbi_client._efetch_batch",
+                side_effect=[">seq0\nACGT\n", ">seq1\nTTTT\n"],
+            ),
+            patch("mtdna_fm.data.ncbi_client._save_progress"),
+            patch("mtdna_fm.data.ncbi_client.time.sleep"),
+        ):
+            result = download_ncbi_mtdna(
+                query="test",
+                output_dir=tmp_path,
+                output_filename=fasta_name,
+                batch_size=1,
+            )
+
+        text = result.read_text()
+        assert ">seq0" in text
+        assert ">seq1" in text
+
+
+# ---------------------------------------------------------------------------
+# variant_downloader tests (Day 12)
+# ---------------------------------------------------------------------------
+
+
+class TestVariantDownloader:
+    def test_gnomad_returns_existing_vcf(self, tmp_path: Path) -> None:
+        """download_gnomad_chrm returns immediately if the VCF already exists."""
+        from mtdna_fm.data.variant_downloader import GNOMAD_VCF_FILENAME, download_gnomad_chrm
+
+        vcf = tmp_path / GNOMAD_VCF_FILENAME
+        vcf.write_text("##VCF header\n")
+        result = download_gnomad_chrm(tmp_path, force=False)
+        assert result == vcf
+
+    def test_clinvar_returns_existing_vcf(self, tmp_path: Path) -> None:
+        """download_clinvar_chrm returns immediately if the VCF already exists."""
+        from mtdna_fm.data.variant_downloader import CLINVAR_VCF_FILENAME, download_clinvar_chrm
+
+        vcf = tmp_path / CLINVAR_VCF_FILENAME
+        vcf.write_text("##VCF header\n")
+        result = download_clinvar_chrm(tmp_path, force=False)
+        assert result == vcf
+
+    def test_phylotree_returns_existing_csv(self, tmp_path: Path) -> None:
+        """download_phylotree returns immediately if the CSV already exists."""
+        from mtdna_fm.data.variant_downloader import PHYLOTREE_CSV_FILENAME, download_phylotree
+
+        csv = tmp_path / PHYLOTREE_CSV_FILENAME
+        csv.write_text("haplogroup,variant\nH,T16519C\n")
+        result = download_phylotree(tmp_path, force=False)
+        assert result == csv
+
+    def test_extract_chrom_from_gz_filters_chrm(self, tmp_path: Path) -> None:
+        """_extract_chrom_from_gz writes only header and chrM lines."""
+        import gzip
+
+        from mtdna_fm.data.variant_downloader import _extract_chrom_from_gz
+
+        gz_path = tmp_path / "test.vcf.gz"
+        lines = [
+            b"##fileformat=VCFv4.1\n",
+            b"#CHROM\tPOS\tID\n",
+            b"chr1\t100\t.\n",
+            b"chrM\t300\t.\n",
+            b"chr2\t200\t.\n",
+        ]
+        with gzip.open(gz_path, "wb") as f:
+            for line in lines:
+                f.write(line)
+
+        dest = tmp_path / "out.vcf"
+        _extract_chrom_from_gz(gz_path, dest, chrom="chrM")
+
+        result = dest.read_text()
+        assert "##fileformat" in result
+        assert "chrM\t300" in result
+        assert "chr1\t100" not in result
+        assert "chr2\t200" not in result
+
+    def test_stream_download_writes_content(self, tmp_path: Path) -> None:
+        """_stream_download writes streamed chunks to dest."""
+        from unittest.mock import MagicMock
+
+        from mtdna_fm.data.variant_downloader import _stream_download
+
+        dest = tmp_path / "output.vcf"
+        mock_resp = MagicMock()
+        mock_resp.raise_for_status.return_value = None
+        mock_resp.headers = {"content-length": "4"}
+        mock_resp.iter_content.return_value = [b"FAKE"]
+
+        with patch("mtdna_fm.data.variant_downloader.requests.get", return_value=mock_resp):
+            _stream_download("http://fake/file.vcf", dest, desc="test")
+
+        assert dest.read_bytes() == b"FAKE"
+
+    def test_phylotree_downloads_when_missing(self, tmp_path: Path) -> None:
+        """download_phylotree calls _stream_download when CSV is absent."""
+        from mtdna_fm.data.variant_downloader import PHYLOTREE_CSV_FILENAME, download_phylotree
+
+        csv_path = tmp_path / PHYLOTREE_CSV_FILENAME
+
+        def fake_stream(url, dest, **kwargs):
+            dest.write_text("haplogroup,variant\n")
+
+        with patch("mtdna_fm.data.variant_downloader._stream_download", side_effect=fake_stream):
+            result = download_phylotree(tmp_path)
+
+        assert result == csv_path
+        assert csv_path.exists()
+
+    def test_clinvar_downloads_and_filters_chrm(self, tmp_path: Path) -> None:
+        """download_clinvar_chrm downloads, filters for chrM, writes VCF."""
+        import gzip
+
+        from mtdna_fm.data.variant_downloader import CLINVAR_VCF_FILENAME, download_clinvar_chrm
+
+        gz_content = b"##header\nchrM\t1000\t.\nchr1\t2000\t.\n"
+
+        def fake_stream(url, dest, **kwargs):
+            with gzip.open(dest, "wb") as f:
+                f.write(gz_content)
+
+        with patch("mtdna_fm.data.variant_downloader._stream_download", side_effect=fake_stream):
+            result = download_clinvar_chrm(tmp_path)
+
+        assert result == tmp_path / CLINVAR_VCF_FILENAME
+        text = result.read_text()
+        assert "chrM\t1000" in text
+        assert "chr1\t2000" not in text
+
+    def test_gnomad_downloads_without_tabix(self, tmp_path: Path) -> None:
+        """download_gnomad_chrm falls back to returning .bgz when tabix not found."""
+        from mtdna_fm.data.variant_downloader import (
+            GNOMAD_BGZ_FILENAME,
+            download_gnomad_chrm,
+        )
+
+        def fake_stream(url, dest, **kwargs):
+            dest.write_bytes(b"fake bgz content")
+
+        with (
+            patch("mtdna_fm.data.variant_downloader._stream_download", side_effect=fake_stream),
+            patch("mtdna_fm.data.variant_downloader.shutil.which", return_value=None),
+        ):
+            result = download_gnomad_chrm(tmp_path)
+
+        assert result == tmp_path / GNOMAD_BGZ_FILENAME
+
+    def test_gnomad_creates_vcf_with_tabix(self, tmp_path: Path) -> None:
+        """download_gnomad_chrm extracts VCF with tabix when available."""
+        from mtdna_fm.data.variant_downloader import GNOMAD_VCF_FILENAME, download_gnomad_chrm
+
+        def fake_stream(url, dest, **kwargs):
+            dest.write_bytes(b"fake")
+
+        def fake_tabix_run(cmd, stdout, check):
+            stdout.write("##VCF\nchrM\t1\t.\n")
+
+        with (
+            patch("mtdna_fm.data.variant_downloader._stream_download", side_effect=fake_stream),
+            patch("mtdna_fm.data.variant_downloader.shutil.which", return_value="/usr/bin/tabix"),
+            patch("subprocess.run", side_effect=fake_tabix_run),
+        ):
+            result = download_gnomad_chrm(tmp_path)
+
+        assert result == tmp_path / GNOMAD_VCF_FILENAME

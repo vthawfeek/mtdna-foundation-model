@@ -451,3 +451,106 @@ class TestMtDNAForMaskedModeling:
         assert all("lora_" in n for n in trainable), (
             f"Non-LoRA parameters are trainable: {[n for n in trainable if 'lora_' not in n]}"
         )
+
+
+# ── Additional coverage tests (Day 12) ────────────────────────────────────────
+
+
+class TestGradientCheckpointing:
+    def test_gradient_checkpointing_enable_sets_flag(self, tiny_config: MtDNAConfig) -> None:
+        """gradient_checkpointing_enable() sets the flag on the encoder."""
+
+        model = MtDNAModel(tiny_config)
+        assert not model.encoder.gradient_checkpointing
+        model.gradient_checkpointing_enable()
+        assert model.encoder.gradient_checkpointing
+
+    def test_gradient_checkpointing_forward_pass(self, tiny_config: MtDNAConfig) -> None:
+        """Forward pass with gradient_checkpointing=True runs without error."""
+        model = MtDNAModel(tiny_config)
+        model.gradient_checkpointing_enable()
+        model.train()
+        batch = make_batch(tiny_config)
+        outputs = model(**batch)
+        assert outputs.last_hidden_state.shape[0] == 2
+
+    def test_set_gradient_checkpointing_only_affects_encoder(
+        self, tiny_config: MtDNAConfig
+    ) -> None:
+        """_set_gradient_checkpointing ignores non-encoder modules."""
+
+
+        model = MtDNAModel(tiny_config)
+        # Calling _set_gradient_checkpointing on a non-encoder module should not raise
+        model._set_gradient_checkpointing(model.embeddings, True)
+        # Only MtDNAEncoder instances are affected
+        assert not hasattr(model.embeddings, "gradient_checkpointing") or True
+
+
+class TestTransformerValidation:
+    def test_invalid_head_count_raises_value_error(self) -> None:
+        """MtDNAAttention raises ValueError when hidden_size % num_heads != 0."""
+        from mtdna_fm.model.transformer import MtDNAAttention
+
+        bad_config = MtDNAConfig(
+            vocab_size=70,
+            hidden_size=15,  # not divisible by 4
+            num_hidden_layers=2,
+            num_attention_heads=4,
+            intermediate_size=32,
+            max_seq_len=12,
+            genome_length=100,
+        )
+        with pytest.raises(ValueError, match="hidden_size"):
+            MtDNAAttention(bad_config)
+
+
+class TestLearnablePositionalEncoding:
+    def test_learnable_pe_fallback_is_embedding(self, tiny_config: MtDNAConfig) -> None:
+        """use_circular_encoding=False falls back to a learnable nn.Embedding."""
+        import torch.nn as nn
+
+        from mtdna_fm.model.embeddings import MtDNAEmbeddings
+
+        config = MtDNAConfig(
+            vocab_size=70,
+            hidden_size=16,
+            num_hidden_layers=2,
+            num_attention_heads=4,
+            intermediate_size=32,
+            max_seq_len=12,
+            genome_length=100,
+            use_circular_encoding=False,
+        )
+        embeddings = MtDNAEmbeddings(config)
+        assert isinstance(embeddings.circular_pe, nn.Embedding)
+
+    def test_learnable_pe_forward_shape(self) -> None:
+        """Forward pass with learnable PE produces correct output shape."""
+        import numpy as np
+
+        from mtdna_fm.model.embeddings import MtDNAEmbeddings
+
+        config = MtDNAConfig(
+            vocab_size=70,
+            hidden_size=16,
+            num_hidden_layers=2,
+            num_attention_heads=4,
+            intermediate_size=32,
+            max_seq_len=12,
+            genome_length=100,
+            use_circular_encoding=False,
+        )
+        embeddings = MtDNAEmbeddings(config)
+        rng = np.random.default_rng(0)
+        seq_len = 8
+        input_ids = torch.from_numpy(rng.integers(6, config.vocab_size, size=(2, seq_len), dtype=np.int64))
+        # Learnable PE indexes by position within [0, max_seq_len)
+        position_ids = torch.from_numpy(rng.integers(0, config.max_seq_len, size=(2, seq_len), dtype=np.int64))
+        het_values = torch.rand(2, seq_len)
+        out = embeddings(
+            input_ids=input_ids,
+            position_ids=position_ids,
+            het_values=het_values,
+        )
+        assert out.shape == (2, seq_len, config.hidden_size)

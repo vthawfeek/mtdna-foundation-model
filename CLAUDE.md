@@ -24,7 +24,8 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 9: COMPLETE — masking collator (BERT 80/10/10 + D-loop blacklist), combined MLM+het loss, 20 new tests
 - Day 10: COMPLETE — MtDNATrainer (cosine LR, gradient accum, MLflow, checkpoint rotation, Phase 2 encoder loading), Phase 1+2 configs, 21 new tests
 - Day 11: COMPLETE — test suite expansion (76% → 80% coverage, 193 tests), gradient checkpointing added to model
-- Day 12-14: analysis notebook + Phase 2 launch
+- Day 12: COMPLETE — test suite completion (80% → 97% coverage, 236 tests), full coverage of download clients, variant_downloader, CLI scripts, and model internals
+- Day 13-14: analysis notebook + Phase 2 launch
 - Day 15-21: fine-tuning + evaluation + HuggingFace Hub
 - Day 22-28: demo, docs, release
 
