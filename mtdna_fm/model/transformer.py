@@ -146,6 +146,7 @@ class MtDNAEncoder(nn.Module):
     def __init__(self, config: MtDNAConfig) -> None:
         super().__init__()
         self.layers = nn.ModuleList([MtDNALayer(config) for _ in range(config.num_hidden_layers)])
+        self.gradient_checkpointing = False
 
     def forward(
         self,
@@ -160,7 +161,17 @@ class MtDNAEncoder(nn.Module):
         for layer in self.layers:
             if output_hidden_states and all_hidden_states is not None:
                 all_hidden_states.append(hidden_states)
-            hidden_states, attn_weights = layer(hidden_states, attention_mask, output_attentions)
+
+            if self.gradient_checkpointing and self.training:
+                hidden_states, attn_weights = torch.utils.checkpoint.checkpoint(
+                    layer, hidden_states, attention_mask, output_attentions,
+                    use_reentrant=False,
+                )
+            else:
+                hidden_states, attn_weights = layer(
+                    hidden_states, attention_mask, output_attentions
+                )
+
             if output_attentions and attn_weights is not None and all_attentions is not None:
                 all_attentions.append(attn_weights)
 

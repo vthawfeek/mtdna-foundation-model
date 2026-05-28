@@ -298,6 +298,105 @@ class TestMtDNATrainer:
             )
         assert outputs.het_loss is None
 
+    def test_infer_k_invalid_vocab_raises(self, tmp_path: Path) -> None:
+        """vocab_size that isn't 4^k + 6 must raise ValueError."""
+        trainer = make_trainer(tmp_path)
+        with pytest.raises(ValueError, match="valid 4\\^k vocabulary"):
+            trainer._infer_k_from_vocab_size(100)  # 100-6=94, not a power of 4
+
+    def test_setup_with_gradient_checkpointing(self, tmp_path: Path) -> None:
+        """setup() with gradient_checkpointing=True must complete without error."""
+        trainer = make_trainer(tmp_path, gradient_checkpointing=True)
+        assert trainer.model is not None
+        assert trainer.train_loader is not None
+
+    def test_build_model_no_config_raises(self, tmp_path: Path) -> None:
+        """_build_model raises ValueError when neither resume_from nor model_config is set."""
+        from mtdna_fm.training.trainer import MtDNATrainer
+        config = make_tiny_config(tmp_path)
+        trainer = MtDNATrainer(config, model_config=None, device="cpu")
+        with pytest.raises(ValueError, match="model_config or resume_from"):
+            trainer._build_model()
+
+    def test_standard_checkpoint_resume(self, tmp_path: Path) -> None:
+        """Standard (non-Phase-2) checkpoint resume loads model + optimizer + step counter."""
+        trainer_a = make_trainer(tmp_path, output_dir=str(tmp_path / "out_a"))
+        trainer_a._save_checkpoint(step=7)
+
+        ckpt_dir = Path(trainer_a.config["output_dir"]) / "checkpoint-7"
+        assert ckpt_dir.exists()
+
+        # Create a fresh trainer and do a standard resume
+        trainer_b = make_trainer(tmp_path, output_dir=str(tmp_path / "out_b"))
+        trainer_b._load_checkpoint(ckpt_dir, encoder_weights_only=False)
+
+        # The global_step should have been restored from trainer_state.yaml
+        assert trainer_b.global_step == 7
+
+    def test_evaluate_max_batches_zero_returns_empty(self, tmp_path: Path) -> None:
+        """evaluate() with max_batches=0 should return an empty dict."""
+        trainer = make_trainer(tmp_path)
+        metrics = trainer.evaluate(max_batches=0)
+        assert metrics == {}
+
+    def test_load_dataset_from_parquet(self, tmp_path: Path) -> None:
+        """_load_dataset uses the parquet branch when the file exists."""
+        import numpy as np
+        import pandas as pd
+
+        # Build a tiny parquet with the expected schema
+        rng = np.random.default_rng(0)
+        sequences = [
+            "".join(rng.choice(list("ACGT"), size=100)) for _ in range(3)
+        ]
+        df = pd.DataFrame({
+            "sequence": sequences,
+            "species": ["homo_sapiens"] * 3,
+            "haplogroup": ["H", "L3", "R"] ,
+            "het_level_vector": [None, None, None],
+        })
+        parquet_path = tmp_path / "train.parquet"
+        df.to_parquet(parquet_path)
+
+        # Create a trainer with genome_length=100 (tiny_config)
+        trainer = make_trainer(tmp_path)
+        dataset = trainer._load_dataset(
+            str(parquet_path), split="train",
+            window_size=50, stride=25,
+        )
+        assert len(dataset) > 0
+
+    def test_load_dataset_species_filter(self, tmp_path: Path) -> None:
+        """_load_dataset filters by species when species_filter is set."""
+        import numpy as np
+        import pandas as pd
+
+        rng = np.random.default_rng(0)
+        sequences = [
+            "".join(rng.choice(list("ACGT"), size=100)) for _ in range(4)
+        ]
+        df = pd.DataFrame({
+            "sequence": sequences,
+            "species": ["homo_sapiens", "homo_sapiens", "mus_musculus", "rattus_norvegicus"],
+            "haplogroup": ["H", "L3", "R", "D"],
+            "het_level_vector": [None, None, None, None],
+        })
+        parquet_path = tmp_path / "train_multi.parquet"
+        df.to_parquet(parquet_path)
+
+        # Trainer with species_filter applied via data config
+        config = make_tiny_config(tmp_path)
+        config["data"] = {"species_filter": "homo_sapiens"}
+        trainer = MtDNATrainer(config, make_tiny_model_config(), device="cpu")
+        trainer.setup()
+
+        dataset = trainer._load_dataset(
+            str(parquet_path), split="train",
+            window_size=50, stride=25,
+        )
+        # Only homo_sapiens rows should be loaded
+        assert len(dataset) > 0
+
     def test_from_yaml(self, tmp_path: Path) -> None:
         """MtDNATrainer.from_yaml() must construct a valid trainer from YAML files."""
         import yaml

@@ -76,6 +76,15 @@ class TestKmerVocabulary:
         assert loaded.encode("ATGCAT") == vocab.encode("ATGCAT")
         assert loaded.encode("[CLS]") == CLS_TOKEN_ID
 
+    def test_unk_token_id_property(self, vocab: KmerVocabulary) -> None:
+        assert vocab.unk_token_id == UNK_TOKEN_ID == 3
+
+    def test_sep_token_id_property(self, vocab: KmerVocabulary) -> None:
+        assert vocab.sep_token_id == SEP_TOKEN_ID == 4
+
+    def test_het_token_id_property(self, vocab: KmerVocabulary) -> None:
+        assert vocab.het_token_id == HET_TOKEN_ID == 5
+
     def test_contains(self, vocab: KmerVocabulary) -> None:
         assert "ACGTAC" in vocab
         assert "ZZZZZZ" not in vocab

@@ -239,6 +239,20 @@ class TestMtDNAMaskingCollator:
         assert 302 not in _DEFAULT_BLACKLIST
         assert 316 not in _DEFAULT_BLACKLIST
 
+    def test_all_tokens_blacklisted_no_masking(self, vocab_k3: KmerVocabulary) -> None:
+        """When all token positions are blacklisted, no masking occurs."""
+        all_positions = set(range(SEQ_LEN))
+        collator = MtDNAMaskingCollator(
+            vocab_k3,
+            mask_prob=0.15,
+            blacklist_positions=all_positions,
+            seed=0,
+        )
+        windows = make_batch_list(vocab_k3)
+        batch = collator(windows)
+        # No tokens should have been selected for masking
+        assert (batch["kmer_labels"] == -100).all()
+
 
 # ── TestMtDNAMLMLoss ───────────────────────────────────────────────────────────
 

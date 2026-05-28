@@ -290,6 +290,29 @@ class TestMtDNAModel:
         model = MtDNAModel(tiny_config)
         assert next(model.parameters()).device.type == "cpu"
 
+    def test_get_input_embeddings(self, tiny_config: MtDNAConfig) -> None:
+        import torch.nn as nn
+        model = MtDNAModel(tiny_config)
+        emb = model.get_input_embeddings()
+        assert isinstance(emb, nn.Embedding)
+        assert emb is model.embeddings.kmer_embeddings
+
+    def test_set_input_embeddings(self, tiny_config: MtDNAConfig) -> None:
+        import torch.nn as nn
+        model = MtDNAModel(tiny_config)
+        new_emb = nn.Embedding(tiny_config.vocab_size, tiny_config.hidden_size)
+        model.set_input_embeddings(new_emb)
+        assert model.embeddings.kmer_embeddings is new_emb
+
+    def test_forward_without_attention_mask(self, tiny_config: MtDNAConfig) -> None:
+        """Forward with attention_mask=None should default to all-ones mask."""
+        model = MtDNAModel(tiny_config)
+        model.eval()
+        batch = make_batch(tiny_config)
+        with torch.no_grad():
+            out = model(batch["input_ids"], batch["position_ids"])
+        assert out.last_hidden_state.shape == (2, 8, tiny_config.hidden_size)
+
 
 # ── TestMtDNAForMaskedModeling ─────────────────────────────────────────────────
 
@@ -399,6 +422,13 @@ class TestMtDNAForMaskedModeling:
             losses.append(out.loss.item())
 
         assert losses[-1] < losses[0], f"Loss did not decrease: {losses}"
+
+    def test_get_input_embeddings_masked_modeling(self, tiny_config: MtDNAConfig) -> None:
+        """MtDNAForMaskedModeling.get_input_embeddings delegates to encoder."""
+        import torch.nn as nn
+        model = MtDNAForMaskedModeling(tiny_config)
+        emb = model.get_input_embeddings()
+        assert isinstance(emb, nn.Embedding)
 
     def test_peft_lora_compatibility(self, tiny_config: MtDNAConfig) -> None:
         """PEFT should be able to wrap the model with LoRA on q/k/v/dense layers."""

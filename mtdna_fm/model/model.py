@@ -87,6 +87,7 @@ class MtDNAModel(PreTrainedModel):
     """
 
     config_class = MtDNAConfig
+    supports_gradient_checkpointing = True
 
     def __init__(self, config: MtDNAConfig) -> None:
         super().__init__(config)
@@ -102,6 +103,10 @@ class MtDNAModel(PreTrainedModel):
 
     def set_input_embeddings(self, value: nn.Embedding) -> None:
         self.embeddings.kmer_embeddings = value
+
+    def _set_gradient_checkpointing(self, module: nn.Module, value: bool = False) -> None:
+        if isinstance(module, MtDNAEncoder):
+            module.gradient_checkpointing = value
 
     def _make_additive_attention_mask(
         self,
@@ -178,6 +183,7 @@ class MtDNAForMaskedModeling(PreTrainedModel):
     """
 
     config_class = MtDNAConfig
+    supports_gradient_checkpointing = True
 
     def __init__(
         self,
