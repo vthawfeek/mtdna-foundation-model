@@ -1,0 +1,15 @@
+Circular genomes break BERT. Position 1 and 16,569 of mtDNA are physically adjacent. Standard positional encoding puts them 16,568 steps apart. The fix is one substitution in the PE formula:
+
+angle = 2*pi * pos / genome_length
+
+instead of pos alone. Positions 0 and 16,569 now map to the same geometric point.
+---
+The full vocabulary for mtDNA-FM: all 4^6 = 4,096 possible 6-mers over ACGT, plus 6 special tokens. Total: 4,102. No corpus statistics, no merges, no ambiguity. The same vocabulary on any machine from any dataset.
+---
+Heteroplasmy (mixed wild-type/mutant mtDNA in the same cell) is encoded as a continuous float [0.0, 1.0] per position, projected into embedding space via a 1→256 linear layer. Not binned. Not tokenized. Added directly to the k-mer embedding.
+---
+Phase 2 pre-training starts from the Phase 1 cross-species checkpoint. But it resets the Adam optimizer completely. Phase 1 LR = 1e-4 over 30k vertebrate genomes. Phase 2 LR = 3e-5 on 34,974 human sequences. Using Phase 1 moment estimates at Phase 2 scale would destabilise training from step 1.
+---
+Building the first dedicated foundation model for mitochondrial DNA. mtDNA mutations drive MELAS, Leigh syndrome, and 350+ inherited diseases. No sequence model designed for the circular genome has existed until now.
+
+https://rokpayprsizors.wordpress.com/2026/05/28/circular-positional-encoding-for-mitochondrial-dna/

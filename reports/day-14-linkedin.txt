@@ -1,0 +1,7 @@
+Standard BERT positional encoding places positions 1 and 16,569 of the mitochondrial genome 16,568 steps apart. They are physically adjacent. This is the central design problem of building mtDNA-FM, a foundation model for the circular mitochondrial genome where mutations cause MELAS, Leigh syndrome, and over 350 inherited diseases.
+
+The fix is a single substitution in the positional encoding formula: replace the raw position with an angle (2π × pos / genome_length), so the encoding wraps around a circle. Positions at the 0/16,569 junction produce identical PE vectors, as they should. This is not an approximation; it is exact.
+
+The tokenizer uses all 4,096 possible 6-mers over ACGT plus 6 special tokens. No corpus statistics, no BPE merges. The vocabulary is the same on any machine from any dataset. Heteroplasmy (the fraction of mutant mtDNA copies in a cell) is encoded as a continuous float projected into the 256-dimensional embedding space, not discretized. Phase 2 pre-training, now running on 34,974 human mitochondrial genomes with heteroplasmy labels active, starts from the Phase 1 cross-species checkpoint with a fresh optimizer.
+
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/28/circular-positional-encoding-for-mitochondrial-dna/
