@@ -262,6 +262,18 @@ def _load_models() -> None:
         MtDNAForVariantPathogenicity,
         MtDNAModel,
     )
+
+    # PEFT compat: newer PEFT injects inputs_embeds into forward kwargs
+    import functools as _ft
+    def _peft_patch(cls):
+        _orig = cls.forward
+        @_ft.wraps(_orig)
+        def forward(self, *args, inputs_embeds=None, **kwargs):
+            return _orig(self, *args, **kwargs)
+        cls.forward = forward
+    _peft_patch(MtDNAForHaplogroupClassification)
+    _peft_patch(MtDNAForVariantPathogenicity)
+
     from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
 
     print("[mtdna-fm] Loading base model from HuggingFace Hub...")
