@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[21] = {
     topic: "HuggingFace Hub",
-    commit: "",
+    commit: "e372b1c",
     status: "complete",
     built: [
       "mtdna_fm/scripts/push_to_hub.py — rewrote to push actual trained adapters, patch base_model_name_or_path, write proper adapter READMEs",
