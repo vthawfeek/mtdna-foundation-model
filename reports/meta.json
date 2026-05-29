@@ -1,23 +1,21 @@
 {
-  "lastDay": 24,
-  "lastDayTopic": "DVC Pipeline and Reproducibility",
-  "lastDayCommit": "6dc0f3f",
-  "todayDay": 25,
-  "todayTopic": "Showcase Notebook",
+  "lastDay": 25,
+  "lastDayTopic": "Showcase Notebook",
+  "lastDayCommit": "",
+  "todayDay": 26,
+  "todayTopic": "Blog Post 4 and LinkedIn Article",
   "todayTasks": [
-    "notebooks/04_mtdna_fm_showcase.ipynb — self-contained notebook that tells the full story (README hero artifact)",
-    "Section 1: load model in 3 lines, print parameter count, show config",
-    "Section 2: TSNE of 5,000 human genomes colored by haplogroup — phylogenetic tree should emerge from sequence embeddings",
-    "Section 3: haplogroup confusion matrix sorted by phylogenetic distance",
-    "Section 4: variant pathogenicity ROC curve, attention weight heatmap for a correctly-predicted ClinVar variant",
-    "Section 5: ancient DNA — Neanderthal and Denisovan on the UMAP, consistent with paleoanthropology",
-    "Section 6: gene-type recovery without labels — embed 37 mtDNA genes and cluster by gene type"
-  ],
-  "nextDay": 26,
-  "nextTopic": "Blog Post 4 and LinkedIn Article",
-  "nextTasks": [
     "Blog Post 4 (2,000+ words): 'Building a Production-Quality Foundation Model in 4 Weeks: What Actually Took Time'",
     "LinkedIn article (500 words): production engineering angle — DVC reproducibility, LoRA adapters, HuggingFace Hub as model registry",
-    "Include real numbers: MLM loss curves, fine-tuning accuracy across epochs, Phase 2 zero-shot improvement"
+    "Include real numbers: MLM loss curves, fine-tuning accuracy across epochs, Phase 2 zero-shot improvement",
+    "Honest about difficulty — what took longer than expected, what would you do differently",
+    "Which design decisions mattered (circular PE, two-phase curriculum) and which were less impactful than expected"
+  ],
+  "nextDay": 27,
+  "nextTopic": "Community Engagement",
+  "nextTasks": [
+    "Post to Biostars (biostars.org): introduce the model, invite testing on diverse mtDNA datasets",
+    "Post to HuggingFace community forum: benchmark comparison against DNABERT2 zero-shot on haplogroup classification",
+    "Open GitHub issues for known limitations to show the project is active and honest about what it doesn't do yet"
   ]
 }
