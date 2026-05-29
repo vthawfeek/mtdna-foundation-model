@@ -417,3 +417,127 @@ class MtDNAForHaplogroupClassification(PreTrainedModel):
             hidden_states=all_hidden,
             attentions=all_attentions,
         )
+
+
+# ── Variant pathogenicity model ───────────────────────────────────────────────
+
+
+@dataclass
+class VariantPathogenicityOutput(ModelOutput):
+    """Outputs from MtDNAForVariantPathogenicity.forward()."""
+
+    loss: torch.Tensor | None = None
+    logits: torch.Tensor | None = None  # (batch,) raw BCE logits
+    probs: torch.Tensor | None = None   # (batch,) sigmoid probabilities
+    hidden_states: tuple[torch.Tensor, ...] | None = None
+    attentions: tuple[torch.Tensor, ...] | None = None
+
+
+class MtDNAForVariantPathogenicity(PreTrainedModel):
+    """
+    Fine-tuning wrapper for binary variant pathogenicity prediction.
+
+    Input: 512-token window centered on the variant position.
+    Classification head reads the hidden state at the token containing the
+    variant position — not CLS — because pathogenicity is a local property
+    (effect on a specific codon, tRNA stem, or rRNA position), not a global
+    genome property.
+
+    Training data: ClinVar pathogenic variants (positive) vs gnomAD common
+    variants AF > 0.01 (negative). pos_weight=2.5 in BCE loss compensates
+    for the 1:2.5 positive-to-negative ratio.
+
+    LoRA: r=4 (small dataset, heavier regularisation than haplogroup).
+    """
+
+    config_class = MtDNAConfig
+    supports_gradient_checkpointing = True
+
+    def __init__(
+        self,
+        base_model: MtDNAModel,
+        dropout: float = 0.1,
+        pos_weight: float = 2.5,
+    ) -> None:
+        super().__init__(base_model.config)
+        self.mtdna = base_model
+        self.dropout = nn.Dropout(dropout)
+        # Single linear head on the variant-position token hidden state
+        self.classifier = nn.Linear(base_model.config.hidden_size, 1)
+        # pos_weight stored as buffer so it moves to device with .to()
+        self.register_buffer("pos_weight", torch.tensor(pos_weight))
+        self.post_init()
+
+    def freeze_encoder(self) -> None:
+        for param in self.mtdna.parameters():
+            param.requires_grad = False
+
+    def unfreeze_encoder(self) -> None:
+        for param in self.mtdna.parameters():
+            param.requires_grad = True
+
+    def get_input_embeddings(self) -> nn.Embedding:
+        return self.mtdna.get_input_embeddings()
+
+    def _set_gradient_checkpointing(self, module: nn.Module, value: bool = False) -> None:
+        if isinstance(module, MtDNAModel):
+            module._set_gradient_checkpointing(module.encoder, value)
+
+    def forward(
+        self,
+        input_ids: torch.Tensor,       # (batch, seq_len)
+        position_ids: torch.Tensor,    # (batch, seq_len) absolute genomic coords
+        variant_token_idx: torch.Tensor,  # (batch,) index into seq_len for variant token
+        het_values: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        labels: torch.Tensor | None = None,  # (batch,) float 0/1
+        output_attentions: bool = False,
+        output_hidden_states: bool = False,
+        return_dict: bool = True,
+    ) -> VariantPathogenicityOutput:
+        """
+        Parameters
+        ----------
+        variant_token_idx:
+            Per-sample index pointing to the token in the window that contains
+            the variant position. Used to index last_hidden_state to get the
+            locally contextualised representation of the mutation site.
+        labels:
+            Float tensor of 0.0 (benign) or 1.0 (pathogenic).
+        """
+        enc = self.mtdna(
+            input_ids=input_ids,
+            position_ids=position_ids,
+            het_values=het_values,
+            attention_mask=attention_mask,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+        )
+
+        hidden = enc.last_hidden_state  # (batch, seq_len, hidden)
+
+        # Gather the hidden state at the variant token for each sample
+        # variant_token_idx: (batch,) → expand to (batch, 1, hidden)
+        idx = variant_token_idx.clamp(0, hidden.size(1) - 1)
+        variant_hidden = hidden[
+            torch.arange(hidden.size(0), device=hidden.device), idx, :
+        ]  # (batch, hidden)
+
+        logits = self.classifier(self.dropout(variant_hidden)).squeeze(-1)  # (batch,)
+        probs = torch.sigmoid(logits)
+
+        loss = None
+        if labels is not None:
+            loss = F.binary_cross_entropy_with_logits(
+                logits,
+                labels.float(),
+                pos_weight=self.pos_weight,
+            )
+
+        return VariantPathogenicityOutput(
+            loss=loss,
+            logits=logits,
+            probs=probs,
+            hidden_states=enc.hidden_states,
+            attentions=enc.attentions,
+        )

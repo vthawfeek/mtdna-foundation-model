@@ -1,0 +1,42 @@
+task: pathogenicity
+base_model: "models/phase2_v1"
+
+# LoRA — r=4 because the dataset is small (~7k variants)
+use_lora: true
+lora_r: 4
+lora_alpha: 8
+lora_dropout: 0.1
+lora_target_modules:
+  - query
+  - key
+  - value
+  - dense
+
+# Training data paths
+data:
+  train_parquet: "data/processed/variants_pathogenicity_train.parquet"
+  val_parquet: "data/processed/variants_pathogenicity_val.parquet"
+
+# Training data construction:
+#   positive: ClinVar pathogenic mtDNA variants (~2,000)
+#   negative: gnomAD variants with AF > 0.01 (~5,000)
+#   pos_weight=2.5 compensates for class imbalance
+pos_weight: 2.5
+
+# Window parameters — 512-token window centered on variant position
+window_size: 512
+
+batch_size: 32
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-3
+max_epochs: 20
+warmup_ratio: 0.1
+weight_decay: 0.1
+max_grad_norm: 1.0
+dropout: 0.1
+fp16: false
+
+mlflow_experiment: "mtdna_fm_pathogenicity"
+output_dir: "models/finetune_pathogenicity_v1"
+save_best_metric: "val_auroc"
+eval_every_n_epochs: 1

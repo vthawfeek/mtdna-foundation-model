@@ -337,6 +337,315 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
     log.info("Best validation accuracy: %.4f", best_val_acc)
 
 
+class PathogenicityVariantDataset(Dataset):
+    """
+    Dataset for binary variant pathogenicity prediction.
+
+    Each sample is a 512-token window centered on a variant position.
+    Classification uses the hidden state at the variant token, not CLS,
+    because pathogenicity is a local property of the mutation context.
+
+    Expected parquet columns: sequence, position, label (1=pathogenic, 0=benign),
+    variant_type (missense|tRNA|rRNA|D-loop) for stratified splitting.
+    Falls back to synthetic data when parquet is not available, to support
+    unit-testing and development without real variant data.
+    """
+
+    def __init__(
+        self,
+        parquet_path: str | Path,
+        vocabulary,
+        window_size: int = 512,
+        k: int = 6,
+        max_variants: int | None = None,
+    ) -> None:
+        import pandas as pd
+
+        from mtdna_fm.tokenizer.tokenize import tokenize_sequence
+
+        path = Path(parquet_path)
+        if path.exists():
+            df = pd.read_parquet(path)
+        else:
+            # Synthetic fallback for testing: random variants on a short reference
+            log.warning(
+                "Variant parquet not found at %s — using 64-sample synthetic fallback",
+                parquet_path,
+            )
+            import numpy as np
+
+            rng = np.random.default_rng(42)
+            ref = "".join(rng.choice(list("ACGT"), size=16569))
+            bases = list("ACGT")
+            rows = []
+            for i in range(64):
+                pos = int(rng.integers(0, 16569))
+                ref_base = ref[pos]
+                alt = rng.choice([b for b in bases if b != ref_base])
+                seq = ref[:pos] + alt + ref[pos + 1 :]
+                rows.append({
+                    "sequence": seq,
+                    "position": pos,
+                    "label": int(i % 2),
+                    "variant_type": rng.choice(["missense", "tRNA", "rRNA", "D-loop"]),
+                })
+            df = pd.DataFrame(rows)
+
+        if max_variants is not None:
+            df = df.head(max_variants)
+
+        self._samples: list[dict[str, Any]] = []
+        for _, row in df.iterrows():
+            seq = row["sequence"]
+            pos = int(row["position"])
+            label = float(row["label"])
+
+            tokens = tokenize_sequence(
+                seq,
+                vocabulary,
+                k=k,
+                stride=1,
+                max_seq_len=len(seq),
+                circular=True,
+            )
+            n_tokens = len(tokens["input_ids"])
+
+            # Center 512-token window on the variant position (clamp to boundaries)
+            half = window_size // 2
+            start = max(0, pos - half)
+            end = min(n_tokens, start + window_size)
+            start = max(0, end - window_size)  # re-align if near end
+
+            pad_len = window_size - (end - start)
+            ids = tokens["input_ids"][start:end] + [0] * pad_len
+            pos_ids = tokens["position_ids"][start:end] + [0] * pad_len
+            mask = [1] * (end - start) + [0] * pad_len
+
+            # Index within the window of the token that covers the variant position
+            variant_tok_idx = min(pos - start, end - start - 1)
+
+            self._samples.append({
+                "input_ids": ids,
+                "position_ids": pos_ids,
+                "attention_mask": mask,
+                "variant_token_idx": variant_tok_idx,
+                "label": label,
+            })
+
+    def __len__(self) -> int:
+        return len(self._samples)
+
+    def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
+        s = self._samples[idx]
+        return {
+            "input_ids": torch.tensor(s["input_ids"], dtype=torch.long),
+            "position_ids": torch.tensor(s["position_ids"], dtype=torch.long),
+            "attention_mask": torch.tensor(s["attention_mask"], dtype=torch.long),
+            "variant_token_idx": torch.tensor(s["variant_token_idx"], dtype=torch.long),
+            "labels": torch.tensor(s["label"], dtype=torch.float),
+        }
+
+
+def finetune_pathogenicity(cfg: dict[str, Any]) -> None:
+    """Run variant pathogenicity binary classification fine-tuning."""
+    from peft import LoraConfig, TaskType, get_peft_model
+
+    from mtdna_fm.model.model import (
+        MtDNAForMaskedModeling,
+        MtDNAForVariantPathogenicity,
+        MtDNAModel,
+    )
+    from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+
+    base_model_path = cfg["base_model"]
+    output_dir = Path(cfg["output_dir"])
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    log.info("Device: %s", device)
+
+    if not Path(base_model_path).exists():
+        typer.echo(
+            f"[finetune] Base model not found at {base_model_path}. "
+            "Run Phase 2 pre-training first.",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
+    log.info("Loading base model from %s", base_model_path)
+    full_model = MtDNAForMaskedModeling.from_pretrained(base_model_path)
+    base_encoder: MtDNAModel = full_model.mtdna
+
+    vocabulary = KmerVocabulary.from_pretrained(base_model_path)
+
+    model = MtDNAForVariantPathogenicity(
+        base_encoder,
+        dropout=cfg.get("dropout", 0.1),
+        pos_weight=cfg.get("pos_weight", 2.5),
+    )
+
+    if cfg.get("use_lora", True):
+        lora_cfg = LoraConfig(
+            task_type=TaskType.FEATURE_EXTRACTION,
+            r=cfg.get("lora_r", 4),
+            lora_alpha=cfg.get("lora_alpha", 8),
+            target_modules=cfg.get("lora_target_modules", ["query", "key", "value", "dense"]),
+            lora_dropout=cfg.get("lora_dropout", 0.1),
+            bias="none",
+        )
+        model = get_peft_model(model, lora_cfg)
+        model.print_trainable_parameters()
+
+    model = model.to(device)
+
+    train_parquet = cfg.get("data", {}).get(
+        "train_parquet", "data/processed/variants_pathogenicity_train.parquet"
+    )
+    val_parquet = cfg.get("data", {}).get(
+        "val_parquet", "data/processed/variants_pathogenicity_val.parquet"
+    )
+
+    log.info("Building dataset from %s", train_parquet)
+    train_ds = PathogenicityVariantDataset(
+        train_parquet,
+        vocabulary,
+        window_size=cfg.get("window_size", 512),
+    )
+    val_ds = PathogenicityVariantDataset(
+        val_parquet,
+        vocabulary,
+        window_size=cfg.get("window_size", 512),
+    ) if Path(val_parquet).exists() else None
+
+    train_dl = DataLoader(
+        train_ds,
+        batch_size=cfg.get("batch_size", 32),
+        shuffle=True,
+        num_workers=0,
+    )
+    val_dl = (
+        DataLoader(val_ds, batch_size=cfg.get("batch_size", 32), shuffle=False, num_workers=0)
+        if val_ds is not None
+        else None
+    )
+
+    try:
+        import mlflow
+        mlflow.set_experiment(cfg.get("mlflow_experiment", "mtdna_fm_pathogenicity"))
+        mlflow.start_run()
+        mlflow.log_params(cfg)
+        use_mlflow = True
+    except Exception:
+        use_mlflow = False
+
+    grad_accum = cfg.get("gradient_accumulation_steps", 4)
+    max_epochs = cfg.get("max_epochs", 20)
+    lr = float(cfg.get("learning_rate", 1e-3))
+    warmup_ratio = cfg.get("warmup_ratio", 0.1)
+    max_grad_norm = cfg.get("max_grad_norm", 1.0)
+
+    optimizer = AdamW(
+        [p for p in model.parameters() if p.requires_grad],
+        lr=lr,
+        weight_decay=cfg.get("weight_decay", 0.1),
+    )
+
+    total_steps = (len(train_dl) // grad_accum) * max_epochs
+    warmup_steps = int(total_steps * warmup_ratio)
+    scheduler = get_linear_schedule_with_warmup(optimizer, warmup_steps, total_steps)
+
+    best_val_auroc = 0.0
+    avg_loss = 0.0
+    global_step = 0
+
+    for epoch in range(max_epochs):
+        model.train()
+        total_loss = 0.0
+        optimizer.zero_grad()
+
+        for step, batch in enumerate(train_dl):
+            input_ids = batch["input_ids"].to(device)
+            position_ids = batch["position_ids"].to(device)
+            attention_mask = batch["attention_mask"].to(device)
+            variant_token_idx = batch["variant_token_idx"].to(device)
+            labels = batch["labels"].to(device)
+
+            out = model(
+                input_ids=input_ids,
+                position_ids=position_ids,
+                variant_token_idx=variant_token_idx,
+                attention_mask=attention_mask,
+                labels=labels,
+            )
+            loss = out.loss / grad_accum
+            loss.backward()
+            total_loss += out.loss.item()
+
+            if (step + 1) % grad_accum == 0:
+                torch.nn.utils.clip_grad_norm_(
+                    [p for p in model.parameters() if p.requires_grad],
+                    max_grad_norm,
+                )
+                optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                global_step += 1
+
+        avg_loss = total_loss / len(train_dl)
+        log.info("Epoch %d/%d — train loss: %.4f", epoch + 1, max_epochs, avg_loss)
+
+        if use_mlflow:
+            mlflow.log_metric("train_loss", avg_loss, step=epoch)
+
+        if val_dl is not None and (epoch + 1) % cfg.get("eval_every_n_epochs", 1) == 0:
+            model.eval()
+            all_probs: list[float] = []
+            all_labels: list[float] = []
+            with torch.no_grad():
+                for batch in val_dl:
+                    input_ids = batch["input_ids"].to(device)
+                    position_ids = batch["position_ids"].to(device)
+                    attention_mask = batch["attention_mask"].to(device)
+                    variant_token_idx = batch["variant_token_idx"].to(device)
+                    labels_b = batch["labels"].to(device)
+                    out = model(
+                        input_ids=input_ids,
+                        position_ids=position_ids,
+                        variant_token_idx=variant_token_idx,
+                        attention_mask=attention_mask,
+                    )
+                    all_probs.extend(out.probs.cpu().tolist())
+                    all_labels.extend(labels_b.cpu().tolist())
+
+            try:
+                from sklearn.metrics import roc_auc_score
+                val_auroc = float(roc_auc_score(all_labels, all_probs))
+            except Exception:
+                val_auroc = 0.0
+
+            log.info("  val AUROC: %.4f", val_auroc)
+
+            if use_mlflow:
+                mlflow.log_metric("val_auroc", val_auroc, step=epoch)
+
+            if val_auroc > best_val_auroc:
+                best_val_auroc = val_auroc
+                _save_model(model, output_dir / "best", cfg, vocabulary)
+                log.info("  Saved best model (val_auroc=%.4f)", best_val_auroc)
+
+    _save_model(model, output_dir, cfg, vocabulary)
+
+    metrics = {"best_val_auroc": best_val_auroc, "final_train_loss": avg_loss}
+    (output_dir / "eval_metrics.json").write_text(json.dumps(metrics, indent=2))
+
+    if use_mlflow:
+        mlflow.log_metrics(metrics)
+        mlflow.end_run()
+
+    log.info("Fine-tuning complete. Output: %s", output_dir)
+    log.info("Best validation AUROC: %.4f", best_val_auroc)
+
+
 def _save_model(model, output_dir: Path, cfg: dict, vocabulary) -> None:
     output_dir.mkdir(parents=True, exist_ok=True)
     try:
@@ -374,8 +683,10 @@ def main(
 
     if task == "haplogroup":
         finetune_haplogroup(cfg)
-    elif task in ("pathogenicity", "heteroplasmy"):
-        typer.echo(f"[finetune] Task '{task}' will be implemented on Day 17/18.", err=True)
+    elif task == "pathogenicity":
+        finetune_pathogenicity(cfg)
+    elif task == "heteroplasmy":
+        typer.echo("[finetune] Task 'heteroplasmy' will be implemented on Day 18.", err=True)
         raise typer.Exit(code=1)
     else:
         typer.echo(f"[finetune] Unknown task: {task}. Choose: haplogroup | pathogenicity | heteroplasmy", err=True)
