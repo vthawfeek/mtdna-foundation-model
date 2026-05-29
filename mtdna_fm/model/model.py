@@ -345,6 +345,7 @@ class MtDNAForHaplogroupClassification(PreTrainedModel):
         position_ids: torch.Tensor,
         het_values: torch.Tensor | None = None,
         attention_mask: torch.Tensor | None = None,
+        inputs_embeds: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,
         output_attentions: bool = False,
         output_hidden_states: bool = False,
@@ -490,6 +491,7 @@ class MtDNAForVariantPathogenicity(PreTrainedModel):
         variant_token_idx: torch.Tensor,  # (batch,) index into seq_len for variant token
         het_values: torch.Tensor | None = None,
         attention_mask: torch.Tensor | None = None,
+        inputs_embeds: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,  # (batch,) float 0/1
         output_attentions: bool = False,
         output_hidden_states: bool = False,
@@ -627,6 +629,7 @@ class MtDNAForHeteroplasmyRegression(PreTrainedModel):
         variant_token_idx: torch.Tensor,  # (batch,)
         het_values: torch.Tensor | None = None,
         attention_mask: torch.Tensor | None = None,
+        inputs_embeds: torch.Tensor | None = None,
         labels: torch.Tensor | None = None,  # (batch,) float in [0, 1]
         output_attentions: bool = False,
         output_hidden_states: bool = False,
