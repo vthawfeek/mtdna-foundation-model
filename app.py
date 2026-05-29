@@ -267,7 +267,10 @@ def _load_models() -> None:
     print("[mtdna-fm] Loading base model from HuggingFace Hub...")
     full_model = MtDNAForMaskedModeling.from_pretrained(BASE_MODEL)
     base_for_embedder: MtDNAModel = full_model.mtdna
-    vocab = KmerVocabulary.from_pretrained(BASE_MODEL)
+    from huggingface_hub import hf_hub_download as _hf_download
+
+    _vocab_file = _hf_download(repo_id=BASE_MODEL, filename="vocab.json")
+    vocab = KmerVocabulary.from_pretrained(Path(_vocab_file).parent)
 
     _models["embedder"] = MtDNAEmbedder(base_for_embedder, vocab)
     _models["vocab"] = vocab
