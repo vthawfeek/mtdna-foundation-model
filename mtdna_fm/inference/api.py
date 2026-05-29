@@ -137,6 +137,14 @@ class MtDNAEmbedder:
         if pooling != "cls_mean":
             raise ValueError(f"Unsupported pooling '{pooling}'. Use 'cls_mean'.")
 
+        # Normalize sequence to model genome_length so position IDs stay in range.
+        # Ancient / non-standard sequences may differ from 16,569 bp by a few bases.
+        genome_length = self.model.config.genome_length
+        if len(sequence) > genome_length:
+            sequence = sequence[:genome_length]
+        elif len(sequence) < genome_length:
+            sequence = sequence + "N" * (genome_length - len(sequence))
+
         tokens = tokenize_sequence(
             sequence,
             self.vocabulary,

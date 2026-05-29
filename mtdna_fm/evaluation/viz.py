@@ -133,6 +133,144 @@ def plot_umap(
     return fig
 
 
+def plot_umap_with_ancient_dna(
+    modern_embeddings: np.ndarray,
+    modern_labels: list[str],
+    ancient_embeddings: np.ndarray,
+    ancient_labels: list[str],
+    title: str = "mtDNA-FM: Modern humans + ancient hominids (zero-shot)",
+    n_neighbors: int = 15,
+    min_dist: float = 0.1,
+    random_state: int = 42,
+) -> matplotlib.figure.Figure:
+    """
+    UMAP of modern human embeddings with ancient hominid sequences overlaid.
+
+    Modern human sequences are plotted as small dots coloured by haplogroup.
+    Ancient sequences (Neanderthal, Denisovan) are overlaid as large stars
+    with distinctive colours so their placement relative to the modern
+    phylogeny is immediately visible.
+
+    Parameters
+    ----------
+    modern_embeddings:
+        (n_modern, hidden_size) array of modern human genome embeddings.
+    modern_labels:
+        Haplogroup label for each modern sequence.
+    ancient_embeddings:
+        (n_ancient, hidden_size) array of ancient genome embeddings.
+    ancient_labels:
+        Display label for each ancient sequence (e.g. "Neanderthal").
+    title:
+        Figure title.
+    n_neighbors, min_dist, random_state:
+        UMAP hyperparameters.
+
+    Returns
+    -------
+    matplotlib.figure.Figure
+    """
+    try:
+        from umap import UMAP
+    except ImportError as e:
+        raise ImportError(
+            "umap-learn is required for plot_umap_with_ancient_dna. "
+            "Install with: pip install umap-learn"
+        ) from e
+
+    import matplotlib.pyplot as plt
+
+    # Fit UMAP on ALL sequences (modern + ancient) jointly so ancient points
+    # are placed in the same coordinate space as modern humans.
+    all_embeddings = np.concatenate([modern_embeddings, ancient_embeddings], axis=0)
+    n_modern = len(modern_embeddings)
+
+    reducer = UMAP(
+        n_neighbors=n_neighbors,
+        min_dist=min_dist,
+        n_components=2,
+        random_state=random_state,
+    )
+    coords = reducer.fit_transform(all_embeddings)  # (n_modern + n_ancient, 2)
+
+    modern_coords = coords[:n_modern]
+    ancient_coords = coords[n_modern:]
+
+    fig, ax = plt.subplots(figsize=(11, 8))
+
+    # Plot modern human sequences, coloured by haplogroup
+    unique_labels = sorted(set(modern_labels))
+    for hg in unique_labels:
+        mask = np.array([lbl == hg for lbl in modern_labels])
+        ax.scatter(
+            modern_coords[mask, 0],
+            modern_coords[mask, 1],
+            c=_haplogroup_colour(hg),
+            label=hg,
+            s=8,
+            alpha=0.55,
+            linewidths=0,
+            zorder=2,
+        )
+
+    # Ancient sequences — large gold/purple stars so they stand out
+    ancient_colours = ["#FFD700", "#9932CC", "#00CED1", "#FF4500"]
+    for i, (label, colour) in enumerate(zip(ancient_labels, ancient_colours, strict=False)):
+        ax.scatter(
+            ancient_coords[i, 0],
+            ancient_coords[i, 1],
+            c=colour,
+            marker="*",
+            s=500,
+            label=label,
+            edgecolors="black",
+            linewidths=0.8,
+            zorder=5,
+        )
+        ax.annotate(
+            label,
+            xy=(ancient_coords[i, 0], ancient_coords[i, 1]),
+            xytext=(6, 6),
+            textcoords="offset points",
+            fontsize=10,
+            fontweight="bold",
+            color=colour,
+            bbox={"boxstyle": "round,pad=0.2", "fc": "white", "alpha": 0.7},
+        )
+
+    # Legend: haplogroups if ≤30, plus always show ancient labels
+    handles, labels_ = ax.get_legend_handles_labels()
+    n_hg = len(unique_labels)
+    # Show only ancient labels in legend if too many haplogroups
+    if n_hg > 30:
+        ancient_handles = handles[n_hg:]
+        ancient_label_strs = labels_[n_hg:]
+        ax.legend(
+            ancient_handles,
+            ancient_label_strs,
+            markerscale=0.6,
+            fontsize=9,
+            loc="upper left",
+            bbox_to_anchor=(1, 1),
+        )
+    else:
+        ax.legend(
+            markerscale=1.5,
+            fontsize=7,
+            loc="upper left",
+            bbox_to_anchor=(1, 1),
+            ncol=2,
+        )
+
+    ax.set_title(title, fontsize=13)
+    ax.set_xlabel("UMAP 1")
+    ax.set_ylabel("UMAP 2")
+    ax.set_xticks([])
+    ax.set_yticks([])
+    fig.tight_layout()
+    return fig
+
+
 def plot_roc_curve(
     fpr: list[float] | np.ndarray,
     tpr: list[float] | np.ndarray,
