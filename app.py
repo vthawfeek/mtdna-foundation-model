@@ -363,57 +363,61 @@ def predict_haplogroup(sequence_input: str) -> tuple[Any, str]:
     if len(seq) < 50:
         return None, "**Error:** Sequence too short — enter at least 50 nucleotides."
 
-    _load_models()
-    embedder = _models["embedder"]
-    haplo_model = _models["haplogroup"]
-    vocab = _models["vocab"]
+    try:
+        _load_models()
+        embedder = _models["embedder"]
+        haplo_model = _models["haplogroup"]
+        vocab = _models["vocab"]
 
-    genome_length = embedder.model.config.genome_length
-    all_ids, all_pos = _tokenize_for_haplogroup(seq, vocab, genome_length)
+        genome_length = embedder.model.config.genome_length
+        all_ids, all_pos = _tokenize_for_haplogroup(seq, vocab, genome_length)
 
-    # Shape: (1, n_windows, window_size)
-    input_ids = torch.tensor([all_ids], dtype=torch.long)
-    position_ids = torch.tensor([all_pos], dtype=torch.long)
-    attention_mask = torch.ones_like(input_ids)
+        # Shape: (1, n_windows, window_size)
+        input_ids = torch.tensor([all_ids], dtype=torch.long)
+        position_ids = torch.tensor([all_pos], dtype=torch.long)
+        attention_mask = torch.ones_like(input_ids)
 
-    with torch.no_grad():
-        out = haplo_model(
-            input_ids=input_ids,
-            position_ids=position_ids,
-            attention_mask=attention_mask,
+        with torch.no_grad():
+            out = haplo_model(
+                input_ids=input_ids,
+                position_ids=position_ids,
+                attention_mask=attention_mask,
+            )
+
+        probs = torch.softmax(out.logits.squeeze(0), dim=-1).numpy()
+        top_idx = int(np.argmax(probs))
+        predicted = HAPLOGROUPS[top_idx]
+        confidence = float(probs[top_idx])
+
+        # Confidence bar chart (top 8)
+        top8 = np.argsort(probs)[::-1][:8]
+        fig, ax = plt.subplots(figsize=(8, 4))
+        hgroups = [HAPLOGROUPS[i] for i in top8]
+        vals = [probs[i] * 100 for i in top8]
+        colours = [_haplogroup_colour(h) for h in hgroups]
+        ax.barh(hgroups[::-1], vals[::-1], color=colours[::-1], edgecolor="white", linewidth=0.5)
+        ax.set_xlabel("Confidence (%)", fontsize=11)
+        ax.set_title(f"Predicted: {predicted}  ({confidence * 100:.1f}% confidence)", fontsize=13, fontweight="bold")
+        ax.set_xlim(0, 100)
+        ax.axvline(confidence * 100, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
+        ax.grid(axis="x", alpha=0.3)
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        fig.tight_layout()
+
+        info = HAPLOGROUP_INFO.get(predicted, {})
+        description = (
+            f"### Haplogroup {predicted}\n\n"
+            f"**Confidence:** {confidence * 100:.1f}%  \n"
+            f"**Geographic origin:** {info.get('region', 'Unknown')}  \n"
+            f"**Estimated age:** {info.get('age', 'Unknown')}  \n\n"
+            f"{info.get('notes', 'No description available.')}"
         )
 
-    probs = torch.softmax(out.logits.squeeze(0), dim=-1).numpy()
-    top_idx = int(np.argmax(probs))
-    predicted = HAPLOGROUPS[top_idx]
-    confidence = float(probs[top_idx])
-
-    # Confidence bar chart (top 8)
-    top8 = np.argsort(probs)[::-1][:8]
-    fig, ax = plt.subplots(figsize=(8, 4))
-    hgroups = [HAPLOGROUPS[i] for i in top8]
-    vals = [probs[i] * 100 for i in top8]
-    colours = [_haplogroup_colour(h) for h in hgroups]
-    ax.barh(hgroups[::-1], vals[::-1], color=colours[::-1], edgecolor="white", linewidth=0.5)
-    ax.set_xlabel("Confidence (%)", fontsize=11)
-    ax.set_title(f"Predicted: {predicted}  ({confidence * 100:.1f}% confidence)", fontsize=13, fontweight="bold")
-    ax.set_xlim(0, 100)
-    ax.axvline(confidence * 100, color="black", linestyle="--", linewidth=0.8, alpha=0.5)
-    ax.grid(axis="x", alpha=0.3)
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    fig.tight_layout()
-
-    info = HAPLOGROUP_INFO.get(predicted, {})
-    description = (
-        f"### Haplogroup {predicted}\n\n"
-        f"**Confidence:** {confidence * 100:.1f}%  \n"
-        f"**Geographic origin:** {info.get('region', 'Unknown')}  \n"
-        f"**Estimated age:** {info.get('age', 'Unknown')}  \n\n"
-        f"{info.get('notes', 'No description available.')}"
-    )
-
-    return fig, description
+        return fig, description
+    except Exception as exc:
+        import traceback as _tb
+        return None, f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```"
 
 
 # ── Tab 2: Variant Pathogenicity Check ────────────────────────────────────────
@@ -444,129 +448,133 @@ def check_pathogenicity(
     # Apply variant to get the mutant sequence
     mut_seq = seq[:position] + alt_base + seq[position + 1:]
 
-    _load_models()
-    path_model = _models["pathogenicity"]
-    vocab = _models["vocab"]
-    genome_length = _models["embedder"].model.config.genome_length
+    try:
+        _load_models()
+        path_model = _models["pathogenicity"]
+        vocab = _models["vocab"]
+        genome_length = _models["embedder"].model.config.genome_length
 
-    from mtdna_fm.tokenizer.tokenize import tokenize_sequence
+        from mtdna_fm.tokenizer.tokenize import tokenize_sequence
 
-    if len(mut_seq) > genome_length:
-        mut_seq = mut_seq[:genome_length]
-    elif len(mut_seq) < genome_length:
-        mut_seq = mut_seq + "N" * (genome_length - len(mut_seq))
+        if len(mut_seq) > genome_length:
+            mut_seq = mut_seq[:genome_length]
+        elif len(mut_seq) < genome_length:
+            mut_seq = mut_seq + "N" * (genome_length - len(mut_seq))
 
-    tokens = tokenize_sequence(
-        mut_seq, vocab, k=6, stride=1, max_seq_len=len(mut_seq), circular=True
-    )
-    n_tokens = len(tokens["input_ids"])
-    window_size = 512
-    half = window_size // 2
-    start = max(0, position - half)
-    start = min(start, max(0, n_tokens - window_size))
+        tokens = tokenize_sequence(
+            mut_seq, vocab, k=6, stride=1, max_seq_len=len(mut_seq), circular=True
+        )
+        n_tokens = len(tokens["input_ids"])
+        window_size = 512
+        half = window_size // 2
+        start = max(0, position - half)
+        start = min(start, max(0, n_tokens - window_size))
 
-    window_indices = [(start + i) % n_tokens for i in range(window_size)]
-    ids = [tokens["input_ids"][j] for j in window_indices]
-    pos = [tokens["position_ids"][j] for j in window_indices]
+        window_indices = [(start + i) % n_tokens for i in range(window_size)]
+        ids = [tokens["input_ids"][j] for j in window_indices]
+        pos = [tokens["position_ids"][j] for j in window_indices]
 
-    # Find which slot in the window contains the variant position
-    pos_list = [tokens["position_ids"][j] for j in window_indices]
-    variant_slot = pos_list.index(position) if position in pos_list else half
+        # Find which slot in the window contains the variant position
+        pos_list = [tokens["position_ids"][j] for j in window_indices]
+        variant_slot = pos_list.index(position) if position in pos_list else half
 
-    input_ids = torch.tensor([ids], dtype=torch.long)
-    position_ids = torch.tensor([pos], dtype=torch.long)
-    variant_token_idx = torch.tensor([variant_slot], dtype=torch.long)
+        input_ids = torch.tensor([ids], dtype=torch.long)
+        position_ids = torch.tensor([pos], dtype=torch.long)
+        variant_token_idx = torch.tensor([variant_slot], dtype=torch.long)
 
-    with torch.no_grad():
-        out = path_model(
-            input_ids=input_ids,
-            position_ids=position_ids,
-            variant_token_idx=variant_token_idx,
-            output_attentions=True,
+        with torch.no_grad():
+            out = path_model(
+                input_ids=input_ids,
+                position_ids=position_ids,
+                variant_token_idx=variant_token_idx,
+                output_attentions=True,
+            )
+
+        pathogenicity_prob = float(out.probs.item())
+
+        # Attention heatmap: last layer, mean over heads, row = query at variant slot
+        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
+
+        # Left: gauge-style probability display
+        ax_gauge = axes[0]
+        categories = ["Benign", "Pathogenic"]
+        values = [1 - pathogenicity_prob, pathogenicity_prob]
+        colours = ["#3CB371", "#DC143C"]
+        bars = ax_gauge.bar(categories, values, color=colours, edgecolor="white", linewidth=1.5)
+        ax_gauge.set_ylim(0, 1)
+        ax_gauge.set_ylabel("Probability", fontsize=11)
+        ax_gauge.set_title(
+            f"Pathogenicity: {pathogenicity_prob * 100:.1f}%",
+            fontsize=13, fontweight="bold"
+        )
+        for bar, val in zip(bars, values, strict=True):
+            ax_gauge.text(
+                bar.get_x() + bar.get_width() / 2,
+                val + 0.02,
+                f"{val * 100:.1f}%",
+                ha="center", va="bottom", fontweight="bold", fontsize=12
+            )
+        ax_gauge.spines["top"].set_visible(False)
+        ax_gauge.spines["right"].set_visible(False)
+        ax_gauge.grid(axis="y", alpha=0.3)
+
+        # Right: attention heatmap at the variant position (last layer, mean across heads)
+        ax_att = axes[1]
+        if out.attentions is not None:
+            last_layer_attn = out.attentions[-1].squeeze(0)  # (n_heads, seq_len, seq_len)
+            variant_row = last_layer_attn[:, variant_slot, :].mean(0).cpu().numpy()  # (seq_len,)
+
+            # Show ±50 tokens around variant for readability
+            half_view = 50
+            lo = max(0, variant_slot - half_view)
+            hi = min(window_size, variant_slot + half_view)
+            view = variant_row[lo:hi]
+            x_ticks = np.array(pos_list[lo:hi])
+
+            ax_att.fill_between(range(len(view)), view, alpha=0.7, color="#4169E1")
+            ax_att.axvline(variant_slot - lo, color="red", linestyle="--", linewidth=1.5, label=f"Variant pos {position}")
+            ax_att.set_xlabel(f"Genomic position (window ±{half_view} of variant)", fontsize=10)
+            ax_att.set_ylabel("Attention weight", fontsize=10)
+            ax_att.set_title("Attention context at variant position\n(last layer, mean over heads)", fontsize=11)
+            ax_att.legend(fontsize=9)
+            ax_att.spines["top"].set_visible(False)
+            ax_att.spines["right"].set_visible(False)
+            ax_att.grid(alpha=0.3)
+
+            # X-axis ticks: show a few genomic positions
+            tick_step = max(1, len(view) // 5)
+            tick_positions = list(range(0, len(view), tick_step))
+            ax_att.set_xticks(tick_positions)
+            ax_att.set_xticklabels([str(x_ticks[i]) if i < len(x_ticks) else "" for i in tick_positions], rotation=45, ha="right")
+        else:
+            ax_att.text(0.5, 0.5, "Attention weights not available", ha="center", va="center", transform=ax_att.transAxes)
+
+        fig.tight_layout()
+
+        # Risk interpretation
+        if pathogenicity_prob >= 0.7:
+            risk_label = "HIGH — model predicts this variant is likely pathogenic"
+            risk_colour = "🔴"
+        elif pathogenicity_prob >= 0.4:
+            risk_label = "INTERMEDIATE — uncertain; further functional evidence recommended"
+            risk_colour = "🟡"
+        else:
+            risk_label = "LOW — model predicts this variant is likely benign"
+            risk_colour = "🟢"
+
+        description = (
+            f"### Variant {ref_base}{position}{alt_base}\n\n"
+            f"**Pathogenicity score:** {pathogenicity_prob * 100:.1f}%  \n"
+            f"**Risk assessment:** {risk_colour} {risk_label}  \n\n"
+            f"*Note: This score is based on sequence context learned from ClinVar and gnomAD. "
+            f"It is not a clinical diagnosis. Variants in functional elements (tRNA, rRNA, coding regions) "
+            f"are scored more reliably than D-loop variants.*"
         )
 
-    pathogenicity_prob = float(out.probs.item())
-
-    # Attention heatmap: last layer, mean over heads, row = query at variant slot
-    fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
-    # Left: gauge-style probability display
-    ax_gauge = axes[0]
-    categories = ["Benign", "Pathogenic"]
-    values = [1 - pathogenicity_prob, pathogenicity_prob]
-    colours = ["#3CB371", "#DC143C"]
-    bars = ax_gauge.bar(categories, values, color=colours, edgecolor="white", linewidth=1.5)
-    ax_gauge.set_ylim(0, 1)
-    ax_gauge.set_ylabel("Probability", fontsize=11)
-    ax_gauge.set_title(
-        f"Pathogenicity: {pathogenicity_prob * 100:.1f}%",
-        fontsize=13, fontweight="bold"
-    )
-    for bar, val in zip(bars, values, strict=True):
-        ax_gauge.text(
-            bar.get_x() + bar.get_width() / 2,
-            val + 0.02,
-            f"{val * 100:.1f}%",
-            ha="center", va="bottom", fontweight="bold", fontsize=12
-        )
-    ax_gauge.spines["top"].set_visible(False)
-    ax_gauge.spines["right"].set_visible(False)
-    ax_gauge.grid(axis="y", alpha=0.3)
-
-    # Right: attention heatmap at the variant position (last layer, mean across heads)
-    ax_att = axes[1]
-    if out.attentions is not None:
-        last_layer_attn = out.attentions[-1].squeeze(0)  # (n_heads, seq_len, seq_len)
-        variant_row = last_layer_attn[:, variant_slot, :].mean(0).cpu().numpy()  # (seq_len,)
-
-        # Show ±50 tokens around variant for readability
-        half_view = 50
-        lo = max(0, variant_slot - half_view)
-        hi = min(window_size, variant_slot + half_view)
-        view = variant_row[lo:hi]
-        x_ticks = np.array(pos_list[lo:hi])
-
-        ax_att.fill_between(range(len(view)), view, alpha=0.7, color="#4169E1")
-        ax_att.axvline(variant_slot - lo, color="red", linestyle="--", linewidth=1.5, label=f"Variant pos {position}")
-        ax_att.set_xlabel(f"Genomic position (window ±{half_view} of variant)", fontsize=10)
-        ax_att.set_ylabel("Attention weight", fontsize=10)
-        ax_att.set_title("Attention context at variant position\n(last layer, mean over heads)", fontsize=11)
-        ax_att.legend(fontsize=9)
-        ax_att.spines["top"].set_visible(False)
-        ax_att.spines["right"].set_visible(False)
-        ax_att.grid(alpha=0.3)
-
-        # X-axis ticks: show a few genomic positions
-        tick_step = max(1, len(view) // 5)
-        tick_positions = list(range(0, len(view), tick_step))
-        ax_att.set_xticks(tick_positions)
-        ax_att.set_xticklabels([str(x_ticks[i]) if i < len(x_ticks) else "" for i in tick_positions], rotation=45, ha="right")
-    else:
-        ax_att.text(0.5, 0.5, "Attention weights not available", ha="center", va="center", transform=ax_att.transAxes)
-
-    fig.tight_layout()
-
-    # Risk interpretation
-    if pathogenicity_prob >= 0.7:
-        risk_label = "HIGH — model predicts this variant is likely pathogenic"
-        risk_colour = "🔴"
-    elif pathogenicity_prob >= 0.4:
-        risk_label = "INTERMEDIATE — uncertain; further functional evidence recommended"
-        risk_colour = "🟡"
-    else:
-        risk_label = "LOW — model predicts this variant is likely benign"
-        risk_colour = "🟢"
-
-    description = (
-        f"### Variant {ref_base}{position}{alt_base}\n\n"
-        f"**Pathogenicity score:** {pathogenicity_prob * 100:.1f}%  \n"
-        f"**Risk assessment:** {risk_colour} {risk_label}  \n\n"
-        f"*Note: This score is based on sequence context learned from ClinVar and gnomAD. "
-        f"It is not a clinical diagnosis. Variants in functional elements (tRNA, rRNA, coding regions) "
-        f"are scored more reliably than D-loop variants.*"
-    )
-
-    return fig, description
+        return fig, description
+    except Exception as exc:
+        import traceback as _tb
+        return None, f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```"
 
 
 # ── Tab 3: Genome Embedding ────────────────────────────────────────────────────
@@ -583,85 +591,89 @@ def embed_genome_tab(sequence_input: str) -> tuple[Any, str, str]:
     if len(seq) < 50:
         return None, "**Error:** Sequence too short — enter at least 50 nucleotides.", ""
 
-    _load_models()
-    embedder = _models["embedder"]
+    try:
+        _load_models()
+        embedder = _models["embedder"]
 
-    embedding = embedder.embed_genome(seq)  # (256,)
+        embedding = embedder.embed_genome(seq)  # (256,)
 
-    # CSV string
-    csv_rows = [f"dim_{i},{embedding[i]:.8f}" for i in range(len(embedding))]
-    csv_string = "dimension,value\n" + "\n".join(csv_rows)
+        # CSV string
+        csv_rows = [f"dim_{i},{embedding[i]:.8f}" for i in range(len(embedding))]
+        csv_string = "dimension,value\n" + "\n".join(csv_rows)
 
-    # Load reference data and project
-    ref = _load_reference()
-    fig, ax = plt.subplots(figsize=(8, 6))
+        # Load reference data and project
+        ref = _load_reference()
+        fig, ax = plt.subplots(figsize=(8, 6))
 
-    if ref["embeddings"] is not None and ref["umap_2d"] is not None:
-        ref_embs = ref["embeddings"]
-        ref_2d = ref["umap_2d"]
-        ref_labels = ref["labels"]
+        if ref["embeddings"] is not None and ref["umap_2d"] is not None:
+            ref_embs = ref["embeddings"]
+            ref_2d = ref["umap_2d"]
+            ref_labels = ref["labels"]
 
-        # Plot reference points coloured by haplogroup
-        unique_labels = sorted(set(ref_labels))
-        for lbl in unique_labels:
-            mask = [label == lbl for label in ref_labels]
-            pts = ref_2d[mask]
+            # Plot reference points coloured by haplogroup
+            unique_labels = sorted(set(ref_labels))
+            for lbl in unique_labels:
+                mask = [label == lbl for label in ref_labels]
+                pts = ref_2d[mask]
+                ax.scatter(
+                    pts[:, 0], pts[:, 1],
+                    c=_haplogroup_colour(lbl),
+                    s=40, alpha=0.6, label=lbl, edgecolors="none",
+                )
+
+            # Project query sequence
+            query_2d = _project_query(embedding, ref_embs, ref_2d)
             ax.scatter(
-                pts[:, 0], pts[:, 1],
-                c=_haplogroup_colour(lbl),
-                s=40, alpha=0.6, label=lbl, edgecolors="none",
+                query_2d[0], query_2d[1],
+                c="black", s=200, marker="*", zorder=5,
+                label="Your sequence", edgecolors="white", linewidths=1.5,
+            )
+            ax.annotate(
+                "Your\nsequence",
+                xy=(query_2d[0], query_2d[1]),
+                xytext=(query_2d[0] + 0.5, query_2d[1] + 0.5),
+                fontsize=9, fontweight="bold",
+                arrowprops=dict(arrowstyle="->", color="black", lw=1.2),
             )
 
-        # Project query sequence
-        query_2d = _project_query(embedding, ref_embs, ref_2d)
-        ax.scatter(
-            query_2d[0], query_2d[1],
-            c="black", s=200, marker="*", zorder=5,
-            label="Your sequence", edgecolors="white", linewidths=1.5,
+            # Compact legend
+            handles, labels = ax.get_legend_handles_labels()
+            ax.legend(
+                handles, labels, loc="upper right", fontsize=7,
+                ncol=3, framealpha=0.8, markerscale=0.8,
+            )
+
+            # Find nearest reference neighbours for description
+            dists = np.linalg.norm(ref_embs - embedding[None, :], axis=1)
+            top3_idx = np.argsort(dists)[:3]
+            neighbours = [f"{ref_labels[i]} (d={dists[i]:.2f})" for i in top3_idx]
+            neighbour_str = ", ".join(neighbours)
+        else:
+            neighbour_str = "reference data unavailable"
+
+        ax.set_xlabel("UMAP dimension 1", fontsize=11)
+        ax.set_ylabel("UMAP dimension 2", fontsize=11)
+        ax.set_title("Genome Embedding — Reference UMAP (100 mtDNA genomes)", fontsize=12, fontweight="bold")
+        ax.spines["top"].set_visible(False)
+        ax.spines["right"].set_visible(False)
+        ax.grid(alpha=0.2)
+        fig.tight_layout()
+
+        l2_norm = float(np.linalg.norm(embedding))
+        description = (
+            f"### Embedding computed\n\n"
+            f"**Dimension:** 256  \n"
+            f"**L2 norm:** {l2_norm:.4f}  \n"
+            f"**Nearest reference haplogroups:** {neighbour_str}  \n\n"
+            f"The star (★) on the UMAP shows where your sequence sits relative to "
+            f"100 reference human mtDNA genomes spanning 26 haplogroups. "
+            f"Proximity in the embedding space reflects genomic similarity."
         )
-        ax.annotate(
-            "Your\nsequence",
-            xy=(query_2d[0], query_2d[1]),
-            xytext=(query_2d[0] + 0.5, query_2d[1] + 0.5),
-            fontsize=9, fontweight="bold",
-            arrowprops=dict(arrowstyle="->", color="black", lw=1.2),
-        )
 
-        # Compact legend
-        handles, labels = ax.get_legend_handles_labels()
-        ax.legend(
-            handles, labels, loc="upper right", fontsize=7,
-            ncol=3, framealpha=0.8, markerscale=0.8,
-        )
-
-        # Find nearest reference neighbours for description
-        dists = np.linalg.norm(ref_embs - embedding[None, :], axis=1)
-        top3_idx = np.argsort(dists)[:3]
-        neighbours = [f"{ref_labels[i]} (d={dists[i]:.2f})" for i in top3_idx]
-        neighbour_str = ", ".join(neighbours)
-    else:
-        neighbour_str = "reference data unavailable"
-
-    ax.set_xlabel("UMAP dimension 1", fontsize=11)
-    ax.set_ylabel("UMAP dimension 2", fontsize=11)
-    ax.set_title("Genome Embedding — Reference UMAP (100 mtDNA genomes)", fontsize=12, fontweight="bold")
-    ax.spines["top"].set_visible(False)
-    ax.spines["right"].set_visible(False)
-    ax.grid(alpha=0.2)
-    fig.tight_layout()
-
-    l2_norm = float(np.linalg.norm(embedding))
-    description = (
-        f"### Embedding computed\n\n"
-        f"**Dimension:** 256  \n"
-        f"**L2 norm:** {l2_norm:.4f}  \n"
-        f"**Nearest reference haplogroups:** {neighbour_str}  \n\n"
-        f"The star (★) on the UMAP shows where your sequence sits relative to "
-        f"100 reference human mtDNA genomes spanning 26 haplogroups. "
-        f"Proximity in the embedding space reflects genomic similarity."
-    )
-
-    return fig, description, csv_string
+        return fig, description, csv_string
+    except Exception as exc:
+        import traceback as _tb
+        return None, f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```", ""
 
 
 # ── Gradio interface ───────────────────────────────────────────────────────────
@@ -715,12 +727,7 @@ The model embeds all overlapping 512-bp windows of the genome and classifies bas
                     )
                     haplo_btn = gr.Button("Classify Haplogroup", variant="primary")
                     haplo_example_btn = gr.Button(
-                        "Load example (rCRS-based sequence)", size="sm", variant="secondary"
-                    )
-                    haplo_example_btn.click(
-                        fn=lambda: EXAMPLE_SEQUENCE[:2000],
-                        inputs=[],
-                        outputs=[haplo_seq_input],
+                        "Run example (rCRS-based sequence)", size="sm", variant="secondary"
                     )
             with gr.Row():
                 haplo_chart = gr.Plot(label="Confidence scores")
@@ -730,6 +737,11 @@ The model embeds all overlapping 512-bp windows of the genome and classifies bas
                 fn=predict_haplogroup,
                 inputs=[haplo_seq_input],
                 outputs=[haplo_chart, haplo_text],
+            )
+            haplo_example_btn.click(
+                fn=lambda: (EXAMPLE_SEQUENCE[:2000],) + predict_haplogroup(EXAMPLE_SEQUENCE[:2000]),
+                inputs=[],
+                outputs=[haplo_seq_input, haplo_chart, haplo_text],
             )
 
         # ── Tab 2: Variant Pathogenicity ───────────────────────────────────────
@@ -792,12 +804,7 @@ of 100 human mtDNA genomes spanning 26 haplogroups. Download the embedding for d
                     )
                     emb_btn = gr.Button("Embed Sequence", variant="primary")
                     emb_example_btn = gr.Button(
-                        "Load example (rCRS-based sequence)", size="sm", variant="secondary"
-                    )
-                    emb_example_btn.click(
-                        fn=lambda: EXAMPLE_SEQUENCE[:3000],
-                        inputs=[],
-                        outputs=[emb_seq_input],
+                        "Run example (rCRS-based sequence)", size="sm", variant="secondary"
                     )
             with gr.Row():
                 emb_plot = gr.Plot(label="UMAP placement")
@@ -814,6 +821,11 @@ of 100 human mtDNA genomes spanning 26 haplogroups. Download the embedding for d
                 fn=embed_genome_tab,
                 inputs=[emb_seq_input],
                 outputs=[emb_plot, emb_text, emb_csv],
+            )
+            emb_example_btn.click(
+                fn=lambda: (EXAMPLE_SEQUENCE[:3000],) + embed_genome_tab(EXAMPLE_SEQUENCE[:3000]),
+                inputs=[],
+                outputs=[emb_seq_input, emb_plot, emb_text, emb_csv],
             )
 
     gr.Markdown(
