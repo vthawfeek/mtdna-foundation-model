@@ -1,21 +1,20 @@
 {
-  "lastDay": 22,
-  "lastDayTopic": "Gradio Demo",
-  "lastDayCommit": "c25a77f",
-  "todayDay": 23,
-  "todayTopic": "Documentation",
+  "lastDay": 23,
+  "lastDayTopic": "Documentation",
+  "lastDayCommit": "",
+  "todayDay": 24,
+  "todayTopic": "DVC Pipeline and Reproducibility",
   "todayTasks": [
-    "docs/01_data_pipeline.md — datasets, download steps, preprocessing, DVC stage structure",
-    "docs/02_tokenization.md — 6-mer vocabulary, circular windowing, het channel, vocabulary statistics",
-    "docs/03_architecture.md — circular PE derivation, het projection, parameter count, comparison vs DNABERT2/HyenaDNA",
-    "docs/04_pretraining.md — two-phase curriculum, expected MLM loss dynamics, how to monitor with MLflow",
-    "docs/05_finetuning_and_evaluation.md — three tasks, LoRA choices, baselines, ancient DNA, limitations"
-  ],
-  "nextDay": 24,
-  "nextTopic": "DVC Pipeline and Reproducibility",
-  "nextTasks": [
     "Complete dvc.yaml with all stages: download_hmtdb, download_ncbi, download_variants, preprocess, build_vocabulary, pretrain_phase1, pretrain_phase2, finetune_haplogroup, evaluate",
     "Each stage must have deps, outs, params, and metrics defined correctly",
-    "The evaluate stage writes reports/eval_summary.json as a DVC metric so dvc metrics show gives final numbers"
+    "The evaluate stage writes reports/eval_summary.json as a DVC metric so dvc metrics show gives final numbers",
+    "Reproducibility test: git clone repo, uv sync, dvc repro — full pipeline from raw data to evaluation metrics"
+  ],
+  "nextDay": 25,
+  "nextTopic": "Showcase Notebook",
+  "nextTasks": [
+    "notebooks/04_mtdna_fm_showcase.ipynb — self-contained notebook that tells the full story (README hero artifact)",
+    "Section 1: load model in 3 lines, print parameter count, show config",
+    "Section 2: TSNE of 5,000 human genomes colored by haplogroup — phylogenetic tree should emerge"
   ]
 }
