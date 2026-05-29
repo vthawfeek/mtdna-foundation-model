@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[24] = {
     topic: "DVC Pipeline",
-    commit: "",
+    commit: "6dc0f3f",
     status: "complete",
     built: [
       "dvc.yaml — complete 9-stage pipeline (download_hmtdb, download_ncbi, download_variants, preprocess, build_vocabulary, pretrain_phase1, pretrain_phase2, finetune_haplogroup, evaluate)",
