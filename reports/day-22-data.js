@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[22] = {
     topic: "Gradio Demo",
-    commit: "",
+    commit: "c25a77f",
     status: "complete",
     built: [
       "app.py — three-tab Gradio demo: haplogroup classification, variant pathogenicity, genome embedding",

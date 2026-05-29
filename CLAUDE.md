@@ -34,7 +34,7 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 19: COMPLETE (commit be76f1e) — evaluation framework (haplogroup_eval, variant_eval, viz, mtdna-evaluate CLI, notebook 03, 327 tests)
 - Day 20: COMPLETE (commit 8d1abb3) — ancient DNA demonstration (Neanderthal + Denisovan zero-shot, plot_umap_with_ancient_dna, embed_genome length normalization, 346 tests)
 - Day 21: COMPLETE (commit e372b1c) — HuggingFace Hub (base model + 2 LoRA adapters pushed, model card, push_to_hub.py)
-- Day 22: COMPLETE — Gradio demo (app.py three-tab Spaces demo: haplogroup/pathogenicity/embedding, app_reference.npz, live at vthawfeek/mtdna-fm-demo)
+- Day 22: COMPLETE (commit c25a77f) — Gradio demo (app.py three-tab Spaces demo: haplogroup/pathogenicity/embedding, app_reference.npz, live at vthawfeek/mtdna-fm-demo)
 - Day 23-28: docs, DVC pipeline, showcase notebook, release
 
 ## Project
