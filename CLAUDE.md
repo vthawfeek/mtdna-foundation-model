@@ -31,7 +31,8 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 16: COMPLETE — haplogroup classification (MtDNAForHaplogroupClassification, LoRA r=8, HaplogroupWindowDataset, finetune CLI, 264 tests, 88% coverage)
 - Day 17: COMPLETE (commit 1c9254d) — pathogenic variant prediction (MtDNAForVariantPathogenicity, variant-token hidden state, LoRA r=4, pos_weight=2.5, PathogenicityVariantDataset, 274 tests)
 - Day 18: COMPLETE (commit 8b4dee0) — heteroplasmy regression (MtDNAForHeteroplasmyRegression, Huber loss, 5-fold CV, HeteroplasmyRegressionDataset, 294 tests)
-- Day 19-21: evaluation framework + HuggingFace Hub
+- Day 19: COMPLETE — evaluation framework (haplogroup_eval, variant_eval, viz, mtdna-evaluate CLI, notebook 03, 327 tests)
+- Day 20-21: ancient DNA demonstration + HuggingFace Hub
 - Day 22-28: demo, docs, release
 
 ## Project

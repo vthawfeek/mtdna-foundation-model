@@ -22,13 +22,36 @@ runner = CliRunner()
 
 
 class TestEvaluateCLI:
-    def test_exits_with_error_code(self) -> None:
-        result = runner.invoke(evaluate_app, ["--model", "/tmp/fake_model"])
+    def test_missing_model_exits_with_error(self) -> None:
+        result = runner.invoke(evaluate_app, ["--model", "/tmp/fake_model_nonexistent"])
         assert result.exit_code == 1
 
-    def test_not_yet_implemented_message(self) -> None:
-        result = runner.invoke(evaluate_app, ["--model", "/tmp/fake_model"])
-        assert "not yet implemented" in result.output
+    def test_missing_model_error_message(self) -> None:
+        result = runner.invoke(evaluate_app, ["--model", "/tmp/fake_model_nonexistent"])
+        assert "does not exist" in result.output
+
+    def test_synthetic_mode_succeeds(self, tmp_path) -> None:
+        """--synthetic flag runs smoke-test evaluation without a real model."""
+        result = runner.invoke(
+            evaluate_app,
+            ["--model", "/tmp/fake", "--synthetic", "--output-dir", str(tmp_path)],
+        )
+        assert result.exit_code == 0, result.output
+        assert (tmp_path / "eval_summary.json").exists()
+
+    def test_synthetic_writes_metrics(self, tmp_path) -> None:
+        import json
+
+        runner.invoke(
+            evaluate_app,
+            ["--model", "/tmp/fake", "--synthetic", "--output-dir", str(tmp_path)],
+        )
+        with open(tmp_path / "eval_summary.json") as f:
+            summary = json.load(f)
+        assert "haplogroup" in summary
+        assert "variant_pathogenicity" in summary
+        assert "accuracy" in summary["haplogroup"]
+        assert "auroc" in summary["variant_pathogenicity"]
 
 
 # ── TestFinetuneCLI ────────────────────────────────────────────────────────────
