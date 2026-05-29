@@ -66,3 +66,4 @@ This is the honest version of the analysis: show what you measured, label projec
 - Zero-shot k-NN on untrained CLS embeddings measures k-mer content similarity, not representational quality. Cosine similarity is the right metric; euclidean distance picks up magnitude differences that inflate accuracy.
 - The D-loop's elevated positional entropy means the MLM pre-training objective naturally allocates more gradient signal to haplogroup-defining positions, creating a useful alignment between unsupervised pre-training and the downstream classification task.
 - Structured attention patterns are a lagging indicator of learning. Expect them to appear after 10k-20k steps, not at initialisation.
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/28/what-the-attention-heads-see-at-step-0-and-why-thats-the-right-place-to-start/ -->

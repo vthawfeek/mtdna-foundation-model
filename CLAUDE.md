@@ -36,7 +36,8 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 21: COMPLETE (commit e372b1c) — HuggingFace Hub (base model + 2 LoRA adapters pushed, model card, push_to_hub.py)
 - Day 22: COMPLETE (commit c25a77f) — Gradio demo (app.py three-tab Spaces demo: haplogroup/pathogenicity/embedding, app_reference.npz, live at vthawfeek/mtdna-fm-demo)
 - Day 23: COMPLETE (commit b8665ba) — documentation (5 docs: data pipeline, tokenization, architecture, pre-training, fine-tuning/evaluation)
-- Day 24-28: DVC pipeline, showcase notebook, release
+- Day 24: COMPLETE (commit ) — DVC pipeline (9 stages: download→preprocess→vocabulary→pretrain→finetune→evaluate, dvc metrics show wired)
+- Day 25-28: showcase notebook, blog posts, release
 
 ## Project
 

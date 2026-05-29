@@ -88,3 +88,5 @@ The pathogenicity tab is the most practically limited. The training data is ~2,0
 - Pre-computing UMAP coordinates offline and using k-NN interpolation at query time costs 108KB of storage and under 1ms per query, with no meaningful accuracy loss for demos with fewer than 500 reference points.
 - The variant-position token's attention row in the last transformer layer is more interpretable than CLS-token attention for local-effect variants; pathogenicity is a local property and the visualisation should reflect that.
 - The 256-dimensional embedding space captures haplogroup phylogenetic structure without any explicit supervision on haplogroup labels, which is the clearest evidence that the pre-training objective learned something real about mtDNA sequence variation.
+
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/29/building-a-gradio-demo-for-mtdna-analysis-engineering-decisions-that-actually-matter/ -->

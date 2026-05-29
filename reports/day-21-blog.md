@@ -120,3 +120,5 @@ The Gradio demo (Day 22) will be the interactive surface on top of this. But the
 ---
 
 *mtDNA-FM is open source: [github.com/vthawfeek/mtdna-foundation-model](https://github.com/vthawfeek/mtdna-foundation-model) | Model on Hub: [huggingface.co/vthawfeek/mtdna-foundation-model](https://huggingface.co/vthawfeek/mtdna-foundation-model)*
+
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/29/mtdna-fm-is-live-on-huggingface-hub-what-a-research-grade-model-release-actually-requires/ -->

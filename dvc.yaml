@@ -1,15 +1,49 @@
+# mtDNA Foundation Model — DVC pipeline
+#
+# Run the full pipeline from scratch:
+#   uv sync && dvc repro
+#
+# View metrics after evaluation:
+#   dvc metrics show
+#
+# Each stage is idempotent: re-running only re-executes stages whose
+# inputs or parameters have changed.
+
 stages:
+
+  # ── Data acquisition ────────────────────────────────────────────────────────
+
   download_hmtdb:
     cmd: uv run mtdna-download --source hmtdb --output data/raw/hmtdb
+    deps:
+      - mtdna_fm/data/hmtdb_client.py
+      - mtdna_fm/scripts/download.py
     outs:
       - data/raw/hmtdb:
           persist: true
 
   download_ncbi:
     cmd: uv run mtdna-download --source ncbi-refseq --output data/raw/ncbi
+    deps:
+      - mtdna_fm/data/ncbi_client.py
+      - mtdna_fm/scripts/download.py
     outs:
       - data/raw/ncbi:
           persist: true
+
+  download_variants:
+    cmd: >-
+      uv run mtdna-download --source gnomad --output data/raw/variants &&
+      uv run mtdna-download --source clinvar --output data/raw/variants &&
+      uv run mtdna-download --source phylotree --output data/raw/variants
+    deps:
+      - mtdna_fm/data/variant_downloader.py
+      - mtdna_fm/scripts/download.py
+    outs:
+      - data/raw/variants:
+          persist: true
+
+  # ── Preprocessing ───────────────────────────────────────────────────────────
 
   preprocess:
     cmd: >-
@@ -30,3 +64,116 @@ stages:
       - configs/data.yaml:
           - target_length
           - min_n_fraction
+
+  # ── Vocabulary ──────────────────────────────────────────────────────────────
+
+  build_vocabulary:
+    cmd: uv run python mtdna_fm/scripts/build_vocab.py data/processed/vocabulary
+    deps:
+      - mtdna_fm/tokenizer/vocabulary.py
+      - mtdna_fm/scripts/build_vocab.py
+    outs:
+      - data/processed/vocabulary
+
+  # ── Pre-training ────────────────────────────────────────────────────────────
+
+  pretrain_phase1:
+    cmd: >-
+      uv run mtdna-train
+      --config configs/pretraining_phase1.yaml
+      --model-config configs/model_small.yaml
+    deps:
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - data/processed/vocabulary
+      - mtdna_fm/model/config.py
+      - mtdna_fm/model/embeddings.py
+      - mtdna_fm/model/transformer.py
+      - mtdna_fm/model/model.py
+      - mtdna_fm/training/masking.py
+      - mtdna_fm/training/losses.py
+      - mtdna_fm/training/trainer.py
+      - mtdna_fm/scripts/train.py
+      - configs/pretraining_phase1.yaml
+      - configs/model_small.yaml
+    outs:
+      - models/phase1_v1:
+          persist: true
+    params:
+      - configs/pretraining_phase1.yaml:
+          - learning_rate
+          - max_steps
+          - batch_size
+          - mask_prob
+          - mlm_weight
+          - het_weight
+
+  pretrain_phase2:
+    cmd: uv run mtdna-train --config configs/pretraining_phase2.yaml
+    deps:
+      - models/phase1_v1
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - mtdna_fm/model/config.py
+      - mtdna_fm/model/embeddings.py
+      - mtdna_fm/model/transformer.py
+      - mtdna_fm/model/model.py
+      - mtdna_fm/training/masking.py
+      - mtdna_fm/training/losses.py
+      - mtdna_fm/training/trainer.py
+      - mtdna_fm/scripts/train.py
+      - configs/pretraining_phase2.yaml
+    outs:
+      - models/phase2_v1:
+          persist: true
+    params:
+      - configs/pretraining_phase2.yaml:
+          - learning_rate
+          - max_steps
+          - batch_size
+          - het_weight
+
+  # ── Fine-tuning ─────────────────────────────────────────────────────────────
+
+  finetune_haplogroup:
+    cmd: >-
+      uv run mtdna-finetune
+      --task haplogroup
+      --config configs/finetuning_haplogroup.yaml
+    deps:
+      - models/phase2_v1
+      - data/processed/train.parquet
+      - data/processed/val.parquet
+      - mtdna_fm/scripts/finetune.py
+      - configs/finetuning_haplogroup.yaml
+    outs:
+      - models/finetune_haplogroup_v1:
+          persist: true
+    params:
+      - configs/finetuning_haplogroup.yaml:
+          - lora_r
+          - learning_rate
+          - max_epochs
+          - num_labels
+
+  # ── Evaluation (DVC metric) ─────────────────────────────────────────────────
+
+  evaluate:
+    cmd: >-
+      uv run mtdna-evaluate
+      --model models/finetune_haplogroup_v1
+      --output-dir reports
+      --synthetic
+    deps:
+      - models/finetune_haplogroup_v1
+      - mtdna_fm/evaluation/haplogroup_eval.py
+      - mtdna_fm/evaluation/variant_eval.py
+      - mtdna_fm/scripts/evaluate.py
+    metrics:
+      - reports/eval_summary.json:
+          cache: false
+    outs:
+      - reports/eval_haplogroup_detail.json:
+          cache: false
+      - reports/eval_variant_detail.json:
+          cache: false

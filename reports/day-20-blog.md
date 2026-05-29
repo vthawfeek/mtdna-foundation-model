@@ -76,3 +76,4 @@ The separation between ancient and modern is 1.45x. This is not a spectacular re
 
 ---
 *Code and data at [github.com/vthawfeek/mtdna-foundation-model](https://github.com/vthawfeek/mtdna-foundation-model)*
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/29/ancient-dna-and-foundation-models-an-unexpected-application/ -->
