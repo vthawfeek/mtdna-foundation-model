@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[23] = {
     topic: "Documentation",
-    commit: "",
+    commit: "b8665ba",
     status: "complete",
     built: [
       "docs/01_data_pipeline.md — datasets (HmtDB, NCBI, gnomAD, ClinVar, PhyloTree, ancient DNA), preprocessing steps with rationale, full DVC pipeline YAML",
