@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[25] = {
     topic: "Showcase Notebook",
-    commit: "",
+    commit: "10ecc7b",
     status: "complete",
     built: [
       "notebooks/04_showcase.ipynb — 7-section self-contained showcase notebook",

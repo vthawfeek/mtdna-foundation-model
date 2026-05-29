@@ -1,0 +1,26 @@
+Pre-trained an mtDNA model on cross-species vertebrate genomes. No haplogroup labels. Then embedded 100 human sequences and ran t-SNE.
+
+L-clade (African root), H/HV (European), M-clade (East Asian) separated into distinct clusters. Silhouette score > 0. Phylogeny from sequence patterns alone.
+---
+Confusion matrix for the fine-tuned 26-way haplogroup classifier (60.8% accuracy):
+
+L0 gets confused with L1. H gets confused with HV. No errors between L3 and H.
+
+The model learned phylogenetic distance. Mistakes respect the biology.
+---
+Pathogenicity prediction: AUROC 0.877 vs gnomAD/ClinVar split.
+
+k-mer frequency baseline: ~0.720. The gap is what the pre-trained context adds: transformer hidden states at the variant position encode functional constraint from 512 tokens of sequence context.
+---
+Then I fed in Neanderthal and Denisovan mtDNA. Zero fine-tuning. Never in training.
+
+Both appeared outside modern human diversity, near the phylogenetic root. Most similar to L-clade (root African). Neanderthal and Denisovan clustered near each other.
+
+Consistent with what molecular anthropologists established from decades of fossil evidence.
+---
+Final test: embed each of the 37 mtDNA genes, no labels. Cluster.
+
+Protein-coding genes, tRNA genes, and rRNA genes separated. The two rRNA genes (RNR1, RNR2) cluster together and apart from everything else. Functional categories from k-mer patterns alone.
+---
+Building the first foundation model for mitochondrial DNA: mtDNA mutations cause 350+ inherited diseases including MELAS and Leigh syndrome. Full writeup and notebook:
+https://rokpayprsizors.wordpress.com

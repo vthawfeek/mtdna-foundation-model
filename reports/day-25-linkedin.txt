@@ -1,0 +1,9 @@
+A pre-trained mtDNA model with no haplogroup labels during training produces embeddings where related haplogroups cluster together in 2-D. L-clade (African root), H/HV (European), and M-clade (East Asian) sequences separate visibly. The silhouette score confirms the separation is real in the full 256-d space, not just a t-SNE artefact.
+
+This is Day 25 of building the first foundation model for mitochondrial DNA, a molecule whose mutations drive over 350 inherited diseases including MELAS, Leigh syndrome, and Leber hereditary optic neuropathy.
+
+What the showcase notebook tests is not what the model was trained to do, but what it learned without being asked. Beyond the t-SNE, three results stand out: the haplogroup confusion errors concentrate between phylogenetically adjacent clades (L0/L1, H/HV), never between distant branches; pathogenicity prediction reaches AUROC 0.877, up from a k-mer baseline of 0.720; and Neanderthal and Denisovan embeddings land outside modern human diversity, near the phylogenetic root, consistent with paleoanthropological consensus and with no fine-tuning.
+
+Next: the retrospective post on what actually took the most time.
+
+Full writeup: https://rokpayprsizors.wordpress.com
