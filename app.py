@@ -720,6 +720,7 @@ The model embeds all overlapping 512-bp windows of the genome and classifies bas
                         ],
                         inputs=[haplo_seq_input],
                         label="Example (rCRS-based sequence)",
+                        cache_examples=False,
                     )
             with gr.Row():
                 haplo_chart = gr.Plot(label="Confidence scores")
@@ -794,6 +795,7 @@ of 100 human mtDNA genomes spanning 26 haplogroups. Download the embedding for d
                         examples=[[EXAMPLE_SEQUENCE[:3000]]],
                         inputs=[emb_seq_input],
                         label="Example sequence",
+                        cache_examples=False,
                     )
             with gr.Row():
                 emb_plot = gr.Plot(label="UMAP placement")
