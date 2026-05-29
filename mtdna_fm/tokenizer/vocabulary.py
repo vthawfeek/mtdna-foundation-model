@@ -90,8 +90,14 @@ class KmerVocabulary:
 
     @classmethod
     def from_pretrained(cls, path: str | Path) -> "KmerVocabulary":
-        """Load vocabulary from a directory produced by save_pretrained."""
-        path = Path(path)
-        with open(path / "vocab.json") as f:
+        """Load vocabulary from a local directory or HuggingFace Hub repo ID."""
+        local_path = Path(path)
+        if local_path.is_dir():
+            vocab_file = local_path / "vocab.json"
+        else:
+            from huggingface_hub import hf_hub_download
+
+            vocab_file = Path(hf_hub_download(repo_id=str(path), filename="vocab.json"))
+        with open(vocab_file) as f:
             token_to_id = json.load(f)
         return cls(token_to_id)
