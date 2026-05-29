@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[18] = {
     topic: "Heteroplasmy Regression",
-    commit: "",
+    commit: "8b4dee0",
     status: "complete",
     built: [
       "MtDNAForHeteroplasmyRegression: regression head Linear(256,64)->GELU->Linear(64,1)->Sigmoid on variant-token hidden state, Huber loss",
