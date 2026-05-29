@@ -1,0 +1,9 @@
+A model trained on modern vertebrate genomes gets a Neanderthal mtDNA sequence it has never seen. Ancient sequences land 1.45x farther from modern humans (by L2 distance) than modern humans are from each other — zero-shot, no labels, no fine-tuning.
+
+This is part of building the first dedicated foundation model for mitochondrial DNA. mtDNA mutations drive over 350 inherited diseases including MELAS and Leigh syndrome. No sequence model designed specifically for the circular mitochondrial genome existed before this project.
+
+The result is honest about its limits: the model captures "this sequence is different" but doesn't reproduce haplogroup phylogeny. Mean L2 from ancient to African root haplogroups (0.1109) is essentially the same as to European haplogroups (0.1111). Phase 1 pre-training learns k-mer frequency patterns, not branching topology. Fine-tuning is needed for that. The separation is real, the structure is not yet there.
+
+One useful side finding: cosine similarity collapses in pre-trained BERT embeddings. All pairwise cosine values were ~1.0. Switch to L2 for untrained or lightly-trained encoders.
+
+Full writeup: https://rokpayprsizors.wordpress.com

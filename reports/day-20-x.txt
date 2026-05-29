@@ -1,0 +1,18 @@
+Fed a 50,000-year-old Neanderthal mtDNA sequence to a model trained only on modern genomes. No labels, no fine-tuning, no ancient training examples. Result: ancient sequences are 1.45x farther from modern humans (L2) than moderns are from each other.
+---
+The model places them outside the modern human cluster, not inside H or L or any haplogroup. It doesn't know the phylogenetic tree. But it knows something is different.
+
+That's Phase 1 cross-species pre-training capturing k-mer frequency patterns, not evolutionary labels.
+---
+One catch: all cosine similarities were ~1.0000. Classic pre-trained BERT collapse. CLS mean-pooled vectors point in roughly the same direction before fine-tuning. Switched to L2 distance, which shows real separation.
+
+Lesson: cosine works after fine-tuning, not before.
+---
+Practical issue: Neanderthal = 16,565 bp, Denisovan = 16,570 bp, rCRS reference = 16,569 bp. Off-by-one causes an IndexError in the positional encoding buffer.
+
+Fix: 4 lines in embed_genome() to truncate or N-pad to genome_length. Robust to any mitochondrial genome now.
+---
+Building the first mtDNA foundation model for pathogenic variant detection and haplogroup classification. The full mitochondrial genome is 16,569 bp — circular, clinically significant, and no dedicated sequence model existed.
+
+Full post:
+https://rokpayprsizors.wordpress.com
