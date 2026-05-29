@@ -1,0 +1,41 @@
+task: heteroplasmy
+base_model: "models/phase2_v1"
+
+# LoRA — r=4 because the dataset is small (~1,000 variants with >=50 carriers)
+use_lora: true
+lora_r: 4
+lora_alpha: 8
+lora_dropout: 0.1
+lora_target_modules:
+  - query
+  - key
+  - value
+  - dense
+
+# Training data: gnomAD variants with >=50 heteroplasmic carriers
+# Target: mean observed heteroplasmy level (float in [0, 1])
+data:
+  parquet: "data/processed/variants_heteroplasmy.parquet"
+
+# Huber delta=0.1: robust to gnomAD heteroplasmy estimate noise
+huber_delta: 0.1
+
+# Window parameters — 512-token window centered on variant position
+window_size: 512
+
+# 5-fold CV: report R-squared and Spearman rho across folds
+n_folds: 5
+
+batch_size: 16
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-3
+max_epochs: 15
+warmup_ratio: 0.1
+weight_decay: 0.01
+max_grad_norm: 1.0
+dropout: 0.1
+fp16: false
+
+mlflow_experiment: "mtdna_fm_heteroplasmy"
+output_dir: "models/finetune_heteroplasmy_v1"
+eval_every_n_epochs: 1

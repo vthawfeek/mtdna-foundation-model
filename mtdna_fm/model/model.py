@@ -541,3 +541,132 @@ class MtDNAForVariantPathogenicity(PreTrainedModel):
             hidden_states=enc.hidden_states,
             attentions=enc.attentions,
         )
+
+
+# ── Heteroplasmy regression model ─────────────────────────────────────────────
+
+
+@dataclass
+class HeteroplasmyRegressionOutput(ModelOutput):
+    """Outputs from MtDNAForHeteroplasmyRegression.forward()."""
+
+    loss: torch.Tensor | None = None
+    predictions: torch.Tensor | None = None  # (batch,) float in [0, 1]
+    hidden_states: tuple[torch.Tensor, ...] | None = None
+    attentions: tuple[torch.Tensor, ...] | None = None
+
+
+class MtDNAForHeteroplasmyRegression(PreTrainedModel):
+    """
+    Fine-tuning wrapper for heteroplasmy level regression.
+
+    Predicts the mean observed heteroplasmy level (float in [0, 1]) for a
+    variant from its local sequence context.
+
+    Input: 512-token window centered on the variant position.
+    The regression head reads the hidden state at the variant-position token
+    (not CLS) — consistent with the pathogenicity model: heteroplasmy level
+    is a local property of the variant's sequence context, not a global
+    genome property.
+
+    Head: Linear(hidden_size, 64) -> GELU -> Linear(64, 1) -> Sigmoid
+    Sigmoid bounds the output to [0, 1] to match the biological range.
+
+    Loss: Huber loss (delta=0.1) — more robust than MSE to the noise and
+    outliers in gnomAD heteroplasmy level estimates, which are means over
+    a small carrier population and can be noisy.
+
+    Training data: gnomAD variants with >=50 heteroplasmic carriers.
+    Target: mean observed heteroplasmy level (~1,000 data points).
+    Evaluation: 5-fold cross-validation, R-squared and Spearman rho.
+
+    LoRA: r=4 (small dataset, ~1,000 data points; heavier regularisation).
+    """
+
+    config_class = MtDNAConfig
+    supports_gradient_checkpointing = True
+
+    def __init__(
+        self,
+        base_model: MtDNAModel,
+        dropout: float = 0.1,
+        huber_delta: float = 0.1,
+    ) -> None:
+        super().__init__(base_model.config)
+        self.mtdna = base_model
+        self.dropout = nn.Dropout(dropout)
+        self.huber_delta = huber_delta
+        # Head: Linear(hidden, 64) -> GELU -> Linear(64, 1) -> Sigmoid
+        self.regression_head = nn.Sequential(
+            nn.Linear(base_model.config.hidden_size, 64),
+            nn.GELU(),
+            nn.Linear(64, 1),
+            nn.Sigmoid(),
+        )
+        self.post_init()
+
+    def freeze_encoder(self) -> None:
+        for param in self.mtdna.parameters():
+            param.requires_grad = False
+
+    def unfreeze_encoder(self) -> None:
+        for param in self.mtdna.parameters():
+            param.requires_grad = True
+
+    def get_input_embeddings(self) -> nn.Embedding:
+        return self.mtdna.get_input_embeddings()
+
+    def _set_gradient_checkpointing(self, module: nn.Module, value: bool = False) -> None:
+        if isinstance(module, MtDNAModel):
+            module._set_gradient_checkpointing(module.encoder, value)
+
+    def forward(
+        self,
+        input_ids: torch.Tensor,          # (batch, seq_len)
+        position_ids: torch.Tensor,       # (batch, seq_len)
+        variant_token_idx: torch.Tensor,  # (batch,)
+        het_values: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        labels: torch.Tensor | None = None,  # (batch,) float in [0, 1]
+        output_attentions: bool = False,
+        output_hidden_states: bool = False,
+        return_dict: bool = True,
+    ) -> HeteroplasmyRegressionOutput:
+        """
+        Parameters
+        ----------
+        variant_token_idx:
+            Per-sample index pointing to the token that contains the variant
+            position. Used to index last_hidden_state for locally contextualised
+            variant representation.
+        labels:
+            Mean observed heteroplasmy level per variant, float in [0, 1].
+        """
+        enc = self.mtdna(
+            input_ids=input_ids,
+            position_ids=position_ids,
+            het_values=het_values,
+            attention_mask=attention_mask,
+            output_attentions=output_attentions,
+            output_hidden_states=output_hidden_states,
+        )
+
+        hidden = enc.last_hidden_state  # (batch, seq_len, hidden)
+
+        idx = variant_token_idx.clamp(0, hidden.size(1) - 1)
+        variant_hidden = hidden[
+            torch.arange(hidden.size(0), device=hidden.device), idx, :
+        ]  # (batch, hidden)
+
+        predictions = self.regression_head(self.dropout(variant_hidden)).squeeze(-1)  # (batch,)
+
+        loss = None
+        if labels is not None:
+            loss = F.huber_loss(predictions, labels.float(), delta=self.huber_delta)
+
+        return HeteroplasmyRegressionOutput(
+            loss=loss,
+            predictions=predictions,
+            hidden_states=enc.hidden_states,
+            attentions=enc.attentions,
+        )

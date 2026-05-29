@@ -24,6 +24,7 @@ from mtdna_fm.model.config import MtDNAConfig
 from mtdna_fm.model.embeddings import MtDNACircularPositionalEncoding, MtDNAEmbeddings
 from mtdna_fm.model.model import (
     MtDNAForHaplogroupClassification,
+    MtDNAForHeteroplasmyRegression,
     MtDNAForMaskedModeling,
     MtDNAForVariantPathogenicity,
     MtDNAModel,
@@ -868,3 +869,182 @@ class TestMtDNAForVariantPathogenicity:
         peft_model = get_peft_model(model, lora_cfg)
         trainable = [n for n, p in peft_model.named_parameters() if p.requires_grad]
         assert len(trainable) > 0
+
+
+# ── TestMtDNAForHeteroplasmyRegression (Day 18) ───────────────────────────────
+
+
+class TestMtDNAForHeteroplasmyRegression:
+    def _make_model(self, config: MtDNAConfig) -> MtDNAForHeteroplasmyRegression:
+        base = MtDNAModel(config)
+        return MtDNAForHeteroplasmyRegression(base, dropout=0.0, huber_delta=0.1)
+
+    def _make_variant_batch(
+        self,
+        config: MtDNAConfig,
+        batch_size: int = 2,
+        seq_len: int = 8,
+    ) -> dict[str, torch.Tensor]:
+        batch = make_batch(config, batch_size=batch_size, seq_len=seq_len)
+        batch["variant_token_idx"] = torch.randint(0, seq_len, (batch_size,))
+        batch["labels"] = torch.tensor([0.3, 0.7])
+        return batch
+
+    def test_forward_shape(self, tiny_config: MtDNAConfig) -> None:
+        """predictions should be (batch,) scalar per sample."""
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch = self._make_variant_batch(tiny_config)
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                variant_token_idx=batch["variant_token_idx"],
+                attention_mask=batch["attention_mask"],
+            )
+        assert out.predictions is not None
+        assert out.predictions.shape == (2,)
+
+    def test_predictions_in_range(self, tiny_config: MtDNAConfig) -> None:
+        """sigmoid output must be in [0, 1]."""
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch = self._make_variant_batch(tiny_config)
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                variant_token_idx=batch["variant_token_idx"],
+            )
+        assert (out.predictions >= 0.0).all()
+        assert (out.predictions <= 1.0).all()
+
+    def test_loss_is_scalar(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.train()
+        batch = self._make_variant_batch(tiny_config)
+        out = model(
+            input_ids=batch["input_ids"],
+            position_ids=batch["position_ids"],
+            variant_token_idx=batch["variant_token_idx"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["labels"],
+        )
+        assert out.loss is not None
+        assert out.loss.shape == ()
+        assert not torch.isnan(out.loss)
+
+    def test_no_labels_no_loss(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch = self._make_variant_batch(tiny_config)
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                variant_token_idx=batch["variant_token_idx"],
+            )
+        assert out.loss is None
+        assert out.predictions is not None
+
+    def test_gradient_flow(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.train()
+        batch = self._make_variant_batch(tiny_config)
+        out = model(
+            input_ids=batch["input_ids"],
+            position_ids=batch["position_ids"],
+            variant_token_idx=batch["variant_token_idx"],
+            attention_mask=batch["attention_mask"],
+            labels=batch["labels"],
+        )
+        out.loss.backward()
+        # regression_head[0] is the first Linear layer
+        assert model.regression_head[0].weight.grad is not None
+
+    def test_freeze_unfreeze_encoder(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.freeze_encoder()
+        frozen = [p for p in model.mtdna.parameters() if p.requires_grad]
+        assert len(frozen) == 0
+        model.unfreeze_encoder()
+        unfrozen = [p for p in model.mtdna.parameters() if p.requires_grad]
+        assert len(unfrozen) > 0
+
+    def test_get_input_embeddings(self, tiny_config: MtDNAConfig) -> None:
+        import torch.nn as nn
+        model = self._make_model(tiny_config)
+        emb = model.get_input_embeddings()
+        assert isinstance(emb, nn.Embedding)
+
+    def test_lora_compatibility(self, tiny_config: MtDNAConfig) -> None:
+        """PEFT LoRA should wrap the regression model correctly."""
+        try:
+            from peft import LoraConfig, TaskType, get_peft_model
+        except ImportError:
+            pytest.skip("peft not installed")
+
+        model = self._make_model(tiny_config)
+        lora_cfg = LoraConfig(
+            task_type=TaskType.FEATURE_EXTRACTION,
+            r=2,
+            lora_alpha=4,
+            target_modules=["query", "key", "value", "dense"],
+            lora_dropout=0.0,
+        )
+        peft_model = get_peft_model(model, lora_cfg)
+        trainable = [n for n, p in peft_model.named_parameters() if p.requires_grad]
+        assert len(trainable) > 0
+
+    def test_loss_decreases_over_steps(self, tiny_config: MtDNAConfig) -> None:
+        """Loss should fall over 5 gradient steps on a fixed batch."""
+        model = self._make_model(tiny_config)
+        model.train()
+        batch = self._make_variant_batch(tiny_config)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+        losses = []
+        for _ in range(5):
+            optimizer.zero_grad()
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                variant_token_idx=batch["variant_token_idx"],
+                attention_mask=batch["attention_mask"],
+                labels=batch["labels"],
+            )
+            out.loss.backward()
+            optimizer.step()
+            losses.append(out.loss.item())
+        assert losses[-1] < losses[0], f"Loss did not decrease: {losses}"
+
+    def test_variant_token_idx_clamped(self, tiny_config: MtDNAConfig) -> None:
+        """Out-of-bounds variant_token_idx should be clamped, not raise."""
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch = make_batch(tiny_config, batch_size=2, seq_len=8)
+        batch["variant_token_idx"] = torch.tensor([999, -1])
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                variant_token_idx=batch["variant_token_idx"],
+            )
+        assert out.predictions.shape == (2,)
+
+    def test_huber_delta_stored(self, tiny_config: MtDNAConfig) -> None:
+        """huber_delta attribute should be stored on the model."""
+        model = self._make_model(tiny_config)
+        assert model.huber_delta == pytest.approx(0.1)
+
+    def test_regression_head_architecture(self, tiny_config: MtDNAConfig) -> None:
+        """Head should be Linear->GELU->Linear->Sigmoid with correct dimensions."""
+        import torch.nn as nn
+        model = self._make_model(tiny_config)
+        layers = list(model.regression_head.children())
+        assert isinstance(layers[0], nn.Linear)
+        assert layers[0].in_features == tiny_config.hidden_size
+        assert layers[0].out_features == 64
+        assert isinstance(layers[1], nn.GELU)
+        assert isinstance(layers[2], nn.Linear)
+        assert layers[2].out_features == 1
+        assert isinstance(layers[3], nn.Sigmoid)

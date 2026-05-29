@@ -226,3 +226,120 @@ class TestDownloadScriptInternals:
             return_value=csv,
         ):
             _run_phylotree(tmp_path, force=False)
+
+
+# ── TestHeteroplasmyRegressionDataset (Day 18) ────────────────────────────────
+
+
+class TestHeteroplasmyRegressionDataset:
+    """Tests for the HeteroplasmyRegressionDataset synthetic fallback path."""
+
+    def _make_vocab(self):
+        from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
+        return KmerVocabulary.build(k=6)
+
+    def test_synthetic_fallback_length(self) -> None:
+        """Dataset with no parquet should fall back to 64 synthetic samples."""
+        from mtdna_fm.scripts.finetune import HeteroplasmyRegressionDataset
+
+        vocab = self._make_vocab()
+        ds = HeteroplasmyRegressionDataset("/tmp/nonexistent_het.parquet", vocab)
+        assert len(ds) == 64
+
+    def test_max_variants_truncates(self) -> None:
+        from mtdna_fm.scripts.finetune import HeteroplasmyRegressionDataset
+
+        vocab = self._make_vocab()
+        ds = HeteroplasmyRegressionDataset(
+            "/tmp/nonexistent_het.parquet", vocab, max_variants=10
+        )
+        assert len(ds) == 10
+
+    def test_item_keys(self) -> None:
+        """Each item must have required tensor keys."""
+        import torch
+
+        from mtdna_fm.scripts.finetune import HeteroplasmyRegressionDataset
+
+        vocab = self._make_vocab()
+        ds = HeteroplasmyRegressionDataset(
+            "/tmp/nonexistent_het.parquet", vocab, max_variants=4
+        )
+        item = ds[0]
+        for key in ("input_ids", "position_ids", "attention_mask", "variant_token_idx", "labels"):
+            assert key in item, f"Missing key: {key}"
+            assert isinstance(item[key], torch.Tensor)
+
+    def test_labels_in_range(self) -> None:
+        """Labels (het_level) should be floats in [0, 1]."""
+        from mtdna_fm.scripts.finetune import HeteroplasmyRegressionDataset
+
+        vocab = self._make_vocab()
+        ds = HeteroplasmyRegressionDataset(
+            "/tmp/nonexistent_het.parquet", vocab, max_variants=16
+        )
+        for i in range(len(ds)):
+            label = ds[i]["labels"].item()
+            assert 0.0 <= label <= 1.0, f"Label out of range at index {i}: {label}"
+
+    def test_window_size_respected(self) -> None:
+        """input_ids length should match window_size."""
+        from mtdna_fm.scripts.finetune import HeteroplasmyRegressionDataset
+
+        vocab = self._make_vocab()
+        ds = HeteroplasmyRegressionDataset(
+            "/tmp/nonexistent_het.parquet", vocab, window_size=128, max_variants=4
+        )
+        for i in range(len(ds)):
+            assert ds[i]["input_ids"].shape[0] == 128
+
+    def test_from_parquet(self, tmp_path: Path) -> None:
+        """Dataset should load correctly from a real parquet file."""
+        import numpy as np
+        import pandas as pd
+
+        from mtdna_fm.scripts.finetune import HeteroplasmyRegressionDataset
+
+        vocab = self._make_vocab()
+        rng = np.random.default_rng(99)
+        ref = "".join(rng.choice(list("ACGT"), size=16569))
+        bases = list("ACGT")
+        rows = []
+        for i in range(8):
+            pos = int(rng.integers(0, 16569))
+            alt = rng.choice([b for b in bases if b != ref[pos]])
+            seq = ref[:pos] + alt + ref[pos + 1:]
+            rows.append({"sequence": seq, "position": pos, "het_level": float(i) / 8.0})
+        df = pd.DataFrame(rows)
+        parquet_path = tmp_path / "het.parquet"
+        df.to_parquet(parquet_path, index=False)
+
+        ds = HeteroplasmyRegressionDataset(str(parquet_path), vocab)
+        assert len(ds) == 8
+        assert ds[0]["labels"].dtype.is_floating_point
+
+
+# ── TestFinetuneHeterologyCLI (Day 18) ────────────────────────────────────────
+
+
+class TestFinetuneHeterologyCLI:
+    def test_heteroplasmy_unknown_task_exits(self) -> None:
+        """Unknown task name should exit with error."""
+        result = runner.invoke(
+            finetune_app,
+            ["--task", "notarealtask", "--config", "/tmp/cfg.yaml"],
+        )
+        assert result.exit_code == 1
+
+    def test_heteroplasmy_missing_model_exits(self, tmp_path: Path) -> None:
+        """heteroplasmy task with missing base model should exit with error."""
+        cfg_path = tmp_path / "het.yaml"
+        cfg_path.write_text(
+            "task: heteroplasmy\nbase_model: /tmp/no_such_model\n"
+            "output_dir: /tmp/out\ndata:\n  parquet: /tmp/x.parquet\n"
+        )
+        result = runner.invoke(
+            finetune_app,
+            ["--task", "heteroplasmy", "--config", str(cfg_path)],
+        )
+        assert result.exit_code == 1
