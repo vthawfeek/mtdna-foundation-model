@@ -11,27 +11,14 @@ Day content (ELI5, Math, Details) lives in `reports/day-N-data.js` files, genera
 
 ### 1. Extract project data
 
-Read `CLAUDE.md` and find all lines in the "Current status" section. Parse them to find:
-- `LAST_DAY`: the highest day number that has `COMPLETE` in its line
-- `LAST_DAY_TOPIC`: the topic name from that line
-- `LAST_DAY_COMMIT`: the commit hash from that line (e.g. `commit 12d614c`)
-- If no days are complete, set `LAST_DAY = 0`
+Read `reports/meta.json`. Extract all fields directly:
+- `LAST_DAY`, `LAST_DAY_TOPIC`, `LAST_DAY_COMMIT`
+- `TODAY_DAY`, `TODAY_TOPIC`, `TODAY_TASKS`
+- `NEXT_DAY`, `NEXT_TOPIC`, `NEXT_TASKS` (first 3 items)
 
-Set `TODAY_DAY = LAST_DAY + 1`.
-
-Read `PLAN.md` and locate `### Day TODAY_DAY:` and `### Day (TODAY_DAY+1):`. Extract:
-- `TODAY_TOPIC`: the heading text after "Day N:"
-- `TODAY_TASKS`: all bullet points under that heading (stop at next `###` or `---`)
-- `NEXT_TOPIC`: heading text of the following day
-- `NEXT_TASKS`: first 3 bullet points of the following day
-
-Read `reports/day-LAST_DAY-*.md` (glob — pick the matching file):
-- Extract everything under `## What was learned` up to the next `##` section
-- Call this `YESTERDAY_LEARNINGS` (list of bullet points, max 6)
-
-Check if `reports/day-TODAY_DAY-*.md` exists:
-- If yes: extract `## What was learned` bullets → `TODAY_LEARNINGS`
-- If no: `TODAY_LEARNINGS = []`, set `TODAY_NOT_STARTED = true`
+If `reports/meta.json` does not exist, fall back: read `CLAUDE.md`, find the highest
+day marked `COMPLETE`, and set `LAST_DAY` from it; set `TODAY_DAY = LAST_DAY + 1`;
+leave task lists empty.
 
 Check for pending social media by scanning `reports/` for files matching `day-*-blog.md`:
 - For each, check if it contains a line starting with `<!-- published:` → if not, it is pending
@@ -44,6 +31,10 @@ Determine the week label for TODAY_DAY:
 - Days 8-14: "Week 2: Model Architecture &amp; Pre-training"
 - Days 15-21: "Week 3: Fine-tuning and Evaluation"
 - Days 22-28: "Week 4: Production Polish"
+
+Note: Yesterday's learnings and today's learnings are NOT read from markdown files.
+They are rendered at browser load time from `window.__dayData` (populated by the
+data.js script tags). Do not read any `reports/day-*.md` files.
 
 ### 2. Find available day data files
 
@@ -248,9 +239,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
       <span class="badge badge-green">&#10003; Complete</span>
     </div>
     <div style="margin-bottom:10px"><span class="commit">{LAST_DAY_COMMIT}</span></div>
-    {FOR EACH learning IN YESTERDAY_LEARNINGS (max 4)}
-    <div class="task-item"><span class="ti-pfx">&#8594;</span>{learning}</div>
-    {END FOR}
+    <div id="lc-learnings"></div>
   </div>
   <div class="card">
     <div class="card-title">What&apos;s Next &mdash; Day {TODAY_DAY + 1}</div>
@@ -280,29 +269,15 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-
 </div>
 {END IF}
 
-<!-- ROW 4: LEARNINGS -->
+<!-- ROW 4: LEARNINGS (rendered by JS from window.__dayData) -->
 <div class="grid-2">
   <div class="card">
-    <div class="card-title">Yesterday&apos;s Learnings &mdash; Day {LAST_DAY}</div>
-    {IF YESTERDAY_LEARNINGS is empty}
-    <div class="placeholder">No report found for Day {LAST_DAY}.</div>
-    {ELSE}
-    {FOR EACH learning IN YESTERDAY_LEARNINGS}
-    <div class="learning-item">{learning}</div>
-    {END FOR}
-    {END IF}
+    <div class="card-title">Yesterday&apos;s Learnings &mdash; Day <span id="yl-day"></span></div>
+    <div id="yl-content"><div class="placeholder">Loading&hellip;</div></div>
   </div>
   <div class="card">
-    <div class="card-title">Today&apos;s Learnings &mdash; Day {TODAY_DAY}</div>
-    {IF TODAY_NOT_STARTED}
-    <div class="placeholder">Run <code>/day {TODAY_DAY}</code> to start.</div>
-    {ELSE IF TODAY_LEARNINGS is empty}
-    <div class="placeholder">In progress — no learnings recorded yet.</div>
-    {ELSE}
-    {FOR EACH learning IN TODAY_LEARNINGS}
-    <div class="learning-item">{learning}</div>
-    {END FOR}
-    {END IF}
+    <div class="card-title">Today&apos;s Learnings &mdash; Day <span id="tl-day"></span></div>
+    <div id="tl-content"><div class="placeholder">Loading&hellip;</div></div>
   </div>
 </div>
 
@@ -403,8 +378,34 @@ function showDay(n) {
   `;
 }
 
+function renderLearningsCards() {
+  const yl = dayData[LAST_DAY];
+
+  // Last Completed card — top 4 learnings as arrow items
+  const lcEl = document.getElementById('lc-learnings');
+  if (lcEl) {
+    lcEl.innerHTML = yl && yl.learned && yl.learned.length
+      ? yl.learned.slice(0, 4).map(l => '<div class="task-item"><span class="ti-pfx">&#8594;</span>' + l + '</div>').join('')
+      : '';
+  }
+
+  // Yesterday's Learnings card
+  document.getElementById('yl-day').textContent = LAST_DAY;
+  document.getElementById('yl-content').innerHTML = yl && yl.learned && yl.learned.length
+    ? yl.learned.map(l => '<div class="learning-item">' + l + '</div>').join('')
+    : '<div class="placeholder">No data for Day ' + LAST_DAY + '.</div>';
+
+  // Today's Learnings card
+  const tl = dayData[TODAY_DAY];
+  document.getElementById('tl-day').textContent = TODAY_DAY;
+  document.getElementById('tl-content').innerHTML = tl && tl.learned && tl.learned.length
+    ? tl.learned.map(l => '<div class="learning-item">' + l + '</div>').join('')
+    : '<div class="placeholder">Run <code>/day ' + TODAY_DAY + '</code> to start.</div>';
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   renderNavButtons();
+  renderLearningsCards();
   if (LAST_DAY > 0) showDay(LAST_DAY);
 });
 </script>

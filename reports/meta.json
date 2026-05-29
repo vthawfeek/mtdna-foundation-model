@@ -1,0 +1,20 @@
+{
+  "lastDay": 21,
+  "lastDayTopic": "HuggingFace Hub",
+  "lastDayCommit": "",
+  "todayDay": 22,
+  "todayTopic": "Gradio Demo on HuggingFace Spaces",
+  "todayTasks": [
+    "Build app.py with three tabs: Haplogroup Classification, Variant Pathogenicity Check, Genome Embedding",
+    "Keep demo CPU-safe (no batch ops) for HuggingFace Spaces free tier",
+    "Push to huggingface-cli Spaces repo (mtdna-fm-demo, space_sdk=gradio)",
+    "Post X with GIF or screenshot of the live demo"
+  ],
+  "nextDay": 23,
+  "nextTopic": "Documentation",
+  "nextTasks": [
+    "docs/01_data_pipeline.md — datasets, download steps, preprocessing, DVC stage structure",
+    "docs/02_tokenization.md — 6-mer vocabulary, circular windowing, het channel, vocabulary statistics",
+    "docs/03_architecture.md — circular PE derivation, het projection, parameter count, comparison vs DNABERT2/HyenaDNA"
+  ]
+}

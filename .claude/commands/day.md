@@ -98,6 +98,35 @@ GitHub repo: https://github.com/vthawfeek/mtdna-foundation-model
     - Use `&amp;`, `&lt;`, `&gt;` for HTML entities inside regular strings. Inside
       template literals, use `&amp;` only where the literal `&` would cause issues.
 
+3b. After writing the data.js file, update `reports/meta.json` so `/dashboard` never
+    needs to read PLAN.md or markdown reports. Write this exact JSON structure:
+
+    ```json
+    {
+      "lastDay": $ARGUMENTS,
+      "lastDayTopic": "<topic of Day $ARGUMENTS>",
+      "lastDayCommit": "<7-char commit hash, or empty string if not yet committed>",
+      "todayDay": $ARGUMENTS_PLUS_1,
+      "todayTopic": "<topic heading from PLAN.md for Day ($ARGUMENTS+1)>",
+      "todayTasks": [
+        "<bullet 1 from the Day ($ARGUMENTS+1) task list in PLAN.md>",
+        "<bullet 2>",
+        "..."
+      ],
+      "nextDay": $ARGUMENTS_PLUS_2,
+      "nextTopic": "<topic heading from PLAN.md for Day ($ARGUMENTS+2)>",
+      "nextTasks": [
+        "<first 3 bullets from the Day ($ARGUMENTS+2) task list in PLAN.md>"
+      ]
+    }
+    ```
+
+    Extract todayTopic, todayTasks, nextTopic, nextTasks by reading PLAN.md (you already
+    have it open from step 1 — no extra read needed). If Day ($ARGUMENTS+1) or
+    ($ARGUMENTS+2) does not exist (i.e., beyond day 28), set the corresponding fields to
+    null. The lastDayCommit may be an empty string before the commit in step 6 — update it
+    to the actual hash after committing.
+
 4. Run the end-of-day quality checks:
    ```
    uv run ruff check mtdna_fm/ tests/
@@ -109,7 +138,7 @@ GitHub repo: https://github.com/vthawfeek/mtdna-foundation-model
 
 6. Stage and commit:
    - Stage: all new and modified files under mtdna_fm/, tests/, configs/, docs/, notebooks/, reports/, .claude/, .github/, PLAN.md, CLAUDE.md
-   - This includes `reports/day-$ARGUMENTS-data.js` (created in step 3a)
+   - This includes `reports/day-$ARGUMENTS-data.js` (step 3a) and `reports/meta.json` (step 3b)
    - Do NOT stage: data/, models/, mlruns/, .venv/, *.pyc, __pycache__/
    - Commit message format: `day $ARGUMENTS: <short description of what was built>`
    - Add co-author: `Co-Authored-By: Claude Sonnet 4.6 <noreply@anthropic.com>`
