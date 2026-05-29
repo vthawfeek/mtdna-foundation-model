@@ -12,6 +12,17 @@ All inference is CPU-safe; no batching is used.
 
 from __future__ import annotations
 
+import sys
+import types
+
+# pydub (a Gradio 4.x dependency) tries to import audioop, which was removed
+# in Python 3.13. Mock it here so the import doesn't crash; we use no audio
+# components, so audioop is never called at runtime.
+if sys.version_info >= (3, 13):
+    _audioop = types.ModuleType("audioop")
+    sys.modules.setdefault("audioop", _audioop)
+    sys.modules.setdefault("pyaudioop", _audioop)
+
 from pathlib import Path
 from typing import Any
 
