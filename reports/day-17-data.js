@@ -2,7 +2,7 @@
   window.__dayData = window.__dayData || {};
   window.__dayData[17] = {
     topic: "Pathogenicity",
-    commit: "",
+    commit: "1c9254d",
     status: "complete",
     built: [
       "mtdna_fm/model/model.py — MtDNAForVariantPathogenicity + VariantPathogenicityOutput: binary classifier reading variant-position token hidden state",
