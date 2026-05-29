@@ -42,12 +42,14 @@ class TestFinetuneCLI:
         )
         assert result.exit_code == 1
 
-    def test_not_yet_implemented_message(self) -> None:
+    def test_missing_config_exits_with_error(self) -> None:
+        """Missing config file should exit with error message."""
         result = runner.invoke(
             finetune_app,
-            ["--task", "haplogroup", "--config", "/tmp/cfg.yaml"],
+            ["--task", "haplogroup", "--config", "/tmp/nonexistent_cfg.yaml"],
         )
-        assert "not yet implemented" in result.output
+        assert result.exit_code == 1
+        assert "not found" in result.output.lower() or "Config" in result.output
 
 
 # ── TestPreprocessCLI ──────────────────────────────────────────────────────────

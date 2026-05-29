@@ -45,7 +45,6 @@ from mtdna_fm.model.transformer import MtDNAEncoder
 
 # ── Output dataclasses ─────────────────────────────────────────────────────────
 
-
 @dataclass
 class MtDNAModelOutput(ModelOutput):
     """Outputs from MtDNAModel.forward()."""
@@ -273,4 +272,148 @@ class MtDNAForMaskedModeling(PreTrainedModel):
             het_preds=het_preds,
             hidden_states=encoder_output.hidden_states,
             attentions=encoder_output.attentions,
+        )
+
+
+# ── Haplogroup classification model ───────────────────────────────────────────
+
+
+@dataclass
+class HaplogroupClassificationOutput(ModelOutput):
+    """Outputs from MtDNAForHaplogroupClassification.forward()."""
+
+    loss: torch.Tensor | None = None
+    logits: torch.Tensor | None = None  # (batch, num_labels)
+    hidden_states: tuple[torch.Tensor, ...] | None = None
+    attentions: tuple[torch.Tensor, ...] | None = None
+
+
+class MtDNAForHaplogroupClassification(PreTrainedModel):
+    """
+    Fine-tuning wrapper for haplogroup classification.
+
+    Architecture: MtDNAModel encoder + Linear(hidden_size, num_labels) head.
+
+    Input modes:
+      Single window:   input_ids shape (batch, seq_len)
+      Multiple windows: input_ids shape (batch, n_windows, seq_len)
+        → CLS tokens are extracted per window and mean-pooled across windows,
+          giving one genome-level embedding per sample before the classifier.
+        This is the recommended path for fine-tuning on full mtDNA genomes,
+        where each genome is split into ~63 overlapping 512-token windows.
+
+    LoRA: apply PEFT get_peft_model() after construction with
+      r=8, lora_alpha=16, target_modules=["query","key","value","dense"].
+    """
+
+    config_class = MtDNAConfig
+    supports_gradient_checkpointing = True
+
+    def __init__(
+        self,
+        base_model: MtDNAModel,
+        num_labels: int = 26,
+        dropout: float = 0.1,
+    ) -> None:
+        super().__init__(base_model.config)
+        self.num_labels = num_labels
+        self.mtdna = base_model
+        self.dropout = nn.Dropout(dropout)
+        self.classifier = nn.Linear(base_model.config.hidden_size, num_labels)
+        self.post_init()
+
+    def freeze_encoder(self) -> None:
+        """Freeze encoder; only the classifier head updates."""
+        for param in self.mtdna.parameters():
+            param.requires_grad = False
+
+    def unfreeze_encoder(self) -> None:
+        """Unfreeze for full fine-tuning."""
+        for param in self.mtdna.parameters():
+            param.requires_grad = True
+
+    def get_input_embeddings(self) -> nn.Embedding:
+        return self.mtdna.get_input_embeddings()
+
+    def _set_gradient_checkpointing(self, module: nn.Module, value: bool = False) -> None:
+        if isinstance(module, MtDNAModel):
+            module._set_gradient_checkpointing(module.encoder, value)
+
+    def forward(
+        self,
+        input_ids: torch.Tensor,
+        position_ids: torch.Tensor,
+        het_values: torch.Tensor | None = None,
+        attention_mask: torch.Tensor | None = None,
+        labels: torch.Tensor | None = None,
+        output_attentions: bool = False,
+        output_hidden_states: bool = False,
+        return_dict: bool = True,
+    ) -> HaplogroupClassificationOutput:
+        """
+        Parameters
+        ----------
+        input_ids:
+            (batch, seq_len) for single-window mode, or
+            (batch, n_windows, seq_len) for multi-window mode.
+        position_ids:
+            Same shape as input_ids — absolute genomic coordinates.
+        labels:
+            (batch,) integer class indices in [0, num_labels).
+        """
+        multi_window = input_ids.dim() == 3
+
+        if multi_window:
+            batch_size, n_windows, seq_len = input_ids.shape
+            # Flatten windows into the batch dimension for a single encoder pass
+            flat_ids = input_ids.view(batch_size * n_windows, seq_len)
+            flat_pos = position_ids.view(batch_size * n_windows, seq_len)
+            flat_het = (
+                het_values.view(batch_size * n_windows, seq_len)
+                if het_values is not None
+                else None
+            )
+            flat_mask = (
+                attention_mask.view(batch_size * n_windows, seq_len)
+                if attention_mask is not None
+                else None
+            )
+
+            enc = self.mtdna(
+                input_ids=flat_ids,
+                position_ids=flat_pos,
+                het_values=flat_het,
+                attention_mask=flat_mask,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+            )
+            # CLS per window → (batch, n_windows, hidden) → mean over windows
+            cls_per_window = enc.pooler_output.view(batch_size, n_windows, -1)
+            pooled = cls_per_window.mean(dim=1)  # (batch, hidden)
+            all_hidden = enc.hidden_states
+            all_attentions = enc.attentions
+        else:
+            enc = self.mtdna(
+                input_ids=input_ids,
+                position_ids=position_ids,
+                het_values=het_values,
+                attention_mask=attention_mask,
+                output_attentions=output_attentions,
+                output_hidden_states=output_hidden_states,
+            )
+            pooled = enc.pooler_output  # (batch, hidden)
+            all_hidden = enc.hidden_states
+            all_attentions = enc.attentions
+
+        logits = self.classifier(self.dropout(pooled))  # (batch, num_labels)
+
+        loss = None
+        if labels is not None:
+            loss = F.cross_entropy(logits, labels)
+
+        return HaplogroupClassificationOutput(
+            loss=loss,
+            logits=logits,
+            hidden_states=all_hidden,
+            attentions=all_attentions,
         )

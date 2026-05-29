@@ -3,6 +3,8 @@
 from mtdna_fm.model.config import MtDNAConfig
 from mtdna_fm.model.embeddings import MtDNACircularPositionalEncoding, MtDNAEmbeddings
 from mtdna_fm.model.model import (
+    HaplogroupClassificationOutput,
+    MtDNAForHaplogroupClassification,
     MtDNAForMaskedModeling,
     MtDNAMaskedModelingOutput,
     MtDNAModel,
@@ -18,6 +20,8 @@ __all__ = [
     "MtDNAModelOutput",
     "MtDNAForMaskedModeling",
     "MtDNAMaskedModelingOutput",
+    "MtDNAForHaplogroupClassification",
+    "HaplogroupClassificationOutput",
     "MtDNAAttention",
     "MtDNAFFN",
     "MtDNALayer",

@@ -22,7 +22,11 @@ import torch
 
 from mtdna_fm.model.config import MtDNAConfig
 from mtdna_fm.model.embeddings import MtDNACircularPositionalEncoding, MtDNAEmbeddings
-from mtdna_fm.model.model import MtDNAForMaskedModeling, MtDNAModel
+from mtdna_fm.model.model import (
+    MtDNAForHaplogroupClassification,
+    MtDNAForMaskedModeling,
+    MtDNAModel,
+)
 
 # ── Helpers ────────────────────────────────────────────────────────────────────
 
@@ -554,3 +558,150 @@ class TestLearnablePositionalEncoding:
             het_values=het_values,
         )
         assert out.shape == (2, seq_len, config.hidden_size)
+
+
+# ── TestMtDNAForHaplogroupClassification (Day 16) ─────────────────────────────
+
+
+class TestMtDNAForHaplogroupClassification:
+    NUM_LABELS = 5  # use 5 instead of 26 for speed
+
+    def _make_model(self, config: MtDNAConfig) -> MtDNAForHaplogroupClassification:
+        base = MtDNAModel(config)
+        return MtDNAForHaplogroupClassification(base, num_labels=self.NUM_LABELS)
+
+    def test_single_window_forward_shape(self, tiny_config: MtDNAConfig) -> None:
+        """Single-window forward: logits shape (batch, num_labels)."""
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch = make_batch(tiny_config)
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                attention_mask=batch["attention_mask"],
+            )
+        assert out.logits.shape == (2, self.NUM_LABELS)
+
+    def test_multi_window_forward_shape(self, tiny_config: MtDNAConfig) -> None:
+        """Multi-window forward (batch, n_windows, seq_len): logits shape (batch, num_labels)."""
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch_size, n_windows, seq_len = 2, 3, 8
+        rng = np.random.default_rng(7)
+        input_ids = torch.from_numpy(
+            rng.integers(6, tiny_config.vocab_size, (batch_size, n_windows, seq_len), dtype=np.int64)
+        )
+        position_ids = torch.from_numpy(
+            rng.integers(0, tiny_config.genome_length, (batch_size, n_windows, seq_len), dtype=np.int64)
+        )
+        attention_mask = torch.ones(batch_size, n_windows, seq_len, dtype=torch.long)
+        with torch.no_grad():
+            out = model(
+                input_ids=input_ids,
+                position_ids=position_ids,
+                attention_mask=attention_mask,
+            )
+        assert out.logits.shape == (batch_size, self.NUM_LABELS)
+
+    def test_loss_is_scalar(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.train()
+        batch = make_batch(tiny_config)
+        labels = torch.zeros(2, dtype=torch.long)  # all class 0
+        out = model(
+            input_ids=batch["input_ids"],
+            position_ids=batch["position_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=labels,
+        )
+        assert out.loss is not None
+        assert out.loss.shape == ()
+        assert not torch.isnan(out.loss)
+
+    def test_no_labels_no_loss(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.eval()
+        batch = make_batch(tiny_config)
+        with torch.no_grad():
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+            )
+        assert out.loss is None
+        assert out.logits is not None
+
+    def test_gradient_flow(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.train()
+        batch = make_batch(tiny_config)
+        labels = torch.zeros(2, dtype=torch.long)
+        out = model(
+            input_ids=batch["input_ids"],
+            position_ids=batch["position_ids"],
+            attention_mask=batch["attention_mask"],
+            labels=labels,
+        )
+        out.loss.backward()
+        assert model.classifier.weight.grad is not None
+
+    def test_freeze_unfreeze_encoder(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        model.freeze_encoder()
+        frozen = [p for p in model.mtdna.parameters() if p.requires_grad]
+        assert len(frozen) == 0, "freeze_encoder should freeze all encoder params"
+        model.unfreeze_encoder()
+        unfrozen = [p for p in model.mtdna.parameters() if p.requires_grad]
+        assert len(unfrozen) > 0, "unfreeze_encoder should restore encoder params"
+
+    def test_get_input_embeddings(self, tiny_config: MtDNAConfig) -> None:
+        import torch.nn as nn
+        model = self._make_model(tiny_config)
+        emb = model.get_input_embeddings()
+        assert isinstance(emb, nn.Embedding)
+
+    def test_lora_compatibility(self, tiny_config: MtDNAConfig) -> None:
+        """PEFT LoRA should wrap the classification model correctly."""
+        try:
+            from peft import LoraConfig, TaskType, get_peft_model
+        except ImportError:
+            pytest.skip("peft not installed")
+
+        model = self._make_model(tiny_config)
+        lora_cfg = LoraConfig(
+            task_type=TaskType.FEATURE_EXTRACTION,
+            r=2,
+            lora_alpha=4,
+            target_modules=["query", "key", "value", "dense"],
+            lora_dropout=0.0,
+        )
+        peft_model = get_peft_model(model, lora_cfg)
+        trainable = [n for n, p in peft_model.named_parameters() if p.requires_grad]
+        # classifier head params + LoRA params should all be trainable
+        assert len(trainable) > 0
+
+    def test_loss_decreases_over_steps(self, tiny_config: MtDNAConfig) -> None:
+        """Loss should fall over 5 gradient steps on a fixed batch."""
+        model = self._make_model(tiny_config)
+        model.train()
+        batch = make_batch(tiny_config)
+        labels = torch.zeros(2, dtype=torch.long)
+        optimizer = torch.optim.Adam(model.parameters(), lr=1e-2)
+        losses = []
+        for _ in range(5):
+            optimizer.zero_grad()
+            out = model(
+                input_ids=batch["input_ids"],
+                position_ids=batch["position_ids"],
+                attention_mask=batch["attention_mask"],
+                labels=labels,
+            )
+            out.loss.backward()
+            optimizer.step()
+            losses.append(out.loss.item())
+        assert losses[-1] < losses[0], f"Loss did not decrease: {losses}"
+
+    def test_num_labels_stored(self, tiny_config: MtDNAConfig) -> None:
+        model = self._make_model(tiny_config)
+        assert model.num_labels == self.NUM_LABELS
+        assert model.classifier.out_features == self.NUM_LABELS
