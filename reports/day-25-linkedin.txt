@@ -2,8 +2,12 @@ A pre-trained mtDNA model with no haplogroup labels during training produces emb
 
 This is Day 25 of building the first foundation model for mitochondrial DNA, a molecule whose mutations drive over 350 inherited diseases including MELAS, Leigh syndrome, and Leber hereditary optic neuropathy.
 
-What the showcase notebook tests is not what the model was trained to do, but what it learned without being asked. Beyond the t-SNE, three results stand out: the haplogroup confusion errors concentrate between phylogenetically adjacent clades (L0/L1, H/HV), never between distant branches; pathogenicity prediction reaches AUROC 0.877, up from a k-mer baseline of 0.720; and Neanderthal and Denisovan embeddings land outside modern human diversity, near the phylogenetic root, consistent with paleoanthropological consensus and with no fine-tuning.
+What the showcase notebook tests is not what the model was trained to do, but what it learned without being asked. Three results stand out:
 
-Next: the retrospective post on what actually took the most time.
+Zero-shot k-NN accuracy: ~50% on haplogroup identification with no fine-tuning labels — this is the real headline from pre-training. The fine-tuned LoRA classifier reached 1.83% on the test set (below the 3.85% random baseline) after 2 CPU epochs; the class weighting helped but convergence requires more compute. The confusion errors concentrate between phylogenetically adjacent clades (L0/L1, H/HV), which tells you the embedding geometry is capturing evolutionary structure even when the classifier head is not yet calibrated.
 
-Full writeup: https://rokpayprsizors.wordpress.com
+Pathogenicity prediction: the architecture exists (variant-token hidden state, LoRA r=4) but no labeled evaluation dataset was prepared during this project. Real AUROC is unknown.
+
+Ancient DNA: Neanderthal and Denisovan embeddings land outside modern human variation, near the phylogenetic root, consistent with paleoanthropological consensus — with no fine-tuning and no ancient sequences in training.
+
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/29/phylogenetic-reconstruction-from-foundation-model-embeddings/

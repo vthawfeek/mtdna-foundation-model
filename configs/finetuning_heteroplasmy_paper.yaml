@@ -1,0 +1,37 @@
+# Heteroplasmy fine-tuning config for paper.
+# base_model: models/phase1_v1 (phase2_v1 is empty)
+# Usage: uv run mtdna-finetune --task heteroplasmy --config configs/finetuning_heteroplasmy_paper.yaml
+
+task: heteroplasmy
+base_model: "models/phase1_v1"
+
+use_lora: true
+lora_r: 4
+lora_alpha: 8
+lora_dropout: 0.1
+lora_target_modules:
+  - query
+  - key
+  - value
+  - dense
+
+data:
+  parquet: "data/processed/variants_heteroplasmy.parquet"
+
+huber_delta: 0.1
+window_size: 512
+n_folds: 5
+
+batch_size: 16
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-3
+max_epochs: 15
+warmup_ratio: 0.1
+weight_decay: 0.01
+max_grad_norm: 1.0
+dropout: 0.1
+fp16: false
+
+mlflow_experiment: "mtdna_fm_heteroplasmy_paper"
+output_dir: "models/finetune_heteroplasmy_paper"
+eval_every_n_epochs: 1

@@ -1,0 +1,38 @@
+I built a pathogenic variant predictor. The architecture is right. The training code works. The model exists on HuggingFace.
+
+I never built the dataset to evaluate it. 🧵
+---
+The architecture: MtDNAForVariantPathogenicity.
+
+Instead of using the [CLS] token for classification, it uses the hidden state at the variant position. A point mutation at position 3,243 → take the embedding of the token covering position 3,243 → linear head → pathogenic/benign.
+
+This is the right inductive bias. Pathogenicity is a local property.
+---
+The training pipeline:
+
+- LoRA r=4 on the pre-trained encoder
+- Binary cross-entropy with pos_weight=2.5 (pathogenic variants are rare)
+- PathogenicityVariantDataset class that reads a parquet with: sequence, position, label
+
+The training code runs. It produces a model. I even pushed the adapter to HuggingFace.
+
+The problem: I never populated that parquet with real data.
+---
+What the parquet should contain:
+
+Pathogenic variants: ClinVar's "pathogenic/likely pathogenic" mtDNA entries
+Benign variants: gnomAD's common mtDNA variants (AF > 0.01)
+
+The download clients exist (ClinVar and gnomAD parsers in the data pipeline). The join logic exists. But running it, validating the labels, and building the held-out test split was never done.
+
+No data → no AUROC → no honest evaluation.
+---
+Lesson: define the evaluation dataset before building the model.
+
+I designed the architecture, wrote the training loop, and pushed weights — but never asked "what exact file format does the evaluator need?" until it was too late to prepare it.
+
+The AUROC would take a weekend to compute properly. The four weeks went elsewhere.
+---
+The architecture still exists. The code still works. If you have ClinVar + gnomAD mtDNA data and want to run the evaluation, the pipeline is open:
+
+https://github.com/vthawfeek/mtdna-foundation-model

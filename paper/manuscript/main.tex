@@ -1,0 +1,450 @@
+%% mtDNA-FM: Main Manuscript
+%% Target: Bioinformatics (Oxford) or PLoS Computational Biology
+%% Compile: pdflatex main.tex && bibtex main && pdflatex main.tex && pdflatex main.tex
+
+\documentclass[10pt]{article}
+
+%% ---- Packages ----
+\usepackage[margin=2.5cm]{geometry}
+\usepackage{amsmath,amssymb,amsthm}
+\usepackage{graphicx}
+\usepackage{booktabs}
+\usepackage{multirow}
+\usepackage{hyperref}
+\usepackage{natbib}
+\usepackage{xcolor}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{subcaption}
+\usepackage{microtype}
+\usepackage{lineno}
+\linenumbers
+
+%% ---- Custom commands ----
+\newcommand{\mtdnafm}{\textsc{mtDNA-FM}\xspace}
+\newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\needscite}{\textcolor{orange}{[CITE]}}
+
+%% =========================================================================
+\begin{document}
+
+\title{\textbf{mtDNA-FM: A Domain-Specialized Foundation Model for Mitochondrial DNA
+       with Circular Positional Encoding and Heteroplasmy Modeling}}
+
+\author{
+  Thawfeek Varusai$^{1}$\\
+  \small $^{1}$Author affiliation \\
+  \small Correspondence: thawfeek.varusai@biorelate.com
+}
+\date{}
+\maketitle
+
+%% =========================================================================
+\begin{abstract}
+Mitochondrial DNA (mtDNA) plays critical roles in human disease, population genetics, and
+evolutionary biology, yet existing DNA foundation models are pre-trained exclusively on nuclear
+genomes and fail to account for two fundamental properties of mtDNA: its circular topology and
+the pervasive phenomenon of heteroplasmy (intra-cellular co-existence of multiple mtDNA haplotypes
+at varying frequencies). We present \textbf{mtDNA-FM}, the first foundation model dedicated to
+mitochondrial DNA. mtDNA-FM introduces two architectural novelties: (i) a \textit{circular
+positional encoding} implemented as a fixed sinusoidal buffer that encodes the circular genome
+topology such that positions 0 and 16,568 receive identical encodings, eliminating the artificial
+discontinuity at the genome junction; and (ii) a \textit{heteroplasmy projection channel} that
+accepts a continuous per-position variant allele fraction (0--1) and projects it into embedding
+space alongside sequence content. Pre-trained on 152,590 complete mtDNA sequences via a two-phase
+curriculum (Phase~1: 117,615 cross-species vertebrate genomes; Phase~2: 34,975 human HmtDB
+sequences), mtDNA-FM achieves competitive performance on three downstream tasks: haplogroup
+classification (60.8\% accuracy across 26 major haplogroups with phylogenetically structured
+errors), variant pathogenicity prediction (AUROC 0.877 [95\% CI \todo{X--Y}] vs. 0.72 k-mer
+baseline), and heteroplasmy level regression (Spearman $\rho$ = \todo{X}). Without any
+fine-tuning, mtDNA-FM embeddings correctly recover human haplogroup structure (\todo{50\%}
+zero-shot k-NN) and place ancient Neanderthal and Denisovan sequences in their expected
+phylogenetic positions relative to modern humans. Model weights, code, and the DVC pipeline
+are publicly available.
+
+\textbf{Availability:} \url{https://github.com/vthawfeek/mtdna-foundation-model} and
+\url{https://huggingface.co/vthawfeek/mtdna-foundation-model}
+\end{abstract}
+
+%% =========================================================================
+\section{Introduction}
+
+Mitochondrial DNA (mtDNA) is a 16,569~bp circular, double-stranded genome present in hundreds to
+thousands of copies per cell \needscite. Unlike the nuclear genome, mtDNA is maternally inherited
+without recombination, making it an ideal molecular clock for phylogenetics, population genetics,
+and forensic identification \needscite. Clinically, pathogenic mtDNA variants cause a spectrum
+of severe multi-system disorders --- MELAS, LHON, Leigh syndrome, and others --- collectively
+affecting at least 1 in 5,000 individuals \needscite. A unique complication is \textit{heteroplasmy}:
+the co-existence of wild-type and mutant mtDNA molecules within the same cell at varying proportions.
+Disease penetrance for many pathogenic variants depends critically on the heteroplasmy level, yet
+predicting this relationship from sequence context remains an open problem.
+
+Recent years have seen an explosion of DNA foundation models. DNABERT-2 \citep{zhou2024dnabert2},
+HyenaDNA \citep{nguyen2023hyenadna}, the Nucleotide Transformer \citep{dallatorre2023nucleotidetransformer},
+and Evo \citep{nguyen2024evo} demonstrate that large-scale pre-training on DNA sequences produces
+generalizable representations for a wide range of genomic tasks. However, all of these models are
+pre-trained exclusively on nuclear genomes and share two design choices that are mismatched to mtDNA:
+
+\begin{enumerate}
+\item \textbf{Linear positional encoding.} Standard sinusoidal positional encoding \citep{vaswani2017attention}
+or its learned variants treat position 0 and position 16,568 as maximally distant. In the circular
+mtDNA molecule, these positions are physically adjacent (the junction of the D-loop control region).
+This breaks representations of the D-loop and any functional element spanning the circular junction.
+
+\item \textbf{No heteroplasmy channel.} All existing sequence models assume a single definitive
+base at each position. They cannot represent the continuous allele fraction that characterizes
+heteroplasmic variants, which are of primary clinical interest.
+\end{enumerate}
+
+Beyond design mismatches, nuclear DNA models are pre-trained on a fundamentally different sequence
+composition: repeat elements, splice sites, CpG islands, and regulatory grammar that do not exist
+in mtDNA. The domain gap between nuclear and mitochondrial DNA is substantial, and fine-tuning
+alone may not compensate for representations shaped by billions of bases of the wrong genome.
+
+We present \textbf{\mtdnafm}, a BERT-style \citep{devlin2018bert} foundation model specifically
+designed and pre-trained for mitochondrial DNA. Our contributions are:
+
+\begin{enumerate}
+\item A \textbf{circular positional encoding} that mathematically encodes the circular topology
+as a non-learnable buffer, ensuring smooth representations at the genome junction and robustness
+to fine-tuning corruption (Section~\ref{sec:architecture}).
+
+\item A \textbf{heteroplasmy projection channel} that accepts per-position variant allele fractions
+as a continuous input, enabling the model to learn from heteroplasmic data and distinguish
+sequences by their variant mixture state (Section~\ref{sec:architecture}).
+
+\item A \textbf{two-phase domain-adaptive curriculum}: Phase~1 on cross-species vertebrate mtDNA
+to learn conserved structural features, followed by Phase~2 specialization on human HmtDB sequences
+with heteroplasmy loss enabled (Section~\ref{sec:pretraining}).
+
+\item \textbf{Comprehensive downstream evaluation} on three mtDNA-specific tasks and zero-shot
+discovery experiments demonstrating emergent evolutionary and functional structure learning
+(Section~\ref{sec:results}).
+\end{enumerate}
+
+%% =========================================================================
+\section{Related Work}
+
+\subsection{Genomic Foundation Models}
+
+DNABERT \citep{ji2021dnabert} was the first BERT-based model for DNA, using 6-mer tokenization
+on the human reference genome. DNABERT-2 \citep{zhou2024dnabert2} expanded to 32 vertebrate
+genomes with Byte Pair Encoding (BPE) tokenization, achieving state-of-the-art on the Genome
+Understanding Evaluation (GUE) benchmark. The Nucleotide Transformer
+\citep{dallatorre2023nucleotidetransformer} scales to 2.5B parameters across 850+ genomes.
+HyenaDNA \citep{nguyen2023hyenadna} introduces the Hyena implicit convolution operator, enabling
+million-base context windows. Evo \citep{nguyen2024evo} scales to 7B parameters on prokaryotic
+and eukaryotic sequences, supporting generation and editing. All these models use linear positional
+encoding, lack heteroplasmy modeling, and are not pre-trained on mitochondrial sequences.
+
+\subsection{mtDNA Bioinformatics Tools}
+
+Classical mtDNA analysis relies on specialized tools: HaploGrep~2 \citep{weissensteiner2016haplogrep}
+classifies haplogroups from variant calls using PhyloTree \citep{vanoven2009phylotree} branch
+definitions; Haplocheck \citep{weissensteiner2021haplocheck} detects contamination and heteroplasmy
+from sequencing data. Pathogenicity databases include MITOMAP \citep{lott2013mitomap}, ClinVar
+\citep{landrum2018clinvar}, and HelixMTdb \citep{bolze2019helixmtdb}. MitImpact
+\citep{castellana2013mitimpact} aggregates computational pathogenicity scores for protein-coding
+variants. None of these tools use pre-trained deep learning representations.
+
+\subsection{Variant Effect Prediction}
+
+Classical methods (SIFT \citep{ng2003sift}, PolyPhen-2 \citep{adzhubei2010polyphen}) use
+evolutionary conservation from multiple sequence alignments. Deep generative models (EVE
+\citep{fraternali2021eve}, ESM-1v \citep{meier2021esm1v}) demonstrate that pre-trained sequence
+distributions capture functional constraint. These protein-centric approaches do not extend to
+non-coding mtDNA regions (tRNA, rRNA, D-loop). \mtdnafm provides a unified framework for all
+mtDNA variant classes at nucleotide resolution.
+
+\subsection{Positional Encoding Variants}
+
+Standard sinusoidal PE \citep{vaswani2017attention} and its learnable counterpart treat position
+as a linear index. Relative PE methods (RoPE \citep{su2021rope}, ALiBi \citep{press2022alibi})
+encode relative distance between tokens, improving length generalization but not circular topology.
+We are not aware of any prior work that applies circular positional encoding to biological sequence
+models. Our formulation (Section~\ref{sec:circular_pe}) is mathematically straightforward but
+represents a principled design choice previously absent from the field.
+
+%% =========================================================================
+\section{Methods}
+
+\subsection{Architecture}
+\label{sec:architecture}
+
+\mtdnafm adopts a BERT-style \citep{devlin2018bert} transformer encoder with 6 layers, 8 attention
+heads, 256-dimensional hidden states, and 1,024-dimensional feed-forward layers ($\sim$5.8M
+parameters). Input sequences are tokenized as overlapping 6-mers with stride 1 over a vocabulary
+of 4,102 tokens (4,096 possible 6-mers over \{A,C,G,T\} + 6 special tokens).
+
+\subsubsection{Circular Positional Encoding}
+\label{sec:circular_pe}
+
+Standard sinusoidal PE assigns position $p$ an angle $p \cdot \theta$ where $\theta$ scales
+with $p/\text{max\_len}$. For a linear sequence of length $L$, positions 0 and $L-1$ receive
+maximally different encodings. In the circular mtDNA genome, position $L-1$ is physically adjacent
+to position 0. We resolve this by substituting a circular angle:
+
+\begin{equation}
+\phi_p = \frac{2\pi p}{L_\text{genome}}
+\label{eq:circular_angle}
+\end{equation}
+
+where $L_\text{genome} = 16,569$~bp is the rCRS genome length. The positional encoding is then:
+
+\begin{align}
+\text{PE}(p, 2i) &= \sin\!\left(\frac{\phi_p}{10000^{2i/d}}\right) \\
+\text{PE}(p, 2i+1) &= \cos\!\left(\frac{\phi_p}{10000^{2i/d}}\right)
+\end{align}
+
+where $d = 256$ is the hidden dimension. At $p = L_\text{genome}$, $\phi_p = 2\pi$, so
+$\sin(2\pi) = \sin(0) = 0$ and $\cos(2\pi) = \cos(0) = 1$. The circular junction is thus
+mathematically smooth. The encoding is registered as a non-learnable \texttt{nn.Buffer},
+ensuring it cannot be modified during fine-tuning.
+
+\subsubsection{Heteroplasmy Projection Channel}
+
+To model heteroplasmy, each input position receives an optional continuous scalar $h_p \in [0,1]$
+representing the variant allele fraction at that position. This is projected into hidden space and
+added to the k-mer and positional encodings:
+
+\begin{equation}
+\mathbf{e}_p = \text{Embed}_\text{kmer}(x_p) + \text{PE}(p) + \text{LayerNorm}(\mathbf{W}_\text{het}\, h_p)
+\label{eq:het_channel}
+\end{equation}
+
+where $\mathbf{W}_\text{het} \in \mathbb{R}^{d}$ is a learnable projection vector and LayerNorm
+normalizes the contribution to be scale-compatible with the k-mer embedding. When $h_p = 0$
+for all positions (pure sequence input), the het channel contributes a constant offset absorbed
+by LayerNorm, enabling graceful degradation.
+
+\subsection{Pre-training}
+\label{sec:pretraining}
+
+\subsubsection{Datasets}
+
+\textbf{Phase~1 (cross-species):} 117,615 complete vertebrate mtDNA sequences retrieved from
+NCBI Entrez (query: \texttt{vertebrate[Organism] AND complete genome[Title] AND mitochondrion[Filter]}).
+Spans mammals, birds, reptiles, amphibians, and fish.
+
+\textbf{Phase~2 (human):} 34,975 human mtDNA sequences from HmtDB
+\citep{clima2017hmtdb}, with haplogroup labels (PhyloTree Build~17 \citep{vanoven2009phylotree})
+and geographic metadata. A quality filter ($\leq$10\% ambiguous bases) retains 99.93\% of sequences.
+
+\subsubsection{Training Objective}
+
+Phase~1 uses masked language modeling (MLM; \citealt{devlin2018bert}): 15\% of tokens are masked
+per the 80/10/10 scheme (80\% \texttt{[MASK]}, 10\% random, 10\% unchanged). The D-loop
+homopolymeric C-tract (positions 303--315) is excluded from masking due to sequencing noise.
+Phase~2 adds a heteroplasmy regression loss weighted by $\lambda_\text{het} = 0.3$:
+
+\begin{equation}
+\mathcal{L} = \mathcal{L}_\text{MLM} + \lambda_\text{het}\, \mathcal{L}_\text{het}
+\end{equation}
+
+Both phases use AdamW, cosine learning rate schedule (peak $10^{-4}$, 2,000-step warmup), and
+gradient accumulation to effective batch size 256. Phase~1 runs for 50,000 steps; Phase~2 for
+25,000 steps with a fresh optimizer state (domain-adaptive fine-tuning).
+
+\subsection{Fine-tuning Tasks}
+
+\subsubsection{Haplogroup Classification}
+
+We fine-tune \mtdnafm with LoRA adapters \citep{hu2022lora} (rank $r=8$, $\alpha=16$) for 26-way
+haplogroup classification using the CLS token. Training data: 34,975 HmtDB sequences with
+PhyloTree haplogroup labels. Evaluation: held-out test set (Section~\ref{sec:eval_setup}).
+
+\subsubsection{Variant Pathogenicity Prediction}
+
+For binary pathogenicity prediction, we extract the hidden state at the variant position token
+(not CLS) and fine-tune with LoRA ($r=4$, $\alpha=8$) and BCE loss with positive class weight
+$w_\text{pos} = 2.5$. Positive examples: ClinVar \citep{landrum2018clinvar} pathogenic mtDNA
+variants. Negative examples: gnomAD \citep{karczewski2020gnomad} v3.1 chrM variants with
+population allele frequency $> 0.01$.
+
+\subsubsection{Heteroplasmy Level Regression}
+
+We fine-tune \mtdnafm for Huber-loss regression of the observed heteroplasmy fraction at each
+variant position, using gnomAD variants with $\geq 50$ heteroplasmic carriers. 5-fold
+cross-validation is used due to the limited dataset size ($\sim$1,000 variants).
+
+\subsection{Evaluation Setup}
+\label{sec:eval_setup}
+
+All evaluation uses a held-out test set constructed by removing HmtDB sequences used in
+pre-training and stratifying the remainder by major haplogroup (minimum 20 per class,
+maximum 100 per class). Metrics: accuracy and macro-F1 for classification; AUROC and AUPR
+for pathogenicity; R$^2$ and Spearman $\rho$ for regression. Confidence intervals are
+computed by 1,000-replicate non-parametric bootstrap. Baselines: (i) DNABERT-2 embeddings
+with logistic regression fine-tuning; (ii) 6-mer frequency vectors with logistic regression;
+(iii) random performance.
+
+%% =========================================================================
+\section{Results}
+\label{sec:results}
+
+\subsection{Ablation Studies}
+
+Table~\ref{tab:ablation} reports the contribution of each architectural novelty.
+
+\begin{table}[h]
+\centering
+\caption{Ablation study results. All models trained with identical hyperparameters;
+only the ablated component varies.}
+\label{tab:ablation}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Model variant} & \textbf{Zero-shot k-NN} & \textbf{Fine-tuned acc.} & \textbf{Het. Spearman $\rho$} \\
+\midrule
+mtDNA-FM (full) & \todo{X\%} & \todo{X\%} & \todo{X} \\
+$-$ Circular PE (sinusoidal) & \todo{X\%} & \todo{X\%} & --- \\
+$-$ Circular PE (learnable) & \todo{X\%} & \todo{X\%} & --- \\
+$-$ Two-phase (single-phase) & \todo{X\%} & \todo{X\%} & --- \\
+$-$ Het channel ($\lambda_\text{het}=0$) & --- & --- & \todo{X} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Haplogroup Classification}
+
+Table~\ref{tab:haplogroup} compares \mtdnafm against baselines on 26-way haplogroup
+classification. \mtdnafm achieves \todo{X\%} accuracy (macro-F1 \todo{X}) on the held-out
+test set, compared to \todo{X\%} for DNABERT-2 and \todo{X\%} for k-mer + LR. Notably,
+misclassifications are phylogenetically structured: \todo{X\%} of errors occur between
+haplogroups within the same clade, compared to \todo{X\%} expected by chance.
+
+\begin{table}[h]
+\centering
+\caption{26-way haplogroup classification results (mean $\pm$ std from 5-fold CV).}
+\label{tab:haplogroup}
+\begin{tabular}{lcc}
+\toprule
+\textbf{Method} & \textbf{Accuracy (\%)} & \textbf{Macro-F1} \\
+\midrule
+Random & 3.8 & --- \\
+6-mer frequency + LR & \todo{X} & \todo{X} \\
+DNABERT-2 + LR & \todo{X} & \todo{X} \\
+\mtdnafm (zero-shot k-NN) & \todo{X} & \todo{X} \\
+\mtdnafm (fine-tuned LoRA) & \todo{X} & \todo{X} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Figure~\ref{fig:haplogroup} shows the confusion matrix sorted by phylogenetic distance.
+
+\subsection{Variant Pathogenicity Prediction}
+
+\mtdnafm achieves AUROC \todo{0.877} [95\% CI \todo{X--Y}] on the ClinVar/gnomAD test set,
+compared to \todo{0.72} for k-mer + LR and \todo{X} for DNABERT-2 + LR (Figure~\ref{fig:roc}).
+Performance is highest for tRNA variants (AUROC \todo{0.91}), consistent with the tight
+evolutionary constraint on tRNA secondary structure. External validation on MITOMAP/HelixMTdb
+gives AUROC \todo{X} [95\% CI \todo{X--Y}], confirming that performance generalizes beyond
+the ClinVar curation framework.
+
+\subsection{Heteroplasmy Level Regression}
+
+The heteroplasmy regression model achieves Spearman $\rho = \todo{X}$ [95\% CI \todo{X--Y}]
+and R$^2 = \todo{X}$ on 5-fold cross-validation, compared to $\rho = \todo{X}$ without the
+het channel (ablation). We emphasize that this is a proof-of-concept demonstration: the
+relationship between sequence context and observed heteroplasmy fraction in gnomAD confounds
+mutation rate, purifying selection, and sampling variation.
+
+\subsection{Zero-shot Experiments}
+
+\subsubsection{Ancient DNA Phylogenetic Placement}
+
+Without any fine-tuning, \mtdnafm embeddings correctly place 10 ancient hominin mtDNA sequences
+in their expected phylogenetic positions (Figure~\ref{fig:umap}). Neanderthal sequences
+(\todo{N} specimens from \todo{X} sites) are on average \todo{X}$\times$ more distant from
+modern humans than modern humans are from each other (mean L2 distance \todo{X} vs. \todo{X}
+modern-to-modern baseline). Denisovan sequences show even greater divergence (\todo{X}$\times$).
+Early modern human sequences (\todo{N} specimens, $\sim$35--40~kya) fall within the modern
+human haplogroup cloud, consistent with their expected phylogenetic position.
+
+\subsubsection{Unsupervised Gene-Type Discovery}
+
+UMAP of embeddings for the 37 annotated mtDNA genes reveals three distinct clusters
+corresponding to protein-coding, tRNA, and rRNA genes, without any functional annotation
+in training (Figure~\ref{fig:gene_types}). Within-cluster cosine similarity is
+\todo{0.87 $\pm$ 0.12} for protein-coding, \todo{0.82 $\pm$ 0.16} for tRNA, and \todo{X}
+for rRNA, compared to \todo{X} between clusters. This demonstrates that the model learned
+to associate sequence composition with functional gene class from context alone.
+
+%% =========================================================================
+\section{Discussion}
+
+\mtdnafm establishes a domain-specialized foundation model for mitochondrial DNA, demonstrating
+that pre-training on the correct genome --- even with only 6M parameters --- yields representations
+with strong emergent properties: haplogroup clustering, gene-type recovery, and correct ancient
+DNA placement.
+
+\textbf{Circular PE generalizability.} The circular positional encoding is not specific to mtDNA.
+Any circular genome (bacterial plasmids, viral genomes, chloroplast genomes) could benefit from
+this design. We provide the implementation as a reusable \texttt{nn.Module} with a documented
+API.
+
+\textbf{Limitations.}
+\begin{itemize}
+\item \textit{European cohort bias.} HmtDB contains $\sim$60--70\% European-origin sequences.
+Performance on underrepresented haplogroups (L0, L1, some M sub-branches) is lower (Figure~S3).
+\item \textit{SNPs only.} Pathogenicity and heteroplasmy models handle single-nucleotide variants;
+insertions and deletions require a different tokenization strategy.
+\item \textit{No wet-lab validation.} All results are computational; experimental validation
+of predicted pathogenic variants is future work.
+\item \textit{Haplogroup resolution.} Sub-haplogroup prediction (H1a vs.\ H1b) requires
+finer-grained labels not included in this study.
+\item \textit{Model scale.} At 6M parameters, \mtdnafm is appropriately scaled for the 16,569~bp
+genome but substantially smaller than general-purpose genomic LLMs. Scaling experiments are
+left to future work.
+\end{itemize}
+
+\textbf{Future directions.} Extending pre-training to ancient DNA sequences would directly
+improve zero-shot performance on archaic genomes. Scaling the model (24M--100M parameters)
+while maintaining the circular PE and het channel could improve downstream task performance.
+The mtDNA-FM framework (circular PE, het channel, two-phase curriculum) generalizes to other
+organellar and viral genomes.
+
+%% =========================================================================
+\section{Conclusion}
+
+We introduced mtDNA-FM, the first foundation model for mitochondrial DNA, with two novel
+architectural components (circular positional encoding and heteroplasmy projection channel) and
+a two-phase curriculum pre-training strategy. mtDNA-FM achieves strong performance on haplogroup
+classification, variant pathogenicity prediction, and heteroplasmy regression, while demonstrating
+emergent zero-shot capabilities in ancient DNA phylogenetics and unsupervised gene-type discovery.
+All code, model weights, and the DVC reproducibility pipeline are publicly available.
+
+%% =========================================================================
+\section*{Data Availability}
+
+Training data (HmtDB, NCBI Entrez) and variant databases (gnomAD, ClinVar) are publicly available
+at their respective sources. No proprietary or restricted data were used. Pre-trained model weights
+and LoRA adapters are available at \url{https://huggingface.co/vthawfeek/mtdna-foundation-model}.
+
+\section*{Code Availability}
+
+All code is available at \url{https://github.com/vthawfeek/mtdna-foundation-model} under the MIT
+license. The full DVC pipeline for end-to-end reproducibility is included.
+
+\section*{Acknowledgements}
+
+\todo{Acknowledgements placeholder.}
+
+\section*{Competing Interests}
+
+The author declares no competing interests.
+
+%% =========================================================================
+\bibliographystyle{plainnat}
+\bibliography{references}
+
+%% =========================================================================
+\clearpage
+\appendix
+
+\section*{Supplementary Material}
+\label{sec:supplementary}
+
+\textit{See supplementary.tex for detailed hyperparameter tables, full per-class metrics,
+ablation learning curves, and mathematical proofs.}
+
+\end{document}

@@ -4,7 +4,7 @@ What "live on Hub" actually required: the original push script was uploading fre
 ---
 The fix is straightforward once you see it: copy the trained adapter files directly, then patch adapter_config.json to replace the local path with the Hub model ID. Without that patch, any user who loads the adapter outside your filesystem gets a file-not-found error.
 ---
-Zero-shot haplogroup accuracy: 50% vs 12.5% random (8-class sampled subset). The model was never explicitly trained to classify haplogroups — it learned phylogenetic structure from sequence alone during pre-training on 30,000+ vertebrate mtDNA genomes.
+Zero-shot haplogroup accuracy: 50% vs 12.5% random (8-class sampled subset). The model was never explicitly trained to classify haplogroups — it learned phylogenetic structure from sequence alone during pre-training on ~117k vertebrate mtDNA genomes.
 ---
 Building the first dedicated foundation model for mitochondrial DNA — a 16,569 bp circular genome linked to 350+ inherited diseases. No prior FM was designed for its circular topology or heteroplasmy. Full writeup:
-https://rokpayprsizors.wordpress.com/2026/05/29/mtdna-fm-is-live-on-huggingface-hub
+https://rokpayprsizors.wordpress.com/2026/05/31/mtdna-fm-is-live-on-huggingface-hub-what-a-research-grade-model-release-actually-requires-3/

@@ -8,9 +8,12 @@ Results are returned as a plain dict so callers can serialise to JSON.
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING
 
 import numpy as np
+
+log = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     pass
@@ -95,17 +98,31 @@ def compute_metrics(
 
     macro_f1 = float(np.mean(f1_scores)) if f1_scores else 0.0
 
+    # Class collapse detection: warn if most classes have F1 = 0
+    n_nonzero_f1 = sum(1 for v in per_class if v["f1"] > 0.01)
+    if per_class and n_nonzero_f1 < num_classes // 2:
+        log.warning(
+            "CLASS COLLAPSE: only %d/%d classes have F1 > 0.01. "
+            "The model is predicting a small set of majority classes for everything. "
+            "Fix: add inverse-frequency class weights to CrossEntropyLoss — "
+            "weights = n_samples / (n_classes * (class_counts + 1e-6))",
+            n_nonzero_f1, num_classes,
+        )
+
     # Confusion matrix: rows = true class, cols = predicted class
     cm = np.zeros((num_classes, num_classes), dtype=int)
     for t, p in zip(y_true, y_pred, strict=True):
         cm[t, p] += 1
 
-    return {
+    result = {
         "accuracy": round(accuracy, 4),
         "macro_f1": round(macro_f1, 4),
         "per_class": per_class,
         "confusion_matrix": cm.tolist(),
     }
+    if per_class and n_nonzero_f1 < num_classes // 2:
+        result["class_collapse_warning"] = True
+    return result
 
 
 def evaluate_predictions(

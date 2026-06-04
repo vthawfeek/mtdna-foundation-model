@@ -14,9 +14,9 @@ pos_weight=2.5 in BCEWithLogitsLoss. Missing a real pathogenic variant costs mor
 ---
 LoRA r=4 here vs r=8 for haplogroup (Day 16).
 
-Reason: 7k variant windows vs 47k full genomes. Smaller dataset = smaller adapter capacity. weight_decay=0.1 instead of 0.01 for the same reason.
+Reason: 7k variant windows vs 35k full genomes. Smaller dataset = smaller adapter capacity. weight_decay=0.1 instead of 0.01 for the same reason.
 ---
 Building the first dedicated mtDNA foundation model for pathogenic variant detection, haplogroup classification, and heteroplasmy prediction. The full genome is 16,569 bp and laptop-trainable.
 
 Full writeup:
-https://rokpayprsizors.wordpress.com/2026/05/29/why-variant-pathogenicity-needs-a-local-classifier-not-a-global-one/
+https://rokpayprsizors.wordpress.com/2026/05/31/why-variant-pathogenicity-needs-a-local-classifier-not-a-global-one-2/

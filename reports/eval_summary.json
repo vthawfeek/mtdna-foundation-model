@@ -1,233 +1,203 @@
 {
-  "model": "models/finetune_haplogroup_v1",
+  "model": "models/finetune_haplogroup_paper",
+  "source": "real",
+  "evaluated_at": "2026-06-04T04:56:33.503377+00:00",
   "haplogroup": {
-    "accuracy": 0.6077,
-    "macro_f1": 0.6025,
+    "accuracy": 0.0183,
+    "macro_f1": 0.0045,
     "per_class": [
       {
-        "label": "L0",
-        "precision": 0.625,
-        "recall": 0.5,
-        "f1": 0.5556,
-        "support": 10
-      },
-      {
-        "label": "L1",
-        "precision": 0.5385,
-        "recall": 0.7,
-        "f1": 0.6087,
-        "support": 10
-      },
-      {
-        "label": "L2",
-        "precision": 0.5833,
-        "recall": 0.7,
-        "f1": 0.6364,
-        "support": 10
-      },
-      {
-        "label": "L3",
-        "precision": 0.6,
-        "recall": 0.9,
-        "f1": 0.72,
-        "support": 10
-      },
-      {
-        "label": "L4",
-        "precision": 0.8889,
-        "recall": 0.8,
-        "f1": 0.8421,
-        "support": 10
-      },
-      {
-        "label": "L5",
-        "precision": 0.6364,
-        "recall": 0.7,
-        "f1": 0.6667,
-        "support": 10
-      },
-      {
-        "label": "L6",
-        "precision": 0.5385,
-        "recall": 0.7,
-        "f1": 0.6087,
-        "support": 10
-      },
-      {
-        "label": "M",
-        "precision": 0.6,
-        "recall": 0.6,
-        "f1": 0.6,
-        "support": 10
-      },
-      {
-        "label": "C",
-        "precision": 0.7143,
-        "recall": 0.5,
-        "f1": 0.5882,
-        "support": 10
-      },
-      {
-        "label": "D",
-        "precision": 0.75,
-        "recall": 0.6,
-        "f1": 0.6667,
-        "support": 10
-      },
-      {
-        "label": "E",
-        "precision": 0.5714,
-        "recall": 0.4,
-        "f1": 0.4706,
-        "support": 10
-      },
-      {
-        "label": "G",
-        "precision": 0.6154,
-        "recall": 0.8,
-        "f1": 0.6957,
-        "support": 10
-      },
-      {
-        "label": "Q",
-        "precision": 0.6667,
-        "recall": 0.4,
-        "f1": 0.5,
-        "support": 10
-      },
-      {
-        "label": "Z",
-        "precision": 0.6667,
-        "recall": 0.6,
-        "f1": 0.6316,
-        "support": 10
-      },
-      {
-        "label": "N",
-        "precision": 0.5,
-        "recall": 0.5,
-        "f1": 0.5,
-        "support": 10
-      },
-      {
         "label": "A",
-        "precision": 0.4286,
-        "recall": 0.3,
-        "f1": 0.3529,
-        "support": 10
-      },
-      {
-        "label": "I",
-        "precision": 0.5,
-        "recall": 0.5,
-        "f1": 0.5,
-        "support": 10
-      },
-      {
-        "label": "O",
-        "precision": 0.7778,
-        "recall": 0.7,
-        "f1": 0.7368,
-        "support": 10
-      },
-      {
-        "label": "S",
-        "precision": 0.7143,
-        "recall": 0.5,
-        "f1": 0.5882,
-        "support": 10
-      },
-      {
-        "label": "W",
-        "precision": 0.6364,
-        "recall": 0.7,
-        "f1": 0.6667,
-        "support": 10
-      },
-      {
-        "label": "X",
-        "precision": 0.5,
-        "recall": 0.3,
-        "f1": 0.375,
-        "support": 10
-      },
-      {
-        "label": "Y",
-        "precision": 0.4286,
-        "recall": 0.6,
-        "f1": 0.5,
-        "support": 10
-      },
-      {
-        "label": "R",
-        "precision": 0.6364,
-        "recall": 0.7,
-        "f1": 0.6667,
-        "support": 10
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3250
       },
       {
         "label": "B",
-        "precision": 0.7273,
-        "recall": 0.8,
-        "f1": 0.7619,
-        "support": 10
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 7215
+      },
+      {
+        "label": "C",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4160
+      },
+      {
+        "label": "D",
+        "precision": 0.0401,
+        "recall": 0.2441,
+        "f1": 0.069,
+        "support": 2925
+      },
+      {
+        "label": "E",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 390
       },
       {
         "label": "F",
-        "precision": 0.4667,
-        "recall": 0.7,
-        "f1": 0.56,
-        "support": 10
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2145
       },
       {
-        "label": "P",
-        "precision": 0.75,
-        "recall": 0.6,
-        "f1": 0.6667,
-        "support": 10
+        "label": "G",
+        "precision": 0.0106,
+        "recall": 0.6231,
+        "f1": 0.0208,
+        "support": 780
+      },
+      {
+        "label": "H",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 9945
+      },
+      {
+        "label": "HV",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 845
+      },
+      {
+        "label": "I",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1170
+      },
+      {
+        "label": "J",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 2470
+      },
+      {
+        "label": "K",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1300
+      },
+      {
+        "label": "L0",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 3575
+      },
+      {
+        "label": "L1",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1820
+      },
+      {
+        "label": "L2",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4485
+      },
+      {
+        "label": "L3",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 5265
+      },
+      {
+        "label": "L4",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 780
+      },
+      {
+        "label": "L5",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 260
+      },
+      {
+        "label": "M",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 5265
+      },
+      {
+        "label": "N",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 1170
+      },
+      {
+        "label": "R",
+        "precision": 0.0147,
+        "recall": 0.1356,
+        "f1": 0.0265,
+        "support": 1040
+      },
+      {
+        "label": "T",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 4160
+      },
+      {
+        "label": "U",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 6760
+      },
+      {
+        "label": "V",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 975
+      },
+      {
+        "label": "W",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 520
+      },
+      {
+        "label": "X",
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 585
       }
     ],
+    "class_collapse_warning": true,
     "confusion_matrix_shape": [
       26,
       26
     ]
   },
   "variant_pathogenicity": {
-    "auroc": 0.877,
-    "auprc": 0.8628,
-    "n_positive": 221,
-    "n_negative": 179,
-    "per_type": {
-      "missense": {
-        "auroc": 0.8659,
-        "auprc": 0.8623,
-        "n_pos": 154,
-        "n_neg": 109
-      },
-      "tRNA": {
-        "auroc": 0.9091,
-        "auprc": 0.8389,
-        "n_pos": 22,
-        "n_neg": 20
-      },
-      "rRNA": {
-        "auroc": 0.8668,
-        "auprc": 0.8407,
-        "n_pos": 29,
-        "n_neg": 29
-      },
-      "d_loop": {
-        "auroc": 0.8704,
-        "auprc": 0.7327,
-        "n_pos": 9,
-        "n_neg": 18
-      },
-      "other": {
-        "auroc": 0.9048,
-        "auprc": 0.8159,
-        "n_pos": 7,
-        "n_neg": 3
-      }
-    }
+    "auroc": null,
+    "auprc": null,
+    "note": "No labeled variant test dataset available. Run prepare_variant_data.py to enable real variant evaluation."
   }
 }

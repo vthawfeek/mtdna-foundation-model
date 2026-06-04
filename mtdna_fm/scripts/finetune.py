@@ -73,6 +73,14 @@ class HaplogroupWindowDataset(Dataset):
 
         # Keep only rows with a known haplogroup label
         df = df[df[label_column].isin(self.HAPLOGROUPS)].reset_index(drop=True)
+        if len(df) < 500:
+            log.warning(
+                "HaplogroupWindowDataset: only %d sequences matched labels in column '%s'. "
+                "If using raw sub-haplogroup strings (e.g. 'H1fx', 'L5b1a'), run "
+                "fix_haplogroup_labels.py first and set label_column: major_haplogroup.",
+                len(df),
+                label_column,
+            )
 
         self._windows: list[dict[str, Any]] = []
         for _, row in df.iterrows():
@@ -208,6 +216,16 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
         vocabulary,
         label_column=cfg.get("label_column", "haplogroup"),
     )
+    log.info("Training windows: %d", len(train_ds))
+    if len(train_ds) < 100:
+        typer.echo(
+            f"[finetune] FATAL: only {len(train_ds)} training windows after label filtering.\n"
+            "Almost certainly a label_column mismatch — check config 'label_column' vs "
+            "actual column values in the parquet (run fix_haplogroup_labels.py if needed).",
+            err=True,
+        )
+        raise typer.Exit(code=1)
+
     val_ds = HaplogroupWindowDataset(
         val_parquet,
         vocabulary,
@@ -225,6 +243,19 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
         if val_ds is not None
         else None
     )
+
+    # Compute inverse-frequency class weights to prevent collapse to majority class.
+    # After windowing, larger genomes produce more windows → severe class imbalance
+    # even with balanced sequences per class. Balanced weights: n / (K * count_k).
+    n_labels = cfg["num_labels"]
+    label_tensor = torch.tensor([w["label"] for w in train_ds._windows])
+    class_counts = torch.bincount(label_tensor, minlength=n_labels).float()
+    class_weights = len(train_ds) / (n_labels * (class_counts + 1e-6))
+    log.info(
+        "Class weights computed: min=%.3f max=%.3f (windows=%d across %d classes)",
+        class_weights.min().item(), class_weights.max().item(), len(train_ds), n_labels,
+    )
+    loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights.to(device))
 
     # MLflow tracking
     try:
@@ -270,11 +301,11 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
                 input_ids=input_ids,
                 position_ids=position_ids,
                 attention_mask=attention_mask,
-                labels=labels,
             )
-            loss = out.loss / grad_accum
+            raw_loss = loss_fn(out.logits, labels)
+            loss = raw_loss / grad_accum
             loss.backward()
-            total_loss += out.loss.item()
+            total_loss += raw_loss.item()
 
             if (step + 1) % grad_accum == 0:
                 torch.nn.utils.clip_grad_norm_(

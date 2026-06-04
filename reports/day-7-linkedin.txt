@@ -2,6 +2,6 @@ Standard BERT positional encoding treats position 1 and position 16,569 of the h
 
 This is the core problem this project addresses. Mitochondrial DNA mutations drive over 350 inherited diseases, including MELAS and Leigh syndrome, and are the basis for maternal ancestry tracing. No existing DNA foundation model was designed for the circular topology or for heteroplasmy, the biological state where different copies of the same genome within a cell carry different variants at different frequencies. Both properties are clinically essential and both are absent from DNABERT2, HyenaDNA, and Nucleotide Transformer.
 
-Week 1 of building mtDNA-FM from scratch is complete: 101 tests passing, 152k training windows from 47k human mitochondrial genomes, circular positional encoding implemented, and a heteroplasmy projection channel that accepts a continuous per-position float alongside the k-mer sequence. CI is running on GitHub. Model architecture starts next week.
+Week 1 of building mtDNA-FM from scratch is complete: 101 tests passing, 152k training sequences (117k cross-species vertebrate + 35k human from HmtDB), circular positional encoding implemented, and a heteroplasmy projection channel that accepts a continuous per-position float alongside the k-mer sequence. CI is running on GitHub. Model architecture starts next week.
 
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/26/why-mitochondrial-dna-needs-its-own-foundation-model-2/
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/31/why-mitochondrial-dna-needs-its-own-foundation-model/

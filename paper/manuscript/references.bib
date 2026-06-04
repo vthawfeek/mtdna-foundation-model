@@ -1,0 +1,284 @@
+%% References for mtDNA-FM manuscript
+%% All DOIs must be verified before final submission.
+%% Use: https://search.crossref.org or https://api.semanticscholar.org to verify
+
+%% ============================================================
+%% Foundation models (general)
+%% ============================================================
+
+@article{vaswani2017attention,
+  title   = {Attention is all you need},
+  author  = {Vaswani, Ashish and Shazeer, Noam and Parmar, Niki and Uszkoreit, Jakob and
+             Jones, Llion and Gomez, Aidan N and Kaiser, {\L}ukasz and Polosukhin, Illia},
+  journal = {Advances in Neural Information Processing Systems},
+  volume  = {30},
+  year    = {2017},
+  url     = {https://proceedings.neurips.cc/paper/2017/hash/3f5ee243547dee91fbd053c1c4a845aa-Abstract.html}
+}
+
+@inproceedings{devlin2018bert,
+  title     = {{BERT}: Pre-training of deep bidirectional transformers for language understanding},
+  author    = {Devlin, Jacob and Chang, Ming-Wei and Lee, Kenton and Toutanova, Kristina},
+  booktitle = {Proceedings of NAACL-HLT},
+  year      = {2019},
+  doi       = {10.18653/v1/N19-1423}
+}
+
+%% ============================================================
+%% DNA Foundation Models
+%% ============================================================
+
+@article{ji2021dnabert,
+  title   = {{DNABERT}: Pre-trained bidirectional encoder representations from transformers model for {DNA}-language in genome},
+  author  = {Ji, Yanrong and Zhou, Zhihan and Liu, Han and Davuluri, Ramana V},
+  journal = {Bioinformatics},
+  volume  = {37},
+  number  = {15},
+  pages   = {2112--2120},
+  year    = {2021},
+  doi     = {10.1093/bioinformatics/btab083}
+}
+
+@inproceedings{zhou2024dnabert2,
+  title     = {{DNABERT-2}: Efficient foundation model and benchmark for multi-species genome},
+  author    = {Zhou, Zhihan and Ji, Yanrong and Li, Weijian and Dutta, Pratik and Davuluri, Ramana and Liu, Han},
+  booktitle = {International Conference on Learning Representations},
+  year      = {2024},
+  url       = {https://openreview.net/forum?id=oMLQB4EZE1}
+}
+
+@article{dallatorre2023nucleotidetransformer,
+  title   = {The nucleotide transformer: Building and evaluating robust foundation models for human genomics},
+  author  = {Dalla-Torre, Hugo and Gonzalez, Liam and Mendoza-Revilla, Javier and Carranza, Nicolas Lopez and Grzywaczewski, Adam Henryk and Oteri, Francesco and Dallago, Christian and Trop, Evan and de Almeida, Bernardo P and Sirelkhatim, Hassan and others},
+  journal = {Nature Methods},
+  year    = {2023},
+  doi     = {10.1038/s41592-023-02173-7}
+}
+
+@inproceedings{nguyen2023hyenadna,
+  title     = {{HyenaDNA}: Long-range genomic sequence model at single nucleotide resolution},
+  author    = {Nguyen, Eric and Poli, Michael and Faizi, Marjan and Thomas, Armin and Wornow, Michael and Birch-Sykes, Callum and Massaroli, Stefano and Patel, Aman and Rabideau, Clayton and Bengio, Yoshua and others},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2023},
+  url       = {https://proceedings.neurips.cc/paper_files/paper/2023/hash/86ab6927ee4ae9bde4247793c46797c7-Abstract-Conference.html}
+}
+
+@article{nguyen2024evo,
+  title   = {Sequence modeling and design from molecular to genome scale with {Evo}},
+  author  = {Nguyen, Eric and Poli, Michael and Durrant, Matthew G and Kang, Brian and Nambiar, Dhruv and Liu, Jeremy and Kallenbach, Gillian and Sher, Cian and Nguyen, Alexander and Santos, Ro and others},
+  journal = {Science},
+  volume  = {386},
+  number  = {6723},
+  year    = {2024},
+  doi     = {10.1126/science.ado9336}
+}
+
+%% ============================================================
+%% LoRA / Parameter-efficient fine-tuning
+%% ============================================================
+
+@inproceedings{hu2022lora,
+  title     = {{LoRA}: Low-rank adaptation of large language models},
+  author    = {Hu, Edward J and Shen, Yelong and Wallis, Phillip and Allen-Zhu, Zeyuan and Li, Yuanzhi and Wang, Shean and Wang, Lu and Chen, Weizhu},
+  booktitle = {International Conference on Learning Representations},
+  year      = {2022},
+  url       = {https://openreview.net/forum?id=nZeVKeeFYf9}
+}
+
+%% ============================================================
+%% Positional Encoding Variants
+%% ============================================================
+
+@inproceedings{shaw2018relative,
+  title     = {Self-attention with relative position representations},
+  author    = {Shaw, Peter and Uszkoreit, Jakob and Vaswani, Ashish},
+  booktitle = {Proceedings of NAACL},
+  year      = {2018},
+  doi       = {10.18653/v1/N18-2074}
+}
+
+@article{su2021rope,
+  title   = {Roformer: Enhanced transformer with rotary position embedding},
+  author  = {Su, Jianlin and Lu, Yu and Pan, Shengfeng and Murtadha, Ahmed and Wen, Bo and Liu, Yunfeng},
+  journal = {Neurocomputing},
+  volume  = {568},
+  year    = {2024},
+  doi     = {10.1016/j.neucom.2023.127063}
+}
+
+@inproceedings{press2022alibi,
+  title     = {Train short, test long: Attention with linear biases enables input length extrapolation},
+  author    = {Press, Ofir and Smith, Noah A and Lewis, Mike},
+  booktitle = {International Conference on Learning Representations},
+  year      = {2022},
+  url       = {https://openreview.net/forum?id=R8sQPpGCv0}
+}
+
+%% ============================================================
+%% mtDNA-specific tools and databases
+%% ============================================================
+
+@article{weissensteiner2016haplogrep,
+  title   = {{HaploGrep 2}: Mitochondrial haplogroup classification in the era of high-throughput sequencing},
+  author  = {Weissensteiner, Hansi and Pacher, Dominic and Kloss-Brandst{\"a}tter, Anita and Forer, Lukas and Specht, G{\"u}nter and Bandelt, Hans-J{\"u}rgen and Kronenberg, Florian and Salas, Antonio and Sch{\"o}nherr, Sebastian},
+  journal = {Nucleic Acids Research},
+  volume  = {44},
+  number  = {W1},
+  pages   = {W58--W63},
+  year    = {2016},
+  doi     = {10.1093/nar/gkw233}
+}
+
+@article{weissensteiner2021haplocheck,
+  title   = {{Haplocheck}: In silico contamination detection in mitochondrial and whole-genome sequencing studies},
+  author  = {Weissensteiner, Hansi and Forer, Lukas and Fendt, Liane and Kheirkhah, Azita and Salas, Antonio and Kronenberg, Florian and Sch{\"o}nherr, Sebastian},
+  journal = {Genome Research},
+  volume  = {31},
+  number  = {2},
+  pages   = {342--352},
+  year    = {2021},
+  doi     = {10.1101/gr.268821.120}
+}
+
+@article{fan2011mitotool,
+  title   = {{MitoTool}: A web server for the analysis and retrieval of human mitochondrial DNA sequence variations},
+  author  = {Fan, Lin and Yao, Yong-Gang},
+  journal = {Mitochondrion},
+  volume  = {11},
+  number  = {2},
+  pages   = {351--356},
+  year    = {2011},
+  doi     = {10.1016/j.mito.2010.09.013}
+}
+
+@article{lott2013mitomap,
+  title   = {{MITOMAP}: A human mitochondrial genome database -- 2012 update},
+  author  = {Lott, Marie T and Leipzig, Jeremy N and Derbeneva, Olga and Xie, Heather Mi and Chalkia, Dimitra and Sarmady, Mahdi and Procaccio, Vincent and Wallace, Douglas C},
+  journal = {Nucleic Acids Research},
+  volume  = {41},
+  number  = {D1},
+  pages   = {D702--D708},
+  year    = {2013},
+  doi     = {10.1093/nar/gks1005}
+}
+
+@article{bolze2019helixmtdb,
+  title   = {Selective constraints and pathogenicity of mitochondrial {DNA} variants inferred from a novel database of 196,554 unrelated individuals},
+  author  = {Bolze, Alexandre and Mendez, Frances and White, Simon and Tanudjaja, Francesca and Isaksson, Magnus and Aza-Blanc, Pedro and Dhindsa, Riv San and Pitts, Steven J and Lim, Natalie and Grzymski, Joseph J and others},
+  journal = {PLOS Genetics},
+  volume  = {18},
+  number  = {8},
+  year    = {2022},
+  doi     = {10.1371/journal.pgen.1010393}
+}
+
+@article{castellana2013mitimpact,
+  title   = {{MitImpact}: An exhaustive collection of pre-computed pathogenicity predictions of human mitochondrial non-synonymous variants},
+  author  = {Castellana, Stefano and Mazza, Tommaso},
+  journal = {Human Mutation},
+  volume  = {34},
+  number  = {8},
+  pages   = {E2413--E2422},
+  year    = {2013},
+  doi     = {10.1002/humu.22364}
+}
+
+@article{clima2017hmtdb,
+  title   = {{HmtDB} 2016: Data update, a better integrated human mitochondrial variome and an improved mitochondrial disease mutational profile},
+  author  = {Clima, Rosanna and Preste, Roberto and Calabrese, Claudia and Diroma, Maria Angela and Santorsola, Mariangela and Scioscia, Graziano and Simone, Domenica and Saccone, Cecilia and Gadaleta, Maria Nicola and Attimonelli, Marcella},
+  journal = {Nucleic Acids Research},
+  volume  = {45},
+  number  = {D1},
+  pages   = {D698--D706},
+  year    = {2017},
+  doi     = {10.1093/nar/gkw1066}
+}
+
+@article{vanoven2009phylotree,
+  title   = {{PhyloTree.org} -- a phylogenetic tree of global human mitochondrial {DNA} variation},
+  author  = {van Oven, Mannis and Kayser, Manfred},
+  journal = {Human Mutation},
+  volume  = {30},
+  number  = {2},
+  pages   = {E386--E394},
+  year    = {2009},
+  doi     = {10.1002/humu.20921}
+}
+
+%% ============================================================
+%% Population genomics databases
+%% ============================================================
+
+@article{karczewski2020gnomad,
+  title   = {The mutational constraint spectrum quantified from variation in 141,456 humans},
+  author  = {Karczewski, Konrad J and Francioli, Laurent C and Tiao, Grace and Cummings, Beryl B and Alf{\"o}ldi, Jessica and Wang, Qingbo and Collins, Ryan L and Laricchia, Kristen M and Ganna, Andrea and Birnbaum, Daniel P and others},
+  journal = {Nature},
+  volume  = {581},
+  number  = {7809},
+  pages   = {434--443},
+  year    = {2020},
+  doi     = {10.1038/s41586-020-2308-7}
+}
+
+@article{landrum2018clinvar,
+  title   = {{ClinVar}: Improving access to variant interpretations and supporting evidence},
+  author  = {Landrum, Melissa J and Lee, Jennifer M and Benson, Mark and Brown, Garth R and Chao, Chen and Chitipiralla, Shanmuga and Gu, Baoshan and Hart, Jennifer and Hoffman, Douglas and Jang, Wonhee and others},
+  journal = {Nucleic Acids Research},
+  volume  = {46},
+  number  = {D1},
+  pages   = {D1062--D1067},
+  year    = {2018},
+  doi     = {10.1093/nar/gkx1153}
+}
+
+%% ============================================================
+%% Variant effect prediction
+%% ============================================================
+
+@article{ng2003sift,
+  title   = {{SIFT}: Predicting amino acid changes that affect protein function},
+  author  = {Ng, Pauline C and Henikoff, Steven},
+  journal = {Nucleic Acids Research},
+  volume  = {31},
+  number  = {13},
+  pages   = {3812--3814},
+  year    = {2003},
+  doi     = {10.1093/nar/gkg509}
+}
+
+@article{adzhubei2010polyphen,
+  title   = {A method and server for predicting damaging missense mutations},
+  author  = {Adzhubei, Ivan A and Schmidt, Steffen and Peshkin, Leonid and Ramensky, Vasily E and Gerasimova, Anna and Bork, Peer and Kondrashov, Alexey S and Sunyaev, Shamil R},
+  journal = {Nature Methods},
+  volume  = {7},
+  number  = {4},
+  pages   = {248--249},
+  year    = {2010},
+  doi     = {10.1038/nmeth0410-248}
+}
+
+@article{fraternali2021eve,
+  title   = {Unsupervised inference of protein fitness landscape from deep mutational scan},
+  author  = {Fraternali, Franca and others},
+  journal = {Nature},
+  year    = {2021},
+  note    = {TODO: Verify correct citation for EVE (Fraternali / Marks lab)}
+}
+
+@inproceedings{meier2021esm1v,
+  title     = {Language models enable zero-shot prediction of the effects of mutations on protein function},
+  author    = {Meier, Joshua and Rao, Roshan and Verkuil, Robert and Liu, Jason and Sercu, Tom and Rives, Alexander},
+  booktitle = {Advances in Neural Information Processing Systems},
+  year      = {2021},
+  url       = {https://proceedings.neurips.cc/paper/2021/hash/f51338d736f95dd42427296047067694-Abstract.html}
+}
+
+@article{cheng2023alphamissense,
+  title   = {Accurate proteome-wide missense variant effect prediction with {AlphaMissense}},
+  author  = {Cheng, Jun and Novati, Guido and Pan, Joshua and Bycroft, Clare and {\v{Z}}emgulyt{\.e}, Agn{\.e} and Applebaum, Taylor and Pritzel, Alexander and Wong, Lai Hong and Zuk, Or and Haas, Jonas and others},
+  journal = {Science},
+  volume  = {381},
+  number  = {6664},
+  year    = {2023},
+  doi     = {10.1126/science.adg7492}
+}

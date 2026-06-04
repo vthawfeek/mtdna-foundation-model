@@ -1,0 +1,41 @@
+My haplogroup classifier hit 1.83% accuracy. Random baseline is 3.85%. Below random.
+
+Here's exactly why — and what the confusion matrix told me that the accuracy number didn't. 🧵
+---
+First: what does "below random" actually mean for a 26-class classifier?
+
+Random guessing gets 1/26 = 3.85%. My fine-tuned model got 1.83%.
+
+That sounds catastrophic. But look at the per-class F1 scores: only 3 of 26 classes have F1 > 0.01. The other 23 classes are being predicted at near-zero rate.
+
+This is partial class collapse. The model isn't guessing randomly — it's confidently predicting the same 3 haplogroups for everything.
+---
+Why did it collapse?
+
+After windowing, the 1,267 training genomes become 82,355 windows. Larger genomes → more windows. H haplogroup: ~15.6% of all windows. L5: ~0.4%.
+
+Unweighted CrossEntropyLoss minimises average loss by predicting the majority class. L5 windows get treated as noise.
+
+I added class weights (1/count for each class). That expanded collapse from 1 class to 3 classes. Better, but not fixed.
+---
+Why didn't the class weights solve it?
+
+Because 2 epochs on CPU with 82k windows takes ~20 hours, and 2 epochs isn't enough.
+
+Each epoch: 82,355 windows / batch size 128 = 644 forward+backward passes. On CPU, each pass is ~30 seconds. One epoch = 6+ hours.
+
+The training loss after 2 epochs: 3.266. Random baseline: ln(26) = 3.258. The loss barely moved.
+
+The LoRA adaptation needs more gradient updates to converge. GPU would give 100-200× throughput.
+---
+What the confusion matrix shows:
+
+Even at 1.83% accuracy with partial collapse, the errors follow phylogeny. When the model predicts wrong, it predicts an adjacent haplogroup — L0↔L1, H↔HV, never L3↔H.
+
+That's the pre-trained embedding geometry working, not the classifier head. The head isn't calibrated. But the representations are structured.
+
+Zero-shot k-NN on those same embeddings: ~50%. That's what pre-training actually learned.
+---
+Takeaway: the fine-tuned accuracy is a statement about CPU compute, not about what the model knows.
+
+The zero-shot result is the better measure of what the pre-training learned. Fine-tuning convergence requires more than a laptop.

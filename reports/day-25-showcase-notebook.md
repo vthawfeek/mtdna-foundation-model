@@ -5,7 +5,7 @@
 - `notebooks/build_notebook_04.py` — build script regenerating the notebook from Python (updated)
 - `docs/figures/showcase_tsne.png` — t-SNE of 100 human genome embeddings coloured by haplogroup
 - `docs/figures/showcase_confusion_matrix.png` — 26×26 haplogroup confusion matrix (normalised, phylogenetic order)
-- `docs/figures/showcase_roc_curve.png` — Variant pathogenicity ROC curve (AUROC = 0.877)
+- `docs/figures/showcase_roc_curve.png` — Variant pathogenicity ROC curve (originally labelled AUROC = 0.877 — **this was from synthetic data**; regeneration pending real evaluation)
 - `docs/figures/showcase_ancient_dna_umap.png` — UMAP with Neanderthal and Denisovan overlaid
 - `docs/figures/showcase_gene_type_recovery.png` — t-SNE of 37 mtDNA gene embeddings by gene type
 
@@ -42,8 +42,8 @@ uv run pytest tests/ -m "not slow and not integration" -q
 Key results shown in the notebook:
 - Model parameters: ~6M total (matches architecture spec)
 - t-SNE haplogroup silhouette score: visible clade structure in 100-sequence sample
-- Haplogroup classification: 60.8% accuracy (26-way), macro-F1 = 0.603
-- Pathogenicity AUROC: 0.877 (vs. random 0.500, k-mer baseline ~0.720)
+- Haplogroup classification: **9.2% accuracy** (window-level, 1,127 test sequences, 26-way); macro-F1 = 0.65% [60.8% was synthetic; fine-tuning stalled at ~random loss on CPU — zero-shot k-NN at 50% is the real signal]
+- Pathogenicity AUROC: unknown [0.877 was synthetic; no real labeled evaluation dataset was available]
 - Ancient DNA: Neanderthal and Denisovan cluster outside modern diversity, near phylogenetic root
 - Gene-type recovery: protein / tRNA / rRNA clusters visible in t-SNE
 

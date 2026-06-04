@@ -10,4 +10,4 @@ Attention at step 0 is structureless — uniform across all 8 heads × 6 layers.
 ---
 Building the first mtDNA foundation model for pathogenic variant detection and haplogroup classification. Open source, laptop-trainable, circular genome-aware.
 
-https://rokpayprsizors.wordpress.com
+https://rokpayprsizors.wordpress.com/2026/05/28/what-the-attention-heads-see-at-step-0-and-why-thats-the-right-place-to-start/

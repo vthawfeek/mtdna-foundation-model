@@ -14,4 +14,4 @@ For the embedding UMAP: I pre-computed 2D coords for 100 reference genomes offli
 Building the first dedicated foundation model for mitochondrial DNA. mtDNA mutations cause 350+ inherited diseases and drive all maternal ancestry tracing. The model is open at github.com/vthawfeek/mtdna-foundation-model
 
 Full writeup:
-rokpayprsizors.wordpress.com
+https://rokpayprsizors.wordpress.com/2026/05/29/building-a-gradio-demo-for-mtdna-analysis-engineering-decisions-that-actually-matter/

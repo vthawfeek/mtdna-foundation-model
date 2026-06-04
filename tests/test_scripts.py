@@ -30,28 +30,14 @@ class TestEvaluateCLI:
         result = runner.invoke(evaluate_app, ["--model", "/tmp/fake_model_nonexistent"])
         assert "does not exist" in result.output
 
-    def test_synthetic_mode_succeeds(self, tmp_path) -> None:
-        """--synthetic flag runs smoke-test evaluation without a real model."""
+    def test_real_eval_requires_existing_model_path(self, tmp_path) -> None:
+        """Real evaluation path exits with code 1 when model path does not exist."""
         result = runner.invoke(
             evaluate_app,
-            ["--model", "/tmp/fake", "--synthetic", "--output-dir", str(tmp_path)],
+            ["--model", "/tmp/fake_nonexistent_model", "--output-dir", str(tmp_path)],
         )
-        assert result.exit_code == 0, result.output
-        assert (tmp_path / "eval_summary.json").exists()
-
-    def test_synthetic_writes_metrics(self, tmp_path) -> None:
-        import json
-
-        runner.invoke(
-            evaluate_app,
-            ["--model", "/tmp/fake", "--synthetic", "--output-dir", str(tmp_path)],
-        )
-        with open(tmp_path / "eval_summary.json") as f:
-            summary = json.load(f)
-        assert "haplogroup" in summary
-        assert "variant_pathogenicity" in summary
-        assert "accuracy" in summary["haplogroup"]
-        assert "auroc" in summary["variant_pathogenicity"]
+        assert result.exit_code == 1
+        assert "does not exist" in result.output
 
 
 # ── TestFinetuneCLI ────────────────────────────────────────────────────────────

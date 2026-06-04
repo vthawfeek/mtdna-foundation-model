@@ -21,7 +21,7 @@
 ## Key decisions
 
 - **`build_vocabulary` as an explicit DVC stage**: The vocabulary is deterministic (4^6 = 4,096 k-mers + 6 special tokens), so it has no data deps. Making it a stage ensures any code change to `vocabulary.py` triggers a downstream re-run of all training stages — which is the correct behaviour.
-- **evaluate stage uses `--synthetic`**: The pipeline has no held-out labelled test set (labels require manual curation of ClinVar/gnomAD hits). The synthetic mode runs the evaluation framework code on controlled random predictions, verifying the metric pipeline is wired correctly. A real `dvc repro` from scratch runs all stages including this one.
+- **evaluate stage used `--synthetic` (BUG — now fixed):** The evaluate stage originally hardcoded `--synthetic`, meaning every `dvc repro` wrote seeded random numbers to `reports/eval_summary.json` instead of real model metrics. This was a mistake — the `--synthetic` flag is for CI smoke-testing only. Fixed: the stage now calls `mtdna-evaluate --model models/finetune_haplogroup_paper` without `--synthetic`.
 - **`models/` in `.gitignore`, managed by DVC with `persist: true`**: Model checkpoints are not checked into git (too large). DVC tracks them via `outs` with `persist: true` so they survive `dvc gc` calls during development.
 - **Single `finetune_haplogroup` stage, not all three fine-tuning tasks**: The plan specifies 9 stages. Pathogenicity and heteroplasmy fine-tuning follow the same pattern; they can be added as additional stages later without restructuring the DAG.
 
@@ -37,11 +37,11 @@ Running stage 'build_vocabulary':    > uv run python mtdna_fm/scripts/build_voca
 Running stage 'pretrain_phase1':     > uv run mtdna-train --config configs/pretraining_phase1.yaml ...
 Running stage 'pretrain_phase2':     > uv run mtdna-train --config configs/pretraining_phase2.yaml
 Running stage 'finetune_haplogroup': > uv run mtdna-finetune --task haplogroup ...
-Running stage 'evaluate':            > uv run mtdna-evaluate --model models/finetune_haplogroup_v1 ... --synthetic
+Running stage 'evaluate':            > uv run mtdna-evaluate --model models/finetune_haplogroup_paper
 
 $ uv run dvc metrics show
-Path                       haplogroup.accuracy  haplogroup.macro_f1  variant_pathogenicity.auroc  variant_pathogenicity.auprc
-reports/eval_summary.json  0.6077               0.6025               0.877                        0.8628
+# After bug fix and retrain — real metrics from eval_summary.json
+# (0.6077 / 0.877 reported at Day 24 were synthetic smoke-test artifacts, not model measurements)
 
 $ uv run pytest tests/ -m "not slow and not integration" -q
 346 passed, 5 warnings in 43.91s

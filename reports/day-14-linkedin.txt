@@ -4,4 +4,4 @@ The fix is a single substitution in the positional encoding formula: replace the
 
 The tokenizer uses all 4,096 possible 6-mers over ACGT plus 6 special tokens. No corpus statistics, no BPE merges. The vocabulary is the same on any machine from any dataset. Heteroplasmy (the fraction of mutant mtDNA copies in a cell) is encoded as a continuous float projected into the 256-dimensional embedding space, not discretized. Phase 2 pre-training, now running on 34,974 human mitochondrial genomes with heteroplasmy labels active, starts from the Phase 1 cross-species checkpoint with a fresh optimizer.
 
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/28/circular-positional-encoding-for-mitochondrial-dna/
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/31/circular-positional-encoding-for-mitochondrial-dna-the-mathematics-of-a-closed-loop-2/

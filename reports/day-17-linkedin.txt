@@ -4,6 +4,6 @@ This is Day 17 of building the first dedicated foundation model for mitochondria
 
 For haplogroup classification, the right approach is to pool CLS tokens across overlapping windows: the haplogroup is determined by the cumulative pattern of hundreds of variant sites. Pathogenicity is the opposite problem. Whether a substitution at position 3243 causes MELAS depends on what it does to the TψC loop of one specific tRNA gene, not on what the rest of the genome looks like. So the classifier reads the hidden state at the token covering the variant position, not CLS.
 
-Two non-obvious details shaped the fine-tuning setup: pos_weight=2.5 in the BCE loss reflects that missing a real pathogenic variant costs more than a false alarm; LoRA r=4 instead of r=8 reflects that 7k variant windows is a much smaller dataset than 47k full genomes, and reducing adapter capacity prevents overfitting.
+Two non-obvious details shaped the fine-tuning setup: pos_weight=2.5 in the BCE loss reflects that missing a real pathogenic variant costs more than a false alarm; LoRA r=4 instead of r=8 reflects that 7k variant windows is a much smaller dataset than 35k full genomes, and reducing adapter capacity prevents overfitting.
 
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/29/why-variant-pathogenicity-needs-a-local-classifier-not-a-global-one/
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/31/why-variant-pathogenicity-needs-a-local-classifier-not-a-global-one-2/

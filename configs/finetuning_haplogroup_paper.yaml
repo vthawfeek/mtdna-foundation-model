@@ -1,0 +1,41 @@
+# Haplogroup fine-tuning config for paper (fixes label mapping bug).
+#
+# Difference from finetuning_haplogroup.yaml:
+#   1. label_column: major_haplogroup  (use mapped labels, not detailed sub-haplogroups)
+#   2. base_model: models/phase1_v1   (phase2_v1 is empty; retrain from phase1)
+#   3. output_dir: models/finetune_haplogroup_paper
+#
+# Prerequisite: run fix_haplogroup_labels.py first to add the major_haplogroup column.
+#
+# Usage:
+#   uv run mtdna-finetune --task haplogroup --config configs/finetuning_haplogroup_paper.yaml
+
+task: haplogroup_classification
+num_labels: 26
+label_column: major_haplogroup       # ← KEY FIX: use mapped labels
+base_model: "models/phase1_v1"       # ← phase2_v1 empty; use phase1
+
+use_lora: true
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.1
+lora_target_modules:
+  - query
+  - key
+  - value
+  - dense
+
+batch_size: 32
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-3
+max_epochs: 20
+warmup_ratio: 0.1
+weight_decay: 0.01
+max_grad_norm: 1.0
+fp16: false
+dropout: 0.1
+
+mlflow_experiment: "mtdna_fm_haplogroup_paper"
+output_dir: "models/finetune_haplogroup_paper"
+save_best_metric: "val_accuracy"
+eval_every_n_epochs: 1

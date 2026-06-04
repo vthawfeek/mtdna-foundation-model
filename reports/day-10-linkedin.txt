@@ -6,4 +6,4 @@ The non-obvious part was the Phase 2 loader. AdamW maintains per-parameter gradi
 
 174 tests passing. Phase 1 training launched.
 
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/27/pre-training-bert-on-16569-base-pairs/
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/28/pre-training-bert-on-16569-base-pairs-what-8-32-means/

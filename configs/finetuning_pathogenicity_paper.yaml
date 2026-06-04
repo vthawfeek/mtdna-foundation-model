@@ -1,0 +1,46 @@
+# Pathogenicity fine-tuning config for paper.
+#
+# Differences from finetuning_pathogenicity.yaml:
+#   1. base_model: models/phase1_v1  (phase2_v1 is empty)
+#   2. output_dir: models/finetune_pathogenicity_paper
+#
+# Prerequisite: run prepare_variant_data.py first to create the variant parquets.
+#
+# Usage:
+#   uv run mtdna-finetune --task pathogenicity \
+#     --config configs/finetuning_pathogenicity_paper.yaml
+
+task: pathogenicity
+base_model: "models/phase1_v1"
+
+use_lora: true
+lora_r: 4
+lora_alpha: 8
+lora_dropout: 0.1
+lora_target_modules:
+  - query
+  - key
+  - value
+  - dense
+
+data:
+  train_parquet: "data/processed/variants_pathogenicity_train.parquet"
+  val_parquet: "data/processed/variants_pathogenicity_val.parquet"
+
+pos_weight: 2.5
+window_size: 512
+
+batch_size: 32
+gradient_accumulation_steps: 4
+learning_rate: 1.0e-3
+max_epochs: 20
+warmup_ratio: 0.1
+weight_decay: 0.1
+max_grad_norm: 1.0
+dropout: 0.1
+fp16: false
+
+mlflow_experiment: "mtdna_fm_pathogenicity_paper"
+output_dir: "models/finetune_pathogenicity_paper"
+save_best_metric: "val_auroc"
+eval_every_n_epochs: 1

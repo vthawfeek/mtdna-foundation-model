@@ -213,7 +213,7 @@ print(f"  Accuracy:  {accuracy:.1%}")
 print(f"  Macro-F1:  {macro_f1:.3f}")
 print(f"  Classes:   {len(labels)}")
 print()
-print(f"Note: model trained on synthetic haplogroup labels from 47k HmtDB sequences.")
+print(f"Note: model fine-tuned on 1,267 haplogroup-labeled sequences from HmtDB.")
 print(f"The HmtDB dataset has European bias (H-clade is majority class).")
 """))
 
@@ -265,7 +265,9 @@ pathogenic (ClinVar) or benign (gnomAD common variant).
 not the CLS token.  Pathogenicity is a local property of the variant's
 genomic context, not a global genome property.
 
-Results below are from the LoRA r=4 fine-tuned model (AUROC = 0.877).
+No labeled variant evaluation dataset (ClinVar pathogenic vs gnomAD common) was
+prepared during this project. Pathogenicity AUROC is unknown.
+Real AUROC is loaded from eval_variant_detail.json if present.
 """))
 
 cells.append(code("""from mtdna_fm.evaluation.viz import plot_roc_curve
@@ -621,23 +623,22 @@ cells.append(md("""## 7. Summary
 |---------|-----------|
 | Model loading | ~6M params, 3-line API, 256-d genome embeddings |
 | t-SNE | Haplogroup clusters visible from Phase 1 pre-training alone |
-| Confusion matrix | 60.8% accuracy (26-way); errors mostly within phylogenetic clades |
-| Pathogenicity ROC | AUROC = 0.877 on ClinVar vs gnomAD; k-mer baseline ≈ 0.720 |
+| Confusion matrix | Real accuracy from eval_summary.json; errors within phylogenetic clades |
+| Pathogenicity ROC | AUROC from eval_variant_detail.json (real data required) |
 | Ancient DNA | Neanderthal and Denisovan placed consistently with paleoanthropology |
 | Gene-type recovery | Silhouette > 0 = functional separation from sequence structure alone |
 
 ### What the numbers mean
 
-**60.8% haplogroup accuracy** is not the headline number for this model — the relevant
-comparison is the zero-shot k-NN baseline (~50% after Phase 1, ~16% random).
-Fine-tuning brought it from ~50% k-NN to 60.8% 26-way classification *with only 10
-sequences per class in the test set*.  The model trained on a European-biased corpus
-(HmtDB) and struggled with underrepresented haplogroups like L4/L5.
+**Haplogroup accuracy: 1.83%** (window-level, 26-class, 1,127 test sequences, 73,255 windows).
+Macro-F1 = 0.45% — partial class collapse to 3/26 active classes; fine-tuning did not converge.
+Random baseline: 3.85% (1/26). The model is below random after 2 CPU epochs.
+Compare: zero-shot k-NN at ~50% — the pre-trained embeddings encode far more structure
+than the fine-tuned classifier could recover in this compute budget.
+With GPU compute and more epochs, fine-tuning should significantly improve.
 
-**AUROC 0.877** for pathogenicity is a meaningful result.  The ClinVar/gnomAD split is
-hard — ClinVar pathogenic variants include diverse variant types (tRNA, protein-coding,
-rRNA), and gnomAD common variants are the most natural benign proxy.  The pre-trained
-context representation adds real signal beyond k-mer frequencies alone.
+**Pathogenicity AUROC** — no labeled variant evaluation dataset was available.
+Real AUROC is unknown.
 
 **Ancient DNA placement** is the most compelling demonstration.  The model has never
 seen Neanderthal or Denisovan sequence.  Its placement reflects the same phylogenetic

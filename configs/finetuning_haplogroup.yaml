@@ -1,7 +1,15 @@
 task: haplogroup_classification
 num_labels: 26
-label_column: haplogroup
-base_model: "models/phase2_v1"
+# Use major_haplogroup column (mapped from sub-haplogroups by fix_haplogroup_labels.py).
+# Previously used 'haplogroup' (raw sub-haplogroup strings like 'H1fx') which caused
+# 99.84% of labeled sequences to be silently discarded during training.
+label_column: major_haplogroup
+base_model: "models/phase1_v1"
+data:
+  # Pre-filtered balanced parquet (1,267 sequences, ≤50 per class) avoids the
+  # 2.5h tokenization cost of the full 152k-row train.parquet on CPU.
+  train_parquet: "data/processed/train_haplogroup.parquet"
+  val_parquet: "data/processed/val.parquet"
 use_lora: true
 lora_r: 8
 lora_alpha: 16
@@ -11,16 +19,16 @@ lora_target_modules:
   - key
   - value
   - dense
-batch_size: 32
-gradient_accumulation_steps: 4
-learning_rate: 1.0e-3
-max_epochs: 20
+batch_size: 128
+gradient_accumulation_steps: 1
+learning_rate: 3.0e-4
+max_epochs: 2
 warmup_ratio: 0.1
 weight_decay: 0.01
 max_grad_norm: 1.0
 fp16: false
 dropout: 0.1
 mlflow_experiment: "mtdna_fm_haplogroup"
-output_dir: "models/finetune_haplogroup_v1"
+output_dir: "models/finetune_haplogroup_paper"
 save_best_metric: "val_accuracy"
 eval_every_n_epochs: 1

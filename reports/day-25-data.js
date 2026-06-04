@@ -9,7 +9,7 @@
       "notebooks/build_notebook_04.py — updated build script",
       "docs/figures/showcase_tsne.png — t-SNE of 100 human genome embeddings by haplogroup",
       "docs/figures/showcase_confusion_matrix.png — 26x26 haplogroup confusion matrix",
-      "docs/figures/showcase_roc_curve.png — variant pathogenicity ROC curve (AUROC = 0.877)",
+      "docs/figures/showcase_roc_curve.png — variant pathogenicity ROC curve (no real eval data; AUROC unknown)",
       "docs/figures/showcase_ancient_dna_umap.png — UMAP with ancient hominids overlaid",
       "docs/figures/showcase_gene_type_recovery.png — t-SNE of 37 mtDNA gene embeddings"
     ],

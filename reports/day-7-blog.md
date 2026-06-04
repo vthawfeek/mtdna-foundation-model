@@ -94,19 +94,19 @@ DNABERT2, HyenaDNA, and Nucleotide Transformer were all trained on nuclear DNA. 
 
 **Nuclear bias in pre-training.** Nuclear DNA has different compositional properties, different repeat structures, and a very different evolutionary conservation pattern from mtDNA. Human mtDNA is maternally inherited with no recombination, producing strong haplogroup structure that does not exist in the nuclear genome. A model pre-trained on nuclear DNA learns representations appropriate for nuclear sequence. Fine-tuning on mtDNA adjusts the weights, but it cannot fully reorient representations that were shaped by 3 billion bases of the wrong genome.
 
-Pre-training from scratch on vertebrate mtDNA (30k sequences, cross-species for broader diversity) and then human mtDNA (47k HmtDB sequences, Phase 2) means the representations are grounded in the right biology from the first gradient step.
+Pre-training from scratch on vertebrate mtDNA (~117k sequences, cross-species for broader diversity) and then human mtDNA (~35k HmtDB sequences, Phase 2) means the representations are grounded in the right biology from the first gradient step.
 
 ## Week 1 in Numbers
 
 Seven days of infrastructure produced the following verified state:
 
 - 101 tests passing, 0 failures
-- 152,484 training windows (47k sequences, 512-token overlapping windows, stride 256)
+- 152,484 training sequences (117k cross-species vertebrate + 35k human, windowed at 512 tokens during training)
 - All 152k sequences exactly 16,569 bp after normalization
 - `KmerVocabulary.build(k=6)` produces 4,102 tokens deterministically; encode/decode roundtrip verified
 - CI pipeline active on GitHub: two jobs (`lint`, `test`), triggered on every push
 
-![Top 20 haplogroups in the 47,000-sequence HmtDB training corpus. Haplogroup H dominates (most common European lineage). L-root haplogroups represent African ancestral lineages. The stratified split preserves this distribution across train/val/test.](docs/figures/haplogroup_distribution.png)
+![Top 20 haplogroups in the 34,974-sequence HmtDB training corpus. Haplogroup H dominates (most common European lineage). L-root haplogroups represent African ancestral lineages. The stratified split preserves this distribution across train/val/test.](docs/figures/haplogroup_distribution.png)
 
 The model architecture is next. The circular positional encoding is already specified. The two-phase pre-training curriculum (cross-species first, human second) starts in Week 2.
 
@@ -116,4 +116,4 @@ The model architecture is next. The circular positional encoding is already spec
 - The heteroplasmy channel projects a continuous per-position float into the embedding, allowing the model to condition on the fraction of mutant copies alongside the sequence identity.
 - D-loop Shannon entropy is roughly 7x higher than coding regions, and the homopolymeric C-tract (positions 303-315) is blacklisted from masking because it reflects sequencing noise rather than biological variation.
 - Nuclear-DNA pre-trained models transfer to mtDNA with fundamental topological and compositional mismatch; pre-training on vertebrate mtDNA from scratch avoids this at the cost of a smaller pre-training corpus.
-<!-- published: https://rokpayprsizors.wordpress.com/2026/05/26/why-mitochondrial-dna-needs-its-own-foundation-model-2/ -->
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/31/why-mitochondrial-dna-needs-its-own-foundation-model/ -->

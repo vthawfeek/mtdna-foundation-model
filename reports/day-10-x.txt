@@ -24,4 +24,4 @@ This is the standard domain-adaptive pre-training pattern, but it's easy to get 
 ---
 Building the first foundation model for mitochondrial DNA. mtDNA mutations drive over 350 inherited diseases. Training is running. Full writeup on the trainer architecture:
 
-https://rokpayprsizors.wordpress.com/2026/05/27/pre-training-bert-on-16569-base-pairs/
+https://rokpayprsizors.wordpress.com/2026/05/28/pre-training-bert-on-16569-base-pairs-what-8-32-means/

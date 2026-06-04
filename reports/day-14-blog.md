@@ -143,7 +143,7 @@ where `het_weight=0.3` in Phase 2 and `het_weight=0.0` in Phase 1. The heteropla
 
 ## What Phase 2 Adds to Phase 1
 
-Phase 1 pre-training uses 30k vertebrate mtDNA sequences across 3,500 species. Het_weight is 0 because non-human genomes don't have gnomAD heteroplasmy measurements. The model learns general mitochondrial sequence structure: codon usage patterns, tRNA stem-loop motifs, conserved protein-coding regions.
+Phase 1 pre-training uses ~117k vertebrate mtDNA sequences across 3,500+ species. Het_weight is 0 because non-human genomes don't have gnomAD heteroplasmy measurements. The model learns general mitochondrial sequence structure: codon usage patterns, tRNA stem-loop motifs, conserved protein-coding regions.
 
 Phase 2 starts from the Phase 1 checkpoint and continues on 34,974 human HmtDB sequences with het_weight=0.3. The learning rate drops from 1e-4 to 3e-5 (lower: the model is adjusting, not learning from scratch) with only 500 warmup steps (faster: the optimizer isn't starting cold).
 
@@ -157,3 +157,4 @@ This is the direct analogue of domain-adaptive pre-training in NLP: pre-train on
 - Circular positional encoding encodes position as an angle on a circle (2π × pos/L), so positions at the genome junction (0 and 16,569) produce identical PE vectors. This is mathematically exact, not approximate.
 - Heteroplasmy as a continuous linear projection (1 → hidden_size, added to the k-mer embedding) preserves the full precision of the gnomAD het_level values without requiring vocabulary expansion or discretization.
 - Phase 2 encoder-weight transfer with a fresh optimizer is critical: loading Phase 1 Adam moments into a lower-LR Phase 2 run pushes the optimizer in the wrong direction from step 1.
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/31/circular-positional-encoding-for-mitochondrial-dna-the-mathematics-of-a-closed-loop-2/ -->

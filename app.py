@@ -1,10 +1,9 @@
 """
 mtDNA-FM Gradio Demo
 
-Three-tab interface for the mtDNA Foundation Model:
-  1. Haplogroup Classification  — predict which of 26 major mtDNA haplogroups a sequence belongs to
-  2. Variant Pathogenicity Check — score whether a single-nucleotide variant is pathogenic
-  3. Genome Embedding            — embed a sequence and place it on a reference UMAP
+Two-tab interface for the mtDNA Foundation Model:
+  1. Haplogroup Classification — predict which of 26 major mtDNA haplogroups a sequence belongs to
+  2. Genome Embedding          — embed a sequence and place it on a reference UMAP
 
 Models loaded from HuggingFace Hub on first use, then cached for the session lifetime.
 All inference is CPU-safe; no batching is used.
@@ -213,7 +212,6 @@ CLADE_COLOURS: dict[str, str] = {
 
 BASE_MODEL = "vthawfeek/mtdna-foundation-model"
 HAPLO_ADAPTER = "vthawfeek/mtdna-fm-haplogroup"
-PATH_ADAPTER = "vthawfeek/mtdna-fm-pathogenicity"
 
 # rCRS reference snippet (first 240 bp of human mtDNA, NC_012920.1)
 EXAMPLE_SEQUENCE = (
@@ -249,7 +247,7 @@ def _parse_sequence(text: str) -> str:
 
 
 def _load_models() -> None:
-    """Lazy-load all three model variants into the global cache."""
+    """Lazy-load model variants into the global cache."""
     if "embedder" in _models:
         return
 
@@ -259,7 +257,6 @@ def _load_models() -> None:
     from mtdna_fm.model.model import (
         MtDNAForHaplogroupClassification,
         MtDNAForMaskedModeling,
-        MtDNAForVariantPathogenicity,
         MtDNAModel,
     )
 
@@ -272,7 +269,6 @@ def _load_models() -> None:
             return _orig(self, *args, **kwargs)
         cls.forward = forward
     _peft_patch(MtDNAForHaplogroupClassification)
-    _peft_patch(MtDNAForVariantPathogenicity)
 
     from mtdna_fm.tokenizer.vocabulary import KmerVocabulary
 
@@ -293,13 +289,6 @@ def _load_models() -> None:
     haplo_model = PeftModel.from_pretrained(haplo_model, HAPLO_ADAPTER)
     haplo_model.eval()
     _models["haplogroup"] = haplo_model
-
-    print("[mtdna-fm] Loading pathogenicity adapter...")
-    path_base = MtDNAModel.from_pretrained(BASE_MODEL)
-    path_model = MtDNAForVariantPathogenicity(path_base)
-    path_model = PeftModel.from_pretrained(path_model, PATH_ADAPTER)
-    path_model.eval()
-    _models["pathogenicity"] = path_model
 
     print("[mtdna-fm] All models ready.")
 
@@ -435,164 +424,7 @@ def predict_haplogroup(sequence_input: str) -> tuple[Any, str]:
         return None, f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```"
 
 
-# ── Tab 2: Variant Pathogenicity Check ────────────────────────────────────────
-
-def check_pathogenicity(
-    sequence_input: str, position: int, alt_base: str
-) -> tuple[Any, str]:
-    """Predict pathogenicity of a single-nucleotide variant."""
-    if not sequence_input or not sequence_input.strip():
-        return None, "**Error:** Please enter a sequence."
-
-    seq = _parse_sequence(sequence_input)
-    if len(seq) < 100:
-        return None, "**Error:** Sequence too short — need at least 100 nucleotides."
-
-    alt_base = alt_base.strip().upper()
-    if alt_base not in {"A", "C", "G", "T"}:
-        return None, "**Error:** Alternate base must be A, C, G, or T."
-
-    position = int(position)
-    if not (0 <= position < len(seq)):
-        return None, f"**Error:** Position {position} out of range (0 to {len(seq) - 1})."
-
-    ref_base = seq[position]
-    if ref_base == alt_base:
-        return None, f"**Note:** Reference base at position {position} is already {alt_base} — this is not a variant."
-
-    # Apply variant to get the mutant sequence
-    mut_seq = seq[:position] + alt_base + seq[position + 1:]
-
-    try:
-        _load_models()
-        path_model = _models["pathogenicity"]
-        vocab = _models["vocab"]
-        genome_length = _models["embedder"].model.config.genome_length
-
-        from mtdna_fm.tokenizer.tokenize import tokenize_sequence
-
-        if len(mut_seq) > genome_length:
-            mut_seq = mut_seq[:genome_length]
-        elif len(mut_seq) < genome_length:
-            mut_seq = mut_seq + "N" * (genome_length - len(mut_seq))
-
-        tokens = tokenize_sequence(
-            mut_seq, vocab, k=6, stride=1, max_seq_len=len(mut_seq), circular=True
-        )
-        n_tokens = len(tokens["input_ids"])
-        window_size = 512
-        half = window_size // 2
-        start = max(0, position - half)
-        start = min(start, max(0, n_tokens - window_size))
-
-        window_indices = [(start + i) % n_tokens for i in range(window_size)]
-        ids = [tokens["input_ids"][j] for j in window_indices]
-        pos = [tokens["position_ids"][j] for j in window_indices]
-
-        # Find which slot in the window contains the variant position
-        pos_list = [tokens["position_ids"][j] for j in window_indices]
-        variant_slot = pos_list.index(position) if position in pos_list else half
-
-        input_ids = torch.tensor([ids], dtype=torch.long)
-        position_ids = torch.tensor([pos], dtype=torch.long)
-        variant_token_idx = torch.tensor([variant_slot], dtype=torch.long)
-
-        with torch.no_grad():
-            out = path_model(
-                input_ids=input_ids,
-                position_ids=position_ids,
-                variant_token_idx=variant_token_idx,
-                output_attentions=True,
-            )
-
-        pathogenicity_prob = float(out.probs.item())
-
-        # Attention heatmap: last layer, mean over heads, row = query at variant slot
-        fig, axes = plt.subplots(1, 2, figsize=(12, 4))
-
-        # Left: gauge-style probability display
-        ax_gauge = axes[0]
-        categories = ["Benign", "Pathogenic"]
-        values = [1 - pathogenicity_prob, pathogenicity_prob]
-        colours = ["#3CB371", "#DC143C"]
-        bars = ax_gauge.bar(categories, values, color=colours, edgecolor="white", linewidth=1.5)
-        ax_gauge.set_ylim(0, 1)
-        ax_gauge.set_ylabel("Probability", fontsize=11)
-        ax_gauge.set_title(
-            f"Pathogenicity: {pathogenicity_prob * 100:.1f}%",
-            fontsize=13, fontweight="bold"
-        )
-        for bar, val in zip(bars, values, strict=True):
-            ax_gauge.text(
-                bar.get_x() + bar.get_width() / 2,
-                val + 0.02,
-                f"{val * 100:.1f}%",
-                ha="center", va="bottom", fontweight="bold", fontsize=12
-            )
-        ax_gauge.spines["top"].set_visible(False)
-        ax_gauge.spines["right"].set_visible(False)
-        ax_gauge.grid(axis="y", alpha=0.3)
-
-        # Right: attention heatmap at the variant position (last layer, mean across heads)
-        ax_att = axes[1]
-        if out.attentions is not None:
-            last_layer_attn = out.attentions[-1].squeeze(0)  # (n_heads, seq_len, seq_len)
-            variant_row = last_layer_attn[:, variant_slot, :].mean(0).cpu().numpy()  # (seq_len,)
-
-            # Show ±50 tokens around variant for readability
-            half_view = 50
-            lo = max(0, variant_slot - half_view)
-            hi = min(window_size, variant_slot + half_view)
-            view = variant_row[lo:hi]
-            x_ticks = np.array(pos_list[lo:hi])
-
-            ax_att.fill_between(range(len(view)), view, alpha=0.7, color="#4169E1")
-            ax_att.axvline(variant_slot - lo, color="red", linestyle="--", linewidth=1.5, label=f"Variant pos {position}")
-            ax_att.set_xlabel(f"Genomic position (window ±{half_view} of variant)", fontsize=10)
-            ax_att.set_ylabel("Attention weight", fontsize=10)
-            ax_att.set_title("Attention context at variant position\n(last layer, mean over heads)", fontsize=11)
-            ax_att.legend(fontsize=9)
-            ax_att.spines["top"].set_visible(False)
-            ax_att.spines["right"].set_visible(False)
-            ax_att.grid(alpha=0.3)
-
-            # X-axis ticks: show a few genomic positions
-            tick_step = max(1, len(view) // 5)
-            tick_positions = list(range(0, len(view), tick_step))
-            ax_att.set_xticks(tick_positions)
-            ax_att.set_xticklabels([str(x_ticks[i]) if i < len(x_ticks) else "" for i in tick_positions], rotation=45, ha="right")
-        else:
-            ax_att.text(0.5, 0.5, "Attention weights not available", ha="center", va="center", transform=ax_att.transAxes)
-
-        fig.tight_layout()
-
-        # Risk interpretation
-        if pathogenicity_prob >= 0.7:
-            risk_label = "HIGH — model predicts this variant is likely pathogenic"
-            risk_colour = "🔴"
-        elif pathogenicity_prob >= 0.4:
-            risk_label = "INTERMEDIATE — uncertain; further functional evidence recommended"
-            risk_colour = "🟡"
-        else:
-            risk_label = "LOW — model predicts this variant is likely benign"
-            risk_colour = "🟢"
-
-        description = (
-            f"### Variant {ref_base}{position}{alt_base}\n\n"
-            f"**Pathogenicity score:** {pathogenicity_prob * 100:.1f}%  \n"
-            f"**Risk assessment:** {risk_colour} {risk_label}  \n\n"
-            f"*Note: This score is based on sequence context learned from ClinVar and gnomAD. "
-            f"It is not a clinical diagnosis. Variants in functional elements (tRNA, rRNA, coding regions) "
-            f"are scored more reliably than D-loop variants.*"
-        )
-
-        return fig, description
-    except Exception as exc:
-        import traceback as _tb
-        return None, f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```"
-
-
-# ── Tab 3: Genome Embedding ────────────────────────────────────────────────────
+# ── Tab 2: Genome Embedding ────────────────────────────────────────────────────
 
 def embed_genome_tab(sequence_input: str) -> tuple[Any, str, str]:
     """
@@ -759,50 +591,7 @@ The model embeds all overlapping 512-bp windows of the genome and classifies bas
                 outputs=[haplo_seq_input, haplo_chart, haplo_text],
             )
 
-        # ── Tab 2: Variant Pathogenicity ───────────────────────────────────────
-        with gr.Tab("⚠️ Variant Pathogenicity"):
-            gr.Markdown(
-                """
-Enter a sequence, a variant position (0-indexed), and the alternate base to check whether a single-nucleotide
-variant is predicted to be **pathogenic or benign**.
-The classifier reads the hidden state at the variant-position token — pathogenicity is a local property.
-                """
-            )
-            with gr.Row():
-                with gr.Column(scale=1):
-                    path_seq_input = gr.Textbox(
-                        label="mtDNA sequence (FASTA or raw DNA)",
-                        placeholder=">my_sequence\nGATCACAGGTCTATCACCCTATT...",
-                        lines=6,
-                    )
-                    with gr.Row():
-                        path_position = gr.Number(
-                            label="Variant position (0-indexed)",
-                            value=3243,
-                            precision=0,
-                        )
-                        path_alt = gr.Textbox(
-                            label="Alternate base",
-                            value="G",
-                            placeholder="A, C, G, or T",
-                            max_lines=1,
-                        )
-                    path_btn = gr.Button("Check Pathogenicity", variant="primary")
-                    gr.Markdown(
-                        "*Position 3243 (A→G) is the classic m.3243A>G mutation causing MELAS syndrome — "
-                        "use a full sequence containing this position to test.*"
-                    )
-            with gr.Row():
-                path_chart = gr.Plot(label="Pathogenicity scores")
-                path_text = gr.Markdown(label="Assessment")
-
-            path_btn.click(
-                fn=check_pathogenicity,
-                inputs=[path_seq_input, path_position, path_alt],
-                outputs=[path_chart, path_text],
-            )
-
-        # ── Tab 3: Genome Embedding ────────────────────────────────────────────
+        # ── Tab 2: Genome Embedding ────────────────────────────────────────────
         with gr.Tab("📊 Genome Embedding"):
             gr.Markdown(
                 """
@@ -848,8 +637,9 @@ of 100 human mtDNA genomes spanning 26 haplogroups. Download the embedding for d
 ---
 **Model details:** 6-layer BERT encoder · 8 attention heads · 256 hidden dims · ~6M parameters
 **Vocabulary:** 4,096 6-mers + 6 special tokens = 4,102 tokens
-**Fine-tuning:** LoRA r=8 for haplogroup classification, LoRA r=4 for pathogenicity
-**Limitations:** Trained on HmtDB (European population bias). Performance may be lower for underrepresented haplogroups (L sub-lineages, Pacific M branches).
+**Fine-tuning:** LoRA r=8 haplogroup classification (26 classes)
+**Zero-shot k-NN accuracy:** ~50% on haplogroup identification without any fine-tuning labels
+**Limitations:** Trained on HmtDB (European population bias). Haplogroup fine-tuning accuracy is limited by CPU compute — zero-shot embeddings are the more reliable signal.
 """
     )
 

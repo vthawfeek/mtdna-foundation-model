@@ -7,7 +7,6 @@ Usage:
 This script:
   1. Pushes the base model (phase1_v1) to vthawfeek/mtdna-foundation-model
   2. Pushes the trained haplogroup LoRA adapter to vthawfeek/mtdna-fm-haplogroup
-  3. Pushes the trained pathogenicity LoRA adapter to vthawfeek/mtdna-fm-pathogenicity
 """
 
 from __future__ import annotations
@@ -22,11 +21,9 @@ from mtdna_fm.model.model import MtDNAForMaskedModeling
 
 REPO_BASE = "vthawfeek/mtdna-foundation-model"
 REPO_HAPLOGROUP = "vthawfeek/mtdna-fm-haplogroup"
-REPO_PATHOGENICITY = "vthawfeek/mtdna-fm-pathogenicity"
 
 PHASE1_DIR = Path("models/phase1_v1")
-HAPLOGROUP_DIR = Path("models/finetune_haplogroup_v1")
-PATHOGENICITY_DIR = Path("models/finetune_pathogenicity_v1")
+HAPLOGROUP_DIR = Path("models/finetune_haplogroup_paper")
 
 HAPLOGROUP_README = """---
 license: apache-2.0
@@ -76,57 +73,6 @@ overlapping windows (size=512, stride=256) fed into a Linear(256, 26) head.
 
 HmtDB training data has a European population bias (haplogroup H is overrepresented).
 Performance on underrepresented African L sub-haplogroups may be lower.
-"""
-
-PATHOGENICITY_README = """---
-license: apache-2.0
-base_model: vthawfeek/mtdna-foundation-model
-tags:
-- biology
-- genomics
-- mitochondrial-dna
-- peft
-- lora
-- variant-pathogenicity
-pipeline_tag: text-classification
----
-
-# mtDNA-FM Pathogenicity Adapter (LoRA r=4)
-
-LoRA adapter for pathogenic variant prediction (binary) on top of
-[vthawfeek/mtdna-foundation-model](https://huggingface.co/vthawfeek/mtdna-foundation-model).
-
-Trained on ClinVar pathogenic mtDNA variants (positive class) vs gnomAD common
-variants AF > 0.01 (negative class).
-
-## Usage
-
-```python
-from mtdna_fm.model.model import MtDNAForVariantPathogenicity, MtDNAModel
-from peft import PeftModel
-
-base = MtDNAModel.from_pretrained("vthawfeek/mtdna-foundation-model")
-model = MtDNAForVariantPathogenicity(base)
-model = PeftModel.from_pretrained(model, "vthawfeek/mtdna-fm-pathogenicity")
-model.eval()
-```
-
-## LoRA Configuration
-
-- r = 4, lora_alpha = 8
-- target_modules: query, key, value, dense
-- lora_dropout = 0.1
-- pos_weight = 2.5 in BCE loss (class imbalance correction)
-
-## Task
-
-Binary pathogenicity prediction. Classifier uses the hidden state at the
-variant-position token (not the CLS token) — pathogenicity is a local property.
-
-## Limitations
-
-Training data is limited (~2,000 ClinVar pathogenic + ~5,000 gnomAD negatives).
-Variants in underrepresented functional regions (tRNA, rRNA) may have lower accuracy.
 """
 
 
@@ -215,14 +161,12 @@ def main() -> None:
 
     push_base_model(api)
     _push_adapter(api, HAPLOGROUP_DIR, REPO_HAPLOGROUP, HAPLOGROUP_README)
-    _push_adapter(api, PATHOGENICITY_DIR, REPO_PATHOGENICITY, PATHOGENICITY_README)
 
     verify_hub_load()
 
-    print("\n✓ Day 21 HuggingFace Hub push complete!")
+    print("\n✓ HuggingFace Hub push complete!")
     print(f"  Base model:   https://huggingface.co/{REPO_BASE}")
     print(f"  Haplogroup:   https://huggingface.co/{REPO_HAPLOGROUP}")
-    print(f"  Pathogenicity: https://huggingface.co/{REPO_PATHOGENICITY}")
 
 
 if __name__ == "__main__":

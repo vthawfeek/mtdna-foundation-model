@@ -38,15 +38,12 @@ $ uv run mtdna-evaluate --model /tmp/fake --synthetic --output-dir /tmp/eval_tes
 [evaluate] Wrote /tmp/eval_test_day19/eval_summary.json
 
 ── Evaluation Summary ─────────────────────────
-  Haplogroup accuracy : 0.6077
-  Haplogroup macro-F1 : 0.6025
-  Variant AUROC       : 0.8770
-  Variant AUPRC       : 0.8628
+  Haplogroup accuracy : [smoke-test values removed — see reports/eval_summary.json]
+  Variant AUROC       : [no labeled variant data — real AUROC unknown]
 ───────────────────────────────────────────────
-
-[evaluate] Saved ROC curve → /tmp/eval_test_day19/eval_roc_curve.png
-[evaluate] Done.
 ```
+
+**Bug note (discovered 2026-05-31):** The DVC evaluate stage hardcoded `--synthetic` (dvc.yaml), meaning every `dvc repro` call wrote these smoke-test numbers to `reports/eval_summary.json` as if they were real measurements. They are not. The `--synthetic` flag exists for CI smoke-testing only and must never appear in the production DVC pipeline. The bug has been fixed: dvc.yaml now calls `mtdna-evaluate --model models/finetune_haplogroup_paper` without `--synthetic`.
 
 ## Next up
 Day 20: Ancient DNA demonstration — embed Neanderthal (NC_011137.1) and Denisovan (FR695060.1) mtDNA zero-shot and place them on the human phylogeny UMAP.

@@ -1,0 +1,63 @@
+4 weeks. 25 days. 346 tests. 10 blog posts. One mitochondrial DNA foundation model.
+
+Here's what actually took the most time — and what I'd do differently.
+
+---
+
+What I expected to be hard: the model architecture.
+What actually took longest: the circular genome junction.
+
+Position 16,569 wraps around to position 0. That sounds obvious. But every downstream function — the tokenizer, the positional encoding, the masking collator, the evaluation pipeline — had to know this. Debugging it took 3x longer than writing it.
+
+Lesson: the data representation is harder than the model.
+
+---
+
+The most useful diagnostic wasn't the loss curve.
+
+It was the confusion matrix. When I looked at which haplogroups the fine-tuned classifier confused, the errors were always between phylogenetically adjacent clades: L0↔L1, H↔HV. Never between distant branches like L3 and H.
+
+That told me more about what the model had learned than any single accuracy number — even when the accuracy itself was below random (1.83% vs 3.85% baseline after 2 CPU epochs; fine-tuning didn't converge).
+
+Lesson: choose your evaluation by what you want to understand, not by what's easiest to report.
+
+---
+
+The most compelling demo used zero-shot results, not fine-tuned ones.
+
+"~50% haplogroup accuracy with no labels" is a better story than the fine-tuned accuracy — because the first one shows the model actually learned structure. The second shows the limits of CPU compute.
+
+Lesson: zero-shot results demonstrate understanding. Fine-tuned results demonstrate fit — and fit requires convergence, which requires compute.
+
+---
+
+The hardest honest thing to write: the limitations section.
+
+The fine-tuned haplogroup classifier reached 1.83% on the test set — below random. Partial class collapse despite class weighting. The training loss barely moved from ln(26) = 3.258 over 2 epochs. With GPU compute and more epochs, fine-tuning would likely recover the embedding space's 50% zero-shot signal and exceed it — but this project ran on a laptop CPU.
+
+Pathogenicity evaluation was not completed. The architecture is built (variant-token hidden state, LoRA r=4). The labeled evaluation dataset was never prepared. AUROC is unknown.
+
+HmtDB's training set is 60–70% European. The model's strongest signal is on haplogroups common in that distribution.
+
+These aren't fatal — but they're real, and I put them in the blog posts.
+
+Lesson: the limitation you omit is the one a reviewer will find.
+
+---
+
+What I'd tell someone starting a similar project:
+
+• Use DVC from day 1, not day 24
+• Write the evaluation code before the model code — it forces you to define what success means
+• One surprising zero-shot result beats three fine-tuned benchmarks in any presentation
+
+---
+
+All 25 days of build notes, code, and results are public:
+
+Code: https://github.com/vthawfeek/mtdna-foundation-model
+Model: https://huggingface.co/vthawfeek/mtdna-foundation-model
+Demo: https://huggingface.co/spaces/vthawfeek/mtdna-fm-demo
+Blog: https://rokpayprsizors.wordpress.com
+
+#bioinformatics #machinelearning #genomics #portfolio #foundationmodels #lessons

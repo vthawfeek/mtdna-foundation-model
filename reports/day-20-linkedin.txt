@@ -6,4 +6,4 @@ The result is honest about its limits: the model captures "this sequence is diff
 
 One useful side finding: cosine similarity collapses in pre-trained BERT embeddings. All pairwise cosine values were ~1.0. Switch to L2 for untrained or lightly-trained encoders.
 
-Full writeup: https://rokpayprsizors.wordpress.com
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/29/ancient-dna-and-foundation-models-an-unexpected-application/

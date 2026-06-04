@@ -6,4 +6,4 @@ The 9.5% isn't learned representation. It comes from the k-mer content of the fi
 
 The notebook also confirms a simple implementation check: initial MLM loss at step 5 = 8.322, which matches ln(4,102) = 8.320 to 3 decimal places. If this number is wrong, there's a bug in the data pipeline. It's the cheapest correctness test available before committing to a multi-day training run.
 
-Full writeup: https://rokpayprsizors.wordpress.com
+Full writeup: https://rokpayprsizors.wordpress.com/2026/05/28/what-the-attention-heads-see-at-step-0-and-why-thats-the-right-place-to-start/

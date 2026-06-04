@@ -1,5 +1,6 @@
 # Phylogenetic Reconstruction from Foundation Model Embeddings
 
+
 The model was never told which sequences are related. It never saw a phylogenetic tree, a haplogroup label, or a clade assignment during pre-training. It only saw masked k-mer sequences and was trained to predict the missing tokens.
 
 So when you embed 100 human mitochondrial genomes and run t-SNE, the result is either a blob or a tree. If it's a tree, the model encoded evolutionary structure from sequence alone.
@@ -24,15 +25,17 @@ The clusters aren't perfect, but they're not random either. L-clade sequences (t
 
 To put a number on this: the silhouette score measures whether sequences of the same major clade are more similar to each other than to sequences from different clades. A score above 0 means the clusters are real; above 0.3 is meaningful separation. The Phase 1 embeddings show measurable clade separation on a 100-sequence panel, entirely from pre-training on cross-species vertebrate mtDNA with no human haplogroup information.
 
-## Haplogroup classification: what 60.8% accuracy means
+## Haplogroup classification
 
-The fine-tuned haplogroup classifier (LoRA r=8, trained on HmtDB) achieves 60.8% accuracy on a 26-way classification task with 10 test sequences per class.
+Real test-set results (73,255 windows from 1,127 sequences, 26-way classification):
 
-That number sounds low. It isn't, in context.
+- Random baseline: 3.85% (1/26 classes)
+- **Zero-shot k-NN with Phase 1 embeddings: ~50%** — the real headline result
+- Fine-tuned LoRA r=8 (2 CPU epochs): **1.83%** — below random; partial class collapse to 3/26 active classes
 
-- Random baseline: 3.8% (1/26 classes)
-- Zero-shot k-NN with Phase 1 embeddings: ~50%
-- Fine-tuned 26-way: 60.8%
+The fine-tuning did not converge. Two CPU epochs with 1,267 training sequences is insufficient — the training loss barely moved from ln(26) = 3.258 (random guessing). Class weighting helped (the model went from predicting one class to three) but convergence requires more epochs and GPU compute. With 10× more data and a GPU, fine-tuning would likely recover and exceed the 50% zero-shot signal.
+
+The zero-shot k-NN result is the real measure of what pre-training learned about evolutionary structure.
 
 The real story is in the confusion matrix:
 
@@ -42,15 +45,11 @@ The errors are phylogenetically structured. L0 gets confused with L1 (adjacent b
 
 This is what you want from a sequence model: not zero errors, but errors that respect the underlying biology.
 
-## Pathogenicity prediction: AUROC 0.877
+## Pathogenicity prediction: evaluation not available
 
-The variant pathogenicity classifier (LoRA r=4) achieves AUROC 0.877 on a held-out test set of ClinVar pathogenic variants vs gnomAD common variants.
+No labeled variant evaluation dataset (ClinVar pathogenic vs gnomAD common variants) was prepared during this project, so the pathogenicity classifier cannot be evaluated at this stage. The architecture is correct — `MtDNAForVariantPathogenicity` uses the hidden state at the *variant token* rather than CLS, which is the right inductive bias for a local property like pathogenicity. The model and LoRA adapter exist and are trainable; the benchmark does not exist yet.
 
-![ROC curve for variant pathogenicity prediction. The mtDNA-FM curve (blue) rises steeply from the origin, reaching true positive rate ~0.85 at false positive rate ~0.15. The random classifier diagonal (grey dashed) is shown for comparison. AUROC = 0.877 is annotated in the legend.](docs/figures/showcase_roc_curve.png)
-
-The k-mer frequency baseline (PCA + logistic regression on 6-mer counts) achieves AUROC ~0.720. The gap to 0.877 reflects what the pre-trained context adds: the model's hidden state at a variant position encodes not just the local sequence, but the transformer's representation of how that position relates to the rest of the genome.
-
-The classifier uses the hidden state at the *variant token*, not the CLS token. Pathogenicity is a local property of the variant's functional context. The CLS token would dilute that signal with global genome information.
+The k-mer frequency baseline comparison (that pre-trained context encoding adds signal beyond k-mer frequency alone) is a reasonable expectation but has not been validated against real data.
 
 ## Ancient DNA: the hardest zero-shot test
 
@@ -98,3 +97,4 @@ All six sections run on pre-computed caches where available and fall back to liv
 ---
 
 *Code and notebook: [github.com/vthawfeek/mtdna-foundation-model](https://github.com/vthawfeek/mtdna-foundation-model)*
+<!-- published: https://rokpayprsizors.wordpress.com/2026/05/29/phylogenetic-reconstruction-from-foundation-model-embeddings/ -->

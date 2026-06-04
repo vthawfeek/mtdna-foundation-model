@@ -2,15 +2,19 @@ Pre-trained an mtDNA model on cross-species vertebrate genomes. No haplogroup la
 
 L-clade (African root), H/HV (European), M-clade (East Asian) separated into distinct clusters. Silhouette score > 0. Phylogeny from sequence patterns alone.
 ---
-Confusion matrix for the fine-tuned 26-way haplogroup classifier (60.8% accuracy):
+Confusion matrix for the fine-tuned 26-way haplogroup classifier:
 
-L0 gets confused with L1. H gets confused with HV. No errors between L3 and H.
+Fine-tuned accuracy: 1.83% (test set, 73k windows). Random baseline: 3.8%. Two CPU epochs, partial class collapse to 3/26 classes — the LoRA adaptation did not converge at this compute budget.
 
-The model learned phylogenetic distance. Mistakes respect the biology.
+Zero-shot k-NN with no labels: ~50%. That's the real signal from pre-training.
+
+The confusion errors (L0↔L1, H↔HV) follow phylogenetic adjacency even in the partially collapsed model — the embedding geometry, not the classifier head, is doing the work.
 ---
-Pathogenicity prediction: AUROC 0.877 vs gnomAD/ClinVar split.
+Pathogenicity prediction:
 
-k-mer frequency baseline: ~0.720. The gap is what the pre-trained context adds: transformer hidden states at the variant position encode functional constraint from 512 tokens of sequence context.
+Architecture trained (variant-token hidden state, LoRA r=4). No labeled evaluation dataset was prepared during this project, so AUROC is unknown. The model exists; the benchmark doesn't.
+
+The architectural choice — hidden state at the variant token, not CLS — remains the right inductive bias for a local property like pathogenicity. Future work when labeled data is available.
 ---
 Then I fed in Neanderthal and Denisovan mtDNA. Zero fine-tuning. Never in training.
 
@@ -23,4 +27,4 @@ Final test: embed each of the 37 mtDNA genes, no labels. Cluster.
 Protein-coding genes, tRNA genes, and rRNA genes separated. The two rRNA genes (RNR1, RNR2) cluster together and apart from everything else. Functional categories from k-mer patterns alone.
 ---
 Building the first foundation model for mitochondrial DNA: mtDNA mutations cause 350+ inherited diseases including MELAS and Leigh syndrome. Full writeup and notebook:
-https://rokpayprsizors.wordpress.com
+https://rokpayprsizors.wordpress.com/2026/05/29/phylogenetic-reconstruction-from-foundation-model-embeddings/

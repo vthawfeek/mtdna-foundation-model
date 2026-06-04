@@ -15,4 +15,4 @@ Fix: 4 lines in embed_genome() to truncate or N-pad to genome_length. Robust to 
 Building the first mtDNA foundation model for pathogenic variant detection and haplogroup classification. The full mitochondrial genome is 16,569 bp — circular, clinically significant, and no dedicated sequence model existed.
 
 Full post:
-https://rokpayprsizors.wordpress.com
+https://rokpayprsizors.wordpress.com/2026/05/29/ancient-dna-and-foundation-models-an-unexpected-application/
