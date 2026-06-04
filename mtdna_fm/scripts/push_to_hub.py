@@ -97,6 +97,18 @@ def push_base_model(api: HfApi) -> None:
         )
         print(f"  ✓ {fname}")
 
+    docs_dir = Path("docs")
+    if docs_dir.exists():
+        print("  Uploading docs/...")
+        api.upload_folder(
+            folder_path=str(docs_dir),
+            path_in_repo="docs",
+            repo_id=REPO_BASE,
+            repo_type="model",
+            ignore_patterns=["figures/*", ".gitkeep"],
+        )
+        print("  ✓ docs/")
+
 
 def _push_adapter(
     api: HfApi,
