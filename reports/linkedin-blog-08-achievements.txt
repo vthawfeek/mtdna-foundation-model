@@ -1,0 +1,20 @@
+I built a foundation model for mtDNA on a personal laptop CPU, training entirely on modern genomes. Then I tested it on something 50,000 years old.
+
+A pre-trained mtDNA encoder, trained on modern vertebrate genomes, places Neanderthal and Denisovan sequences outside the modern human distribution — no ancient sequences in training, no labels about archaic status or age.
+
+The geometry: modern human pairwise L2 distance averages 0.0749. Neanderthal (NC_011137.1, Vindija Cave) sits at L2 = 0.1110 from the modern human center. Denisovan (FR695060.1, Altai) at 0.1070. Ancient sequences are 1.45–1.48 times farther from modern humans than modern humans are from each other. They are outside the training distribution, not inside any haplogroup cluster. A model that learned nothing about evolutionary divergence would embed these sequences randomly within the modern human distribution. That is not what happened.
+
+The same pre-training produced a second result I didn't expect: 50% zero-shot k-NN accuracy on 26-class haplogroup classification. Random baseline is 3.85%.
+
+Zero-shot k-NN: embed each sequence using the pre-trained encoder, find nearest neighbors by L2 distance in 256-dimensional space, predict the majority haplogroup. No labels during pre-training. No gradient updates at evaluation. The model was trained on 152,484 mitochondrial genomes with a masked language modeling objective and never told which sequence belongs to which haplogroup.
+
+The error structure confirms the representation is meaningful: confused haplogroups are phylogenetically adjacent (L0 confused with L1, H confused with HV). No cross-clade errors connecting African root haplogroups to European tip haplogroups. That structure emerged from sequence statistics alone, without any evolutionary tree or taxonomic label in training.
+
+For comparison, the fine-tuned classifier after 2 epochs on CPU scored 1.83%. The gap between 50% zero-shot and 1.83% fine-tuned is a compute statement, not a model quality statement. The zero-shot result measures what pre-training learned. The fine-tuned result measures whether the head received enough gradient updates to use it.
+
+I'm honest about the limits. The model does not reproduce the phylogenetic tree. The pathogenicity head needs its evaluation dataset before it can be benchmarked.
+
+Weights, code, and demo:
+https://rokpayprsizors.wordpress.com/2026/06/04/what-a-first-of-its-kind-foundation-model-looks-like-when-built-in-4-weeks-on-a-laptop/
+https://vthawfeek.github.io/2026/06/04/what-a-first-of-its-kind-foundation-model-looks-like-when-built-in-4-weeks-on-a-/
+github.com/vthawfeek/mtdna-foundation-model

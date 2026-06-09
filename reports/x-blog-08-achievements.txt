@@ -1,0 +1,22 @@
+I built a foundation model for mtDNA on a laptop, training on modern genomes only. Then I tested it on something 50,000 years old.
+---
+Neanderthal and Denisovan sequences placed outside modern human variation. No ancient sequences in training. No labels about archaic status or sequence age. Just a pre-trained mtDNA encoder and a forward pass.
+---
+The geometry: modern human pairwise L2 = 0.0749. Neanderthal L2 to modern humans = 0.1110. Denisovan = 0.1070. Ancient sequences are 1.45-1.48x farther from modern humans than modern humans are from each other. They are geometrically outside the training distribution, not inside any haplogroup cluster.
+---
+The same pre-training also produced a zero-shot k-NN result: 50% haplogroup accuracy with no task-specific training. Random baseline for 26-class classification is 3.85%.
+---
+How zero-shot k-NN works: embed each sequence with the pre-trained encoder, find the k nearest neighbors by L2 distance in 256-d space, predict the majority haplogroup. No labels during pre-training. No gradient updates at eval time. The model was trained on 152,484 genomes and never told which sequence belongs to which haplogroup.
+---
+The error structure confirms the representation isn't shallow: confused haplogroups are phylogenetically adjacent (L0/L1, H/HV). There are no L0-to-H confusion errors. That phylogenetic geometry came from sequence statistics alone, with no evolutionary tree in the training data.
+---
+Gene-type recovery is a third signal: protein-coding genes, tRNA genes, and rRNA genes form distinct clusters in embedding space with no functional labels in training.
+
+#mtDNA #foundationmodels #ancientDNA
+
+---
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/what-a-first-of-its-kind-foundation-model-looks-like-when-built-in-4-weeks-on-a-laptop/
+https://vthawfeek.github.io/2026/06/04/what-a-first-of-its-kind-foundation-model-looks-like-when-built-in-4-weeks-on-a-/
+
+[Attach image: docs/figures/showcase_ancient_dna_umap.png]

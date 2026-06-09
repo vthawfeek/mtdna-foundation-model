@@ -1,0 +1,18 @@
+Building a foundation model for mtDNA on a laptop. I built a pathogenicity predictor before I had the dataset to evaluate it.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+https://vthawfeek.github.io/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+---
+The pathogenicity model is built and trained. I have no way to evaluate whether it learned anything.
+---
+The architecture: extract the hidden state at the variant's position in the encoder output (not CLS, not mean pool). Project through a linear head. LoRA r=4 fine-tuning on top of the pre-trained encoder. Pathogenicity is local; you want the local hidden state.
+---
+What the evaluation would need: ClinVar pathogenic mtDNA variants as positives. gnomAD common variants (AF > 0.01) as benign controls. A clean train/test split stratified by variant type (missense, tRNA, rRNA).
+---
+Why it doesn't exist: the data engineering to join, clean, and balance ClinVar + gnomAD takes a full day. That time was spent building the training pipeline instead. Wrong order.
+---
+What's honest: the architecture is complete. The weights are on HuggingFace. The performance is unknown. "It runs" is not the same as "it works."
+
+Full writeup: https://rokpayprsizors.wordpress.com/2026/06/04/i-built-a-pathogenicity-predictor-i-dont-have-the-data-to-evaluate-it/
+https://vthawfeek.github.io/2026/06/04/i-built-a-pathogenicity-predictor-i-dont-have-the-data-to-evaluate-it/
+
+#genomics #mlops

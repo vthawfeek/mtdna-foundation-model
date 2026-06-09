@@ -1,9 +1,0 @@
-The mtDNA-FM demo went live today: paste a mitochondrial DNA sequence and get immediate results, no code required.
-
-This is part of a project building the first foundation model specifically for mitochondrial DNA. mtDNA mutations cause over 350 inherited diseases, including MELAS and Leber hereditary optic neuropathy, and every maternal ancestry study depends on haplogroup structure. The model is a 6-layer BERT encoder trained on 30,000+ vertebrate genomes with novel circular positional encoding for the 16,569-base circular genome.
-
-The demo has three tabs. Haplogroup classification runs the sequence through overlapping windows and returns which of 26 major groups it belongs to, with geographic origin, estimated age, and clinical notes. Variant pathogenicity takes a position and an alternate base and returns a probability score with an attention heatmap showing what surrounding sequence the model focused on. The embedding tab converts the sequence to a 256-dimensional vector and places it on a scatter plot of 100 reference human genomes.
-
-Two engineering choices I found worth writing up: lazy model loading with a global cache dict avoids the Spaces startup timeout that hits when you load three models eagerly. And for the UMAP placement, pre-computing 2D coordinates offline and using k-NN interpolation at query time costs 108KB of storage and takes under 1ms, with no meaningful difference from a full UMAP transform for a 100-point reference.
-
-Full writeup: rokpayprsizors.wordpress.com

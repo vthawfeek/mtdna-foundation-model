@@ -1,0 +1,59 @@
+One angle substitution makes positions 1 and 16,569 positionally identical in mtDNA-FM. That's the sharpest way to say what sets this model's architecture apart from anything you can download off the shelf. Here's the full picture.
+
+---
+
+**Circular PE.** Standard BERT sinusoidal PE uses angle = pos / 10000^(2i/d). At positions 0 and 16,568, the encodings are maximally different. For a linear genome that's correct. mtDNA is circular.
+
+---
+
+The D-loop control region runs from ~position 16,024 to ~576, crossing the boundary BERT treats as the farthest pair of positions in the genome. Transcription initiation sits on both sides of that junction.
+
+Fix: replace the angle with 2*pi*pos/16569 / 10000^(2i/d). sin(0) = sin(2*pi). The junction is smooth.
+
+Why non-learnable? The circular topology is a biological fact, not a statistical pattern. I register it as a fixed buffer — no gradient can corrupt it during fine-tuning, no LoRA adapter can overwrite it.
+
+---
+
+**Heteroplasmy channel.** The same nucleotide at the same genomic position can cause severe disease or no symptoms, depending on a float between 0 and 1.
+
+---
+
+m.3243A>G causes MELAS syndrome. Below ~40% heteroplasmy: asymptomatic. Above ~80%: severe. No k-mer carries this information. It has to come in as a float.
+
+I can't discretize into bins. The 40% threshold is exactly where precision matters most. Arbitrary bin edges destroy resolution at the clinically meaningful boundary.
+
+Approach: a linear projection from scalar (0.0–1.0) into 256-dim hidden space, added to k-mer and positional embeddings before the transformer. Same design as expression value channels in single-cell foundation models.
+
+When there's no het data (Phase 1), het_values is None and the channel is skipped. Same architecture, both phases. No structural changes.
+
+---
+
+**Why 6-mers, not BPE?** BPE produces variable-length tokens. That breaks the circular sliding window.
+
+---
+
+With 6-mers, token at index i maps to a fixed genomic coordinate. I pass those absolute positions to the circular PE lookup. With BPE, merged tokens span variable numbers of bases — you'd need separate bookkeeping, and the circular PE becomes contingent on that bookkeeping being correct through the entire data pipeline.
+
+Second argument: determinism. KmerVocabulary.build(k=6) generates all 4^6 = 4,096 k-mers by sorted lexicographic enumeration. Same result every platform, every Python version, no training data needed. BPE vocabularies depend on the corpus.
+
+Final vocab: 4,096 6-mers + 6 special tokens = 4,102. Random MLM baseline = ln(4096) = 8.32. That's the starting point.
+
+---
+
+**Two-phase training.** Phase 1: 117,000 vertebrate mtDNA genomes. Phase 2: 35,000 human-only. Breadth before depth.
+
+---
+
+Human mtDNA sequences in HmtDB are homogeneous. Train on that alone and the pre-training objective is too easy. The representations are narrow.
+
+Vertebrate mtDNA all use the same structure (13 protein-coding genes, 22 tRNAs, 2 rRNAs, D-loop) but diverge massively in sequence. Fish vs birds vs mammals = hundreds of millions of years of evolutionary diversity. That teaches the model what "conserved vs. variable" means.
+
+Phase 2 loads Phase 1 encoder weights but starts with a fresh optimizer — that's not a resume, it's a domain shift. het_weight goes from 0.0 to 0.3: 70% MLM + 30% heteroplasmy MSE. Same logic as LLMs trained on broad internet text before domain-specific fine-tuning. #mtDNA #genomics #foundationmodel
+
+---
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/three-architecture-decisions-i-made-for-mtdna-fm-and-why-each-one-was-non-obvious/
+https://vthawfeek.github.io/2026/06/04/three-architecture-decisions-i-made-for-mtdna-fm-and-why-each-one-was-non-obviou/
+
+[Attach image: docs/figures/pe_comparison.png]

@@ -1,0 +1,29 @@
+Position 1 and position 16,569 of mitochondrial DNA share a phosphodiester bond. They are adjacent. DNABERT2 encodes them as 16,568 positions apart.
+
+This is one of three reasons I'm building a new architecture rather than fine-tuning an existing model — on my personal laptop, no GPU.
+---
+mtDNA is a circle. No ends, no telomeres. The D-loop control region wraps directly across the junction at position 16,569/1. Both promoters and the origin of replication sit there. Linearisation makes the most important region look discontinuous.
+
+Entropy in the D-loop is ~7x higher than in protein-coding regions (measured across 47,000 HmtDB sequences). Getting the D-loop wrong is getting haplogroup representation wrong.
+---
+Second problem: heteroplasmy. A cell carries hundreds to thousands of mtDNA copies. They are not all identical. The fraction carrying a variant is the heteroplasmy level — a continuous value between 0 and 1.
+
+The m.3243A>G mutation is asymptomatic at low levels, causes MELAS encephalomyopathy above ~70-80%. Same position, same variant. Different outcome depending on a fraction.
+
+Standard DNA models have no interface for a per-position float input. This is not a training data problem. You cannot add a missing input channel by fine-tuning.
+---
+Third: mtDNA is strictly maternally inherited with no recombination. 300,000 years of human maternal migration history, encoded in 16,569 base pairs. Pure phylogenetic signal.
+
+L-clades at the African root. M and N expanding out ~65,000 years ago. H/HV/J/T marking the European expansion. B/A/C/D tracing East Asia and the Americas. All readable from sequence alone.
+
+Zero-shot k-NN on the pre-trained encoder already reaches ~50% on a 26-way haplogroup task, against a 3.8% random baseline. The pre-training signal is real.
+
+One catch: HmtDB is 60-70% European. L-clade and Asian-lineage representations will be sparser. Worth knowing before drawing conclusions from the embeddings.
+---
+The fixes: circular positional encoding (pos 0 and pos 16,568 are 1 step apart, not 16,568), a heteroplasmy projection channel in the embedding layer, and pre-training exclusively on mitochondrial sequences.
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/this-genome-has-16569-base-pairs-and-runs-on-different-rules/
+https://vthawfeek.github.io/2026/06/04/this-genome-has-16569-base-pairs-and-runs-on-different-rules/
+
+#mtDNA #foundationmodels #genomics

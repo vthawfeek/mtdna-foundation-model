@@ -1,0 +1,18 @@
+I'm training a foundation model on a personal laptop with no cloud compute. Here are the actual numbers on what that costs in time and memory.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+
+30 seconds per batch. 644 batches per epoch. About 6.5 hours per epoch. 20 hours for 2 pre-training epochs. That's the actual wall-clock timeline for pre-training a 6M parameter transformer on a laptop CPU, and it forced specific engineering decisions I wouldn't have made otherwise.
+
+The first decision is model size. A standard BERT-base has 12 layers, 768 hidden dimensions, and roughly 110M parameters. At ~30 seconds per batch for my 6M model, scaling to 110M parameters would push per-batch time to over 8 minutes and make a 2-epoch run take weeks. I chose 6 layers, 256 hidden dimensions specifically because the training time is bounded to something I can complete.
+
+The second decision is gradient checkpointing. Rather than storing all intermediate activations across the 6 transformer layers during the forward pass (which would be kept in memory for the backward pass), checkpointing recomputes them during backprop. This roughly halves peak activation memory. On a ~6M model this matters: a batch of 32 sequences at 512 tokens produces substantial intermediate tensors across 6 layers.
+
+The third decision is gradient accumulation. I want an effective batch size of 128 for stable MLM pre-training. A physical batch of 128 windows would require 4x more peak memory than a batch of 32. Instead: 4 accumulation steps at batch_size=32, with a single optimizer step after each group. Same effective gradient signal, lower peak memory.
+
+The CPU bottleneck is transformer matrix multiply, not data loading. An A100 GPU would complete this 2-epoch run in roughly 6 minutes, which is 100-200x faster. That gap is not a performance tuning problem. It's the actual constraint. The question it raises is what you can learn within that constraint, which is the subject of the next post.
+
+Project details and code: github.com/vthawfeek/mtdna-foundation-model
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/im-training-this-on-a-laptop-cpu-here-is-what-that-forces-me-to-do/
+https://vthawfeek.github.io/2026/06/04/im-training-this-on-a-laptop-cpu-here-is-what-that-forces-me-to-do/

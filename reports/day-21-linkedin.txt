@@ -1,7 +1,0 @@
-The first dedicated foundation model for mitochondrial DNA is now on HuggingFace Hub. mtDNA mutations cause over 350 inherited diseases including MELAS and Leigh syndrome. This model was built specifically for the circular 16,569 bp genome that no prior sequence model was designed for.
-
-Three repositories went live: the base encoder (44.6 MB, 5.8M parameters), a haplogroup classification adapter (400 KB, LoRA r=8), and a pathogenicity prediction adapter (203 KB, LoRA r=4). The adapter storage model matters in practice: downstream tasks share the base model and each new task costs less than 1% of the base in additional storage.
-
-The non-obvious engineering problem: PEFT saves the base model path as a local filesystem string. Before pushing adapters to the Hub, that path must be patched to the Hub model ID or the adapter fails to load outside the training environment. Zero-shot 50% haplogroup accuracy (vs 12.5% random) confirms the pre-trained representations captured real phylogenetic structure.
-
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/31/mtdna-fm-is-live-on-huggingface-hub-what-a-research-grade-model-release-actually-requires-3/

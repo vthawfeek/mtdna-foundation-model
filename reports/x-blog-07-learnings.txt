@@ -1,0 +1,26 @@
+I built a foundation model for mtDNA on a laptop CPU over 25 days. Here's what I'd change about the architecture, training, and evaluation.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+https://vthawfeek.github.io/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+---
+Building the pathogenicity model before the eval dataset was backwards. I had the architecture (LoRA r=4, binary head), the ClinVar download code, the training loop. What I didn't have: a labeled eval file. The right order is eval dataset first, then the model to beat it.
+---
+The GPU budget lesson in one number: 325 hours CPU vs 50 minutes A100 for the same 50-epoch LoRA fine-tuning run. A Colab Pro session costs about $20. I didn't spend it at the right point in the project and the fine-tuning story is incomplete as a result.
+---
+Scope lesson: I built three downstream task heads (haplogroup classification, pathogenic variant prediction, heteroplasmy regression). Evaluated end-to-end: haplogroup only, and only zero-shot. One task fully evaluated would have been a clearer result than three tasks partially evaluated.
+---
+Data lesson: HmtDB is approximately 60-70% European haplogroups. I knew this from Day 4 EDA. I didn't stratify the training sample until it became visible as partial class collapse at evaluation. Stratified sampling is a one-day fix that should have come before any model training.
+---
+Architecture lesson: the circular PE is mathematically correct. Position 0 and position 16,568 encode as adjacent, which is what the genome topology requires. But "correct" and "demonstrably better than sinusoidal PE" are different claims. I made the second claim without running the experiment.
+---
+Same for the het channel. Projecting a continuous heteroplasmy float into embedding space via nn.Linear(1, 256) is the right design. MELAS severity depends on whether m.3243A>G is at 40% or 80%. A sequence-only model can't tell. But I didn't run a controlled comparison showing it helps vs hurts training.
+---
+The masking rate question I'd also test: I used 15% (standard BERT). With a 4,096-token vocabulary covering only mtDNA, the reconstruction problem may be too easy. A 25-30% rate might force harder representations. One config change, one training run.
+---
+What I'd keep unconditionally: the circular PE math is the right description of the molecule. The het channel design is the right architecture for continuous variant data. The two-phase pre-training structure is correct. The execution gaps are all fixable without changing the architecture.
+
+#mtDNA #foundationmodels
+
+---
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/what-id-do-differently-if-i-built-mtdna-fm-again/
+https://vthawfeek.github.io/2026/06/04/what-id-do-differently-if-i-built-mtdna-fm-again/

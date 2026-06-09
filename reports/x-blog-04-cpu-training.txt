@@ -1,0 +1,26 @@
+I set out to build a foundation model on my laptop with no GPU budget. Here are the actual numbers on what that costs in time and memory.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+https://vthawfeek.github.io/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+---
+30 seconds per batch. 644 batches per epoch. 6.5 hours per epoch. 20 hours for 2 pre-training epochs. This is what CPU-only training looks like for a 6M parameter transformer.
+
+---
+
+Gradient checkpointing: instead of storing all intermediate activations from the 6 transformer layers during forward pass, recompute them during backprop. Roughly halves peak activation memory. Enabled in one line: model.gradient_checkpointing_enable().
+
+---
+
+Gradient accumulation: I want effective batch size 128 for stable MLM training. A physical batch of 128 would need 4x more RAM. Instead: 4 accumulation steps of batch 32. Same effective gradient signal, peak memory stays at the batch-32 level.
+
+---
+
+The CPU bottleneck is transformer matrix multiply, not data loading. This matters: adding num_workers=4 to the DataLoader actually caused a deadlock on Linux (fork() + PyTorch thread mutexes). Fix: num_workers=0. Data loading runs in the main thread.
+
+---
+
+GPU comparison: the same 2-epoch run on an A100 would take about 6 minutes. The CPU is 100-200x slower. That's not an optimization problem. It's a different regime entirely. #machinelearning #computeconstraints
+
+---
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/im-training-this-on-a-laptop-cpu-here-is-what-that-forces-me-to-do/
+https://vthawfeek.github.io/2026/06/04/im-training-this-on-a-laptop-cpu-here-is-what-that-forces-me-to-do/

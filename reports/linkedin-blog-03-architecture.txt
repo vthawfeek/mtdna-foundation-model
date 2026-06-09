@@ -1,0 +1,15 @@
+One angle substitution makes positions 1 and 16,569 of the mitochondrial genome positionally identical in my model — the clearest way to describe what sets mtDNA-FM's architecture apart.
+
+Circular positional encoding. The D-loop spans the genomic junction, running from position ~16,024 through ~576. Standard BERT sinusoidal encoding makes positions 0 and 16,568 maximally different because the angle is linear. I replaced it with (2*pi*pos/16569) / 10000^(2i/d) so that pos=0 and pos=16,569 produce the same sine value. I registered it as a non-learnable buffer — circular topology is a biological fact, not a gradient update target.
+
+Heteroplasmy projection channel. The m.3243A>G MELAS mutation is asymptomatic below ~40% heteroplasmy and severe above ~80%. The nucleotide at position 3243 is identical in both cases, so no k-mer token carries this information. Borrowing from single-cell foundation models, a single nn.Linear(1, hidden_size) layer projects the scalar heteroplasmy float to 256 dimensions, normalises with LayerNorm, and adds it to the k-mer and positional embeddings. When there's no het data — Phase 1 pre-training — the channel is None and the projection is skipped. Same architecture, both phases.
+
+6-mer tokenization over BPE. With 6-mers, token index i maps to a fixed genomic coordinate: start + i. I pass those coordinates directly to the circular PE lookup. BPE merged tokens span variable base counts, breaking that correspondence. The vocabulary is also fully deterministic: KmerVocabulary.build(k=6) enumerates all 4^6 = 4,096 k-mers in sorted lexicographic order, identical on every platform without corpus training. Final vocabulary: 4,102 tokens. Random MLM baseline: ln(4096) ≈ 8.32.
+
+Two-phase training. Phase 1 uses 117,000 vertebrate mtDNA genomes — evolutionary breadth to build representations of conserved versus variable positions. Phase 2 switches to 35,000 human sequences from HmtDB, activates the heteroplasmy head (70% MLM + 30% het MSE), and resets the optimizer. That reset makes Phase 2 a genuine domain shift, not a continuation of Phase 1's trajectory.
+
+Code and weights: github.com/vthawfeek/mtdna-foundation-model
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/three-architecture-decisions-i-made-for-mtdna-fm-and-why-each-one-was-non-obvious/
+https://vthawfeek.github.io/2026/06/04/three-architecture-decisions-i-made-for-mtdna-fm-and-why-each-one-was-non-obviou/

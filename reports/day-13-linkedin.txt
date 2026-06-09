@@ -1,9 +1,0 @@
-Before Phase 1 training begins, a quick experiment: run k-NN classification on the untrained model's CLS embeddings. Result: 9.5% accuracy vs 4% random baseline. That's 2.4x above chance from a model that hasn't seen a single training batch.
-
-This is part of building the first foundation model dedicated to mitochondrial DNA. mtDNA mutations are responsible for over 350 inherited diseases, including MELAS syndrome and Leber hereditary optic neuropathy. The goal is a pre-trained encoder that understands the circular genome topology and heteroplasmy signal that general-purpose DNA models don't address.
-
-The 9.5% isn't learned representation. It comes from the k-mer content of the first 128bp: haplogroup-defining variants in the D-loop create consistent 6-mer differences between clades, and even randomly initialised embeddings of those k-mer IDs cluster somewhat by clade. It's also a reminder to use cosine similarity rather than euclidean distance for this kind of analysis. Euclidean inflates accuracy by 3x because it picks up embedding magnitude differences as a proxy for k-mer identity.
-
-The notebook also confirms a simple implementation check: initial MLM loss at step 5 = 8.322, which matches ln(4,102) = 8.320 to 3 decimal places. If this number is wrong, there's a bug in the data pipeline. It's the cheapest correctness test available before committing to a multi-day training run.
-
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/28/what-the-attention-heads-see-at-step-0-and-why-thats-the-right-place-to-start/

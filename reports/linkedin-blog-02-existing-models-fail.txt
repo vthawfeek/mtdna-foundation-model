@@ -1,0 +1,11 @@
+I'm building an mtDNA foundation model on my laptop. Before writing any model code, I checked whether existing models could handle this. They can't.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+
+DNABERT2 encodes positions 1 and 16,569 of mitochondrial DNA as 16,568 steps apart. Those two positions share a phosphodiester bond. That gap is the core of why I ended up building a new model instead of fine-tuning an existing one.
+
+Mitochondrial DNA is a circular chromosome. The D-loop control region wraps directly across the position-1/position-16,569 junction, and both mtDNA promoters and the origin of heavy-strand replication are in that region. With linear positional encoding, any transformer treating mtDNA as a linear sequence encodes the D-loop as discontinuous. Attention heads cannot learn that position 16,024 and position 576 are adjacent regulatory elements. The second structural failure is heteroplasmy: standard models accept one sequence, produce one answer. There is no input channel for a per-position continuous value representing what fraction of mtDNA copies carry a non-reference allele. For diseases where clinical threshold heteroplasmy levels determine symptom onset, this missing channel is not cosmetic.
+
+Neither of these problems is addressable by fine-tuning. Positional encoding is architectural, not learned from training data. A missing input dimension cannot be recovered from more training batches. That is the honest reason this project exists as a new architecture rather than a fine-tuned DNABERT2. Full analysis in the blog post below.
+
+https://rokpayprsizors.wordpress.com/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-problem/
+https://vthawfeek.github.io/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-p/

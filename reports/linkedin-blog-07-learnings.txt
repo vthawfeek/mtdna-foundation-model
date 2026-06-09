@@ -1,0 +1,24 @@
+I built a foundation model for mitochondrial DNA on a personal laptop with no GPU budget over 25 days. Here are the six decisions I'd reverse.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+
+Zero-shot k-NN: 50% accuracy against a 3.85% random baseline. Fine-tuned haplogroup classification after 2 CPU epochs: 1.83%, below random. That gap frames everything below.
+
+Evaluation dataset before model architecture. I built MtDNAForVariantPathogenicity before assembling a labeled pathogenicity benchmark. Right order: define the eval, collect the labels, then build toward a number you can actually report.
+
+Compute budget before training. The fine-tuning run needed roughly 50 epochs to converge. On a laptop CPU that's 325 hours. On an A100 it's 50 minutes. A Colab Pro session covering the full run costs around $20. I didn't make that call at the right point. The fine-tuning result is a compute statement, not a model quality statement.
+
+One task, fully evaluated. I built three downstream heads — haplogroup classification, pathogenic variant prediction, heteroplasmy regression — and evaluated end-to-end on haplogroup only, zero-shot. One task with proper train/val/test splits is a clearer signal than three tasks with partial results.
+
+Stratified sampling from the start. HmtDB is approximately 60-70% European haplogroups. I knew this from the early EDA. Stratifying the training sample is a one-day preprocessing change that would have improved representations for rare haplogroups and fixed class imbalance in fine-tuning.
+
+Run the ablations. Circular PE vs sinusoidal PE. Het channel vs no het channel. 15% masking vs 25-30%. These are configuration changes, not new architectures — one additional training run each. I don't have the controlled experiments, so the design choices are motivated but not empirically confirmed.
+
+Baseline before week 2. I never ran DNABERT2 on the same zero-shot k-NN task. Without that, the 50% result is ambiguous. Half a day of inference would have made every result more rigorous.
+
+The architecture stays. The execution gaps — GPU compute, stratified sampling, ablations, an earlier external baseline — are all fixable without changing the model. They require changing the order of work and spending $20 at the right moment.
+
+Code and weights: github.com/vthawfeek/mtdna-foundation-model
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/what-id-do-differently-if-i-built-mtdna-fm-again/
+https://vthawfeek.github.io/2026/06/04/what-id-do-differently-if-i-built-mtdna-fm-again/

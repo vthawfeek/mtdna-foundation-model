@@ -107,7 +107,7 @@ fig = plot_confusion_matrix(
     title="Haplogroup Confusion Matrix (normalised by row)",
     normalise=True,
 )
-plt.savefig(f'{FIGURES_DIR}/haplogroup_confusion_matrix.png', bbox_inches='tight', dpi=120)
+plt.savefig(f'{FIGURES_DIR}/haplogroup_confusion_matrix.png', bbox_inches='tight', dpi=300)
 plt.show()
 print("Saved confusion matrix figure")
 """))
@@ -161,7 +161,7 @@ fig = plot_roc_curve(
     var_results['roc_curve']['tpr'],
     var_results['auroc'],
 )
-plt.savefig(f'{FIGURES_DIR}/variant_roc_curve.png', bbox_inches='tight', dpi=120)
+plt.savefig(f'{FIGURES_DIR}/variant_roc_curve.png', bbox_inches='tight', dpi=300)
 plt.show()
 print("Saved ROC curve figure")
 """))
@@ -246,7 +246,7 @@ cells.append(code("""try:
         n_neighbors=15,
         min_dist=0.1,
     )
-    plt.savefig(f'{FIGURES_DIR}/genome_embedding_umap.png', bbox_inches='tight', dpi=150)
+    plt.savefig(f'{FIGURES_DIR}/genome_embedding_umap.png', bbox_inches='tight', dpi=300)
     plt.show()
     print("Saved UMAP figure")
 except ImportError:
@@ -296,7 +296,7 @@ fig = plot_attention_heatmap(
     title="Attention weights — pathogenic variant at position 32",
     n_positions=seq_len,
 )
-plt.savefig(f'{FIGURES_DIR}/attention_heatmap.png', bbox_inches='tight', dpi=120)
+plt.savefig(f'{FIGURES_DIR}/attention_heatmap.png', bbox_inches='tight', dpi=300)
 plt.show()
 print("Saved attention heatmap figure")
 """))

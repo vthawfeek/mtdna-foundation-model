@@ -1,0 +1,13 @@
+I'm building a foundation model for mtDNA on my laptop. I built a pathogenicity predictor before preparing the evaluation dataset. This is what that gap looks like.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+
+The pathogenicity prediction model is built, trained, and on HuggingFace. I have no way to evaluate whether it learned anything.
+
+The architecture makes sense: instead of using the CLS token (a global genome summary), the model extracts the hidden state at the variant's specific position in the encoder output. Pathogenicity is local, so you want the local representation. LoRA r=4 fine-tuning, binary cross-entropy with pos_weight=2.5 for class imbalance. The training loop runs without errors. What's missing is the evaluation dataset: ClinVar pathogenic mtDNA variants as positives and gnomAD common variants (allele frequency above 0.01) as benign controls, cleaned, balanced, and split by variant type.
+
+Building that evaluation dataset takes a full day of data engineering: downloading from both sources, mapping to the rCRS reference coordinate system, reconstructing full-length sequences per variant, deduplicating, balancing, and verifying no data leakage between train and test. That work was not done because the training pipeline was built before confirming the evaluation data was ready. The right order is evaluation dataset first, then model. Without knowing what "done" means, you can finish training and still not know whether you built anything useful.
+
+The architecture is worth publishing as a design note. The performance is unknown. Those are separate statements, and both are true.
+
+Full writeup: https://rokpayprsizors.wordpress.com/2026/06/04/i-built-a-pathogenicity-predictor-i-dont-have-the-data-to-evaluate-it/
+https://vthawfeek.github.io/2026/06/04/i-built-a-pathogenicity-predictor-i-dont-have-the-data-to-evaluate-it/

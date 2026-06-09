@@ -1,9 +1,0 @@
-The initial MLM loss for the mtDNA foundation model is 8.3244. The theoretical random baseline is 8.3192. The difference is 0.005, which is what you get from random weight initialization. The sanity check passed.
-
-This is part of a project to build the first dedicated sequence model for mitochondrial DNA, where mutations cause over 350 inherited diseases including MELAS and Leigh syndrome. Day 10 was about building the pre-training infrastructure: the MtDNATrainer class with gradient accumulation (effective batch 128 from physical batch 16), cosine LR with warmup, MLflow experiment tracking, checkpoint rotation, and a Phase 2 encoder-only loading mechanism.
-
-The non-obvious part was the Phase 2 loader. AdamW maintains per-parameter gradient moment estimates. After 50k cross-species training steps, those moments are calibrated to vertebrate mtDNA gradients. Resuming them for Phase 2 (human-only data) applies the wrong curvature corrections at the start of training. The fix: copy only the encoder weights, discard the optimizer entirely, and let Phase 2 start fresh. Standard domain-adaptive pre-training practice, but it's the kind of thing that silently degrades results if you use a generic checkpoint resume.
-
-174 tests passing. Phase 1 training launched.
-
-Full writeup: https://rokpayprsizors.wordpress.com/2026/05/28/pre-training-bert-on-16569-base-pairs-what-8-32-means/

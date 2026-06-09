@@ -1,0 +1,30 @@
+I'm building a foundation model for mtDNA on my laptop. The fine-tuning results are honest, not flattering.
+---
+Haplogroup classifier scores 1.83% after 2 CPU epochs. Random guessing scores 3.85%. The model is below random. This is not noise.
+---
+The model is making coherent predictions. It's just collapsing: predicting 3 haplogroups for almost everything, refusing to predict the other 23 classes at all.
+---
+When 23 of 26 classes get zero predicted instances, a uniform random guesser (3.85%) beats you. The model found a local optimum and stopped.
+---
+Class collapse: haplogroup H dominates training windows (~15.6%). CrossEntropy minimises average loss. Predicting H for everything is the cheapest local solution.
+---
+Class weights were applied (min=0.975, max=1.680). This moved from 1 active class to 3. But weighting addresses the loss at each step, not convergence speed. You still need enough epochs for the minority class decision boundaries to separate.
+---
+Before any of this: set num_workers=4. Training appeared to start. Then 13.5 hours of silence at 0% CPU.
+---
+PyTorch DataLoader uses fork() on Linux. Forked workers inherit locked mutexes from the parent. Five processes sleeping, waiting for locks that will never release. ~20 GB of RAM doing nothing.
+---
+Fix: num_workers=0. No forking, no deadlock. And it wouldn't have helped anyway — data loads in 0.2s per batch, forward+backward takes 30s. Workers would have saved 0.7% of wall clock time.
+---
+The math on 2 epochs: 644 gradient steps × 30 seconds = 5.4 hours per epoch. Two epochs = ~11 hours. LoRA needs 10-50 epochs to converge. We ran 2.
+---
+Training loss after 2 epochs: 3.266. Random baseline (ln(26)): 3.258. The loss moved 0.008. Fifty epochs on CPU = ~270 hours. On an A100: ~25 minutes. The gap is compute, not method.
+---
+The zero-shot k-NN result (no fine-tuning, just use the pre-trained embeddings directly) scores ~50% on the same problem. The pre-training learned something real. The fine-tuning just didn't get enough gradient steps.
+
+Full writeup: https://rokpayprsizors.wordpress.com/2026/06/04/my-haplogroup-classifier-scores-1-83-random-guessing-would-score-3-85/
+https://vthawfeek.github.io/2026/06/04/my-haplogroup-classifier-scores-183-random-guessing-would-score-385/
+
+#mtDNA #machinelearning #genomics #deeplearning #pytorch #debugging #computeconstraints
+
+[Attach image: docs/figures/knn_haplogroup_accuracy.png]

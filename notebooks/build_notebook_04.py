@@ -148,7 +148,7 @@ ax.set_xlabel("t-SNE 1")
 ax.set_ylabel("t-SNE 2")
 ax.set_xticks([]); ax.set_yticks([])
 fig.tight_layout()
-fig.savefig(f'{FIGURES_DIR}/showcase_tsne.png', dpi=150, bbox_inches='tight')
+fig.savefig(f'{FIGURES_DIR}/showcase_tsne.png', dpi=300, bbox_inches='tight')
 plt.show()
 print("Saved: docs/figures/showcase_tsne.png")
 """))
@@ -223,7 +223,7 @@ cells.append(code("""fig = plot_confusion_matrix(
     title=f"Haplogroup Confusion Matrix  (accuracy = {accuracy:.1%}, macro-F1 = {macro_f1:.3f})",
     normalise=True,
 )
-fig.savefig(f'{FIGURES_DIR}/showcase_confusion_matrix.png', dpi=150, bbox_inches='tight')
+fig.savefig(f'{FIGURES_DIR}/showcase_confusion_matrix.png', dpi=300, bbox_inches='tight')
 plt.show()
 print("Saved: docs/figures/showcase_confusion_matrix.png")
 """))
@@ -271,33 +271,40 @@ Real AUROC is loaded from eval_variant_detail.json if present.
 """))
 
 cells.append(code("""from mtdna_fm.evaluation.viz import plot_roc_curve
+import os as _os
 
-with open('reports/eval_variant_detail.json') as f:
-    var_eval = json.load(f)
-
-auroc = var_eval['auroc']
-auprc = var_eval['auprc']
-fpr = var_eval['roc_curve']['fpr']
-tpr = var_eval['roc_curve']['tpr']
-n_pos = var_eval['n_positive']
-n_neg = var_eval['n_negative']
-
-print(f"Pathogenicity evaluation:")
-print(f"  AUROC: {auroc:.3f}")
-print(f"  AUPRC: {auprc:.3f}")
-print(f"  Positive (ClinVar pathogenic): {n_pos}")
-print(f"  Negative (gnomAD common):       {n_neg}")
-print(f"  Majority class baseline AUROC:  0.500")
-print(f"  k-mer PCA + LR baseline AUROC:  ~0.720")
+if not _os.path.exists('reports/eval_variant_detail.json'):
+    print("Pathogenicity evaluation file not found — skipping ROC section.")
+    fpr = tpr = auroc = auprc = None
+    n_pos = n_neg = 0
+else:
+    with open('reports/eval_variant_detail.json') as f:
+        var_eval = json.load(f)
+    auroc = var_eval['auroc']
+    auprc = var_eval['auprc']
+    fpr = var_eval['roc_curve']['fpr']
+    tpr = var_eval['roc_curve']['tpr']
+    n_pos = var_eval['n_positive']
+    n_neg = var_eval['n_negative']
+    print(f"Pathogenicity evaluation:")
+    print(f"  AUROC: {auroc:.3f}")
+    print(f"  AUPRC: {auprc:.3f}")
+    print(f"  Positive (ClinVar pathogenic): {n_pos}")
+    print(f"  Negative (gnomAD common):       {n_neg}")
+    print(f"  Majority class baseline AUROC:  0.500")
+    print(f"  k-mer PCA + LR baseline AUROC:  ~0.720")
 """))
 
-cells.append(code("""fig = plot_roc_curve(
-    fpr=fpr, tpr=tpr, auroc=auroc,
-    title=f"ROC Curve — Variant Pathogenicity (AUROC = {auroc:.3f})"
-)
-fig.savefig(f'{FIGURES_DIR}/showcase_roc_curve.png', dpi=150, bbox_inches='tight')
-plt.show()
-print("Saved: docs/figures/showcase_roc_curve.png")
+cells.append(code("""if fpr is not None:
+    fig = plot_roc_curve(
+        fpr=fpr, tpr=tpr, auroc=auroc,
+        title=f"ROC Curve — Variant Pathogenicity (AUROC = {auroc:.3f})"
+    )
+    fig.savefig(f'{FIGURES_DIR}/showcase_roc_curve.png', dpi=300, bbox_inches='tight')
+    plt.show()
+    print("Saved: docs/figures/showcase_roc_curve.png")
+else:
+    print("ROC curve skipped — no variant evaluation data available.")
 """))
 
 cells.append(code("""# Attention heatmap for a pathogenic variant
@@ -359,7 +366,7 @@ fig = plot_umap_with_ancient_dna(
     title="mtDNA-FM Zero-Shot: Modern Humans + Ancient Hominids (UMAP)",
     n_neighbors=15, min_dist=0.1, random_state=42,
 )
-fig.savefig(f'{FIGURES_DIR}/showcase_ancient_dna_umap.png', dpi=150, bbox_inches='tight')
+fig.savefig(f'{FIGURES_DIR}/showcase_ancient_dna_umap.png', dpi=300, bbox_inches='tight')
 plt.show()
 print("Saved: docs/figures/showcase_ancient_dna_umap.png")
 """))
@@ -561,7 +568,7 @@ ax.set_xlabel("t-SNE 1")
 ax.set_ylabel("t-SNE 2")
 ax.set_xticks([]); ax.set_yticks([])
 fig.tight_layout()
-fig.savefig(f'{FIGURES_DIR}/showcase_gene_type_recovery.png', dpi=150, bbox_inches='tight')
+fig.savefig(f'{FIGURES_DIR}/showcase_gene_type_recovery.png', dpi=300, bbox_inches='tight')
 plt.show()
 print("Saved: docs/figures/showcase_gene_type_recovery.png")
 """))

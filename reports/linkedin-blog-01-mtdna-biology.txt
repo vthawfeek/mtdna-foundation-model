@@ -1,0 +1,17 @@
+I'm building a foundation model for mitochondrial DNA on a personal laptop, no GPU budget. Before writing a single line of model code, I spent time understanding why existing DNA foundation models can't handle this genome. Three problems.
+
+**The circular topology problem**
+
+Position 1 and position 16,569 share a phosphodiester bond — physically adjacent. DNABERT2, HyenaDNA, and Nucleotide Transformer encode them 16,568 positions apart. The D-loop control region wraps directly across that junction. Both promoters and the origin of replication sit in this one region. I measured entropy across 47,000 HmtDB sequences: D-loop entropy is ~7x higher than protein-coding regions, and this is where haplogroup-defining variants live. Any model treating the D-loop as discontinuous gets haplogroup representations wrong. The fix: circular positional encoding where position 0 and position 16,568 are adjacent, not maximally distant.
+
+**The heteroplasmy problem**
+
+The m.3243A>G mutation is asymptomatic at low heteroplasmy and causes MELAS encephalomyopathy above ~70-80%. Same variant, same position, different clinical outcome — determined by a single number: heteroplasmy level, the fraction of mtDNA copies carrying the mutant allele. A cell carries hundreds to thousands of mtDNA molecules and they are not always identical. Standard DNA models have no input channel for a per-position float. You can't fix this with fine-tuning on more data — the interface has to be in the architecture from the start. I added a heteroplasmy projection channel in the embedding layer.
+
+**The phylogenetic density problem**
+
+300,000 years of human maternal migration history encoded in 16,569 base pairs. mtDNA is strictly maternally inherited, never recombines, and mutations accumulate at a roughly constant rate. The tree is clean: L-clades at the African root, M and N marking out-of-Africa, H/J/T for Europe, B/A/C/D for East Asia and the Americas. For pre-training, this means the signal is dense and structured. Zero-shot k-NN on the encoder reaches ~50% on a 26-class haplogroup task against a 3.8% random baseline, no labels. One caveat: HmtDB is 60-70% European, so L-clade and Asian lineages are underrepresented.
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/this-genome-has-16569-base-pairs-and-runs-on-different-rules/
+https://vthawfeek.github.io/2026/06/04/this-genome-has-16569-base-pairs-and-runs-on-different-rules/

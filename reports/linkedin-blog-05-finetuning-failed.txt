@@ -1,0 +1,17 @@
+Building a foundation model for mitochondrial DNA on my laptop. The fine-tuning results are below random. Here's what happened.
+
+Haplogroup classifier scores 1.83% after 2 CPU epochs. Random guessing on 26 classes scores 3.85%.
+
+This is class collapse. The model predicted 3 haplogroups for nearly every input and ignored the other 23. When you ignore 23 of 26 classes, a uniform random guesser beats you. Training loss after 2 epochs was 3.266; the random baseline is ln(26) = 3.258. The loss moved 0.008.
+
+The cause: haplogroup H accounts for roughly 15.6% of all training windows, so cross-entropy makes it cheaper to predict H for everything than to learn rare class boundaries. I applied inverse-frequency class weights (0.975–1.680), which moved from full collapse to partial collapse — 1 active class to 3. Class weighting penalises majority-class errors more strongly, but doesn't make convergence faster. LoRA fine-tuning needs 10–50 epochs. We ran 2.
+
+Before any training, a DataLoader config mistake cost me 13.5 hours. Set num_workers=4, training appeared to start, then 13.5 hours of nothing at 0% CPU. PyTorch DataLoader uses fork() on Linux by default; forked child processes inherit the parent's thread mutexes in whatever state they were at fork time. Five processes sleeping indefinitely waiting for locks that would never release. Fix: num_workers=0. On CPU where each forward-backward pass takes ~30 seconds, data loading (~0.2 s per batch) is not the bottleneck — parallelising it saves 0.7% of wall time.
+
+The arithmetic on 2 epochs: 644 gradient steps per epoch, ~30 seconds each, gives 5.4 hours per epoch. Fifty epochs = 270 hours, 11 days continuous on CPU. On an A100, 50 epochs take ~25 minutes. Two epochs validates infrastructure — architecture, class weights, LoRA insertion, data pipeline — but it cannot measure whether the model can classify.
+
+What makes this interesting rather than just discouraging: zero-shot k-NN using pre-trained embeddings scores ~50% on the same 26-class problem. The collapse is specific to the unconverged classifier head. The 1.83% is a statement about CPU time. The 50% is a statement about what the model actually knows.
+
+Full writeup:
+https://rokpayprsizors.wordpress.com/2026/06/04/my-haplogroup-classifier-scores-1-83-random-guessing-would-score-3-85
+https://vthawfeek.github.io/2026/06/04/my-haplogroup-classifier-scores-183-random-guessing-would-score-385

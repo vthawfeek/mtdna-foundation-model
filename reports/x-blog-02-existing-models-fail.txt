@@ -1,0 +1,18 @@
+Building an mtDNA foundation model on my laptop. Before writing any model code, I checked whether existing models could handle this. They can't.
+https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+https://vthawfeek.github.io/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
+---
+DNABERT2 encodes positions 1 and 16,569 of mitochondrial DNA as 16,568 steps apart. They share a phosphodiester bond. That's the circular junction problem in one number.
+---
+The D-loop control region wraps across that junction. Both mtDNA promoters and the origin of replication are there. With linear positional encoding, attention heads modeling D-loop coherence must attend across the full sequence length. The region looks discontinuous.
+---
+The heteroplasmy gap: DNABERT2, HyenaDNA, and Nucleotide Transformer all accept one sequence per input. No per-position float channel. You cannot represent a 73% heteroplasmy level at position 3,243. The interface doesn't exist.
+---
+Fine-tuning on mtDNA data doesn't fix either problem. Positional encoding is structural, not learned from the training distribution. A missing input channel cannot be added by fine-tuning.
+---
+Getting the D-loop right needs circular PE baked in. Heteroplasmy needs a new input dimension. Neither comes from fine-tuning. Building from scratch.
+
+Full writeup: https://rokpayprsizors.wordpress.com/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-problem/
+https://vthawfeek.github.io/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-p/
+
+#mtDNA #foundationmodels
