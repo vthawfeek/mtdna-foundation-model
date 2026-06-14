@@ -4,6 +4,8 @@ This project started with a constraint: no GPU budget. Not "I'll optimize later 
 
 That constraint shapes every decision about model size, data strategy, and what "pre-training" means in practice. This post is about those decisions, with the actual numbers.
 
+![Pre-training loss curves for Phase 1 (cross-species) and Phase 2 (human-specific). Loss starts near the ln(4096) ≈ 8.32 random baseline.](../docs/figures/t4.png)
+
 ---
 
 ## What 30 Seconds Per Batch Means
