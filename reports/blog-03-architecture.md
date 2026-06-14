@@ -10,7 +10,7 @@ mtDNA-FM is a 6-layer BERT encoder, 8 attention heads, 256 hidden dimensions, ap
 
 But three structural choices make it different from anything I could have downloaded off the shelf. None of them were obvious upfront.
 
-![mtDNA-FM architecture: 6-layer BERT encoder with circular positional encoding and heteroplasmy projection channel.](../docs/figures/architecture.png)
+![mtDNA-FM architecture: 6-layer BERT encoder with circular positional encoding and heteroplasmy projection channel.](../docs/figures/t3_1.png)
 
 ---
 
