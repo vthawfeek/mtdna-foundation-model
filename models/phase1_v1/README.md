@@ -95,14 +95,14 @@ When `het_values` are not provided, the channel zeros out with no effect on the 
 | Task | Metric | Majority class | k-mer freq PCA+LR | mtDNA-FM (zero-shot) | mtDNA-FM (fine-tuned) |
 |------|--------|---------------|-------------------|---------------------|----------------------|
 | Haplogroup classification (26 classes) | Accuracy | ~4% | ~65% | ~50%* | 1.83%** |
-| Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | — | not evaluated† |
+| Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | 0.777 (95% CI 0.731–0.821)‡ | not evaluated |
 | Ancient DNA placement | L2 ratio vs modern | — | — | 1.43–1.48× | — |
 
 \* Zero-shot k-NN with Phase 1 embeddings. Real measurement, no labels used.
 
 \*\* LoRA r=8, 1,267 training sequences, 2 epochs on CPU. Partial class collapse (3/26 classes active) — fine-tuning did not converge at this compute budget. Zero-shot k-NN (~50%) is the more reliable signal of what pre-training learned.
 
-† No labeled variant evaluation dataset (ClinVar pathogenic vs gnomAD common variants) was prepared. Architecture and training code exist; real AUROC evaluation is future work.
+‡ Zero-shot 5-fold stratified k-NN (k=5, cosine). 118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44); D-loop and intergenic categories had insufficient pathogenic variants for reliable estimation. Script: `scripts/zeroshot_patho_eval.py`.
 
 **Ancient DNA zero-shot:** Neanderthal (NC_011137.1, Vindija Cave) and Denisovan (FR695060.1, Altai Cave)
 embedded without any fine-tuning. L2 distance from modern humans: 1.48× (Neanderthal) and 1.43× (Denisovan)
@@ -131,7 +131,7 @@ embeddings = embedder.embed_dataset(df)  # shape: (3, 256)
 **Fine-tuning adapter** (LoRA) available:
 - [`vthawfeek/mtdna-fm-haplogroup`](https://huggingface.co/vthawfeek/mtdna-fm-haplogroup) — haplogroup classification (26 classes, r=8)
 
-Pathogenicity adapter architecture exists (`MtDNAForVariantPathogenicity`, LoRA r=4) but real evaluation was not completed — no labeled variant dataset was prepared. See [fine-tuning docs](docs/05_finetuning_and_evaluation.md) for details.
+Pathogenicity adapter architecture exists (`MtDNAForVariantPathogenicity`, LoRA r=4). Zero-shot k-NN baseline: AUROC=0.777 on ClinVar/gnomAD — see `scripts/zeroshot_patho_eval.py`. LoRA fine-tuning on real labeled data is the next step; the zero-shot result establishes a strong pre-training baseline. See [fine-tuning docs](docs/05_finetuning_and_evaluation.md) for details.
 
 ## Fine-tuning with LoRA
 
