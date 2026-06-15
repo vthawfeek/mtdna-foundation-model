@@ -6,6 +6,8 @@ This is not a misprint. The model is worse than flipping a coin across 26 option
 
 Here's what the numbers actually mean, why it happened, and what survives despite the failure.
 
+![Haplogroup classification results: 1.83% fine-tuned accuracy vs 50% zero-shot k-NN, illustrating the compute gap between pre-training signal and fine-tuning convergence.](../docs/figures/t5.png)
+
 ---
 
 ## What "below random" actually means
