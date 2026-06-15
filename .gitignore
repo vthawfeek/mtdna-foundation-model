@@ -33,3 +33,5 @@ mlruns/
 # Misc
 .env
 *.log
+.coverage
+dashboard.html
