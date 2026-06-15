@@ -170,7 +170,8 @@ def download_clinvar_chrm(output_dir: Path, force: bool = False) -> Path:
         logger.info("Downloading ClinVar VCF (this may take a few minutes) …")
         _stream_download(CLINVAR_VCF_GZ_URL, gz_path, desc="ClinVar VCF")
         logger.info("Filtering for chrM …")
-        _extract_chrom_from_gz(gz_path, vcf_path, chrom="chrM")
+        # ClinVar GRCh38 VCF uses "MT" (not "chrM") for mitochondrial variants
+        _extract_chrom_from_gz(gz_path, vcf_path, chrom="MT")
 
     logger.info("ClinVar chrM VCF written to %s (%d bytes)", vcf_path, vcf_path.stat().st_size)
     return vcf_path

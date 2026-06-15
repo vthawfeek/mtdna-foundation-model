@@ -110,6 +110,12 @@ def parse_gnomad_chrm_vcf(vcf_path: Path) -> pd.DataFrame:
                 af = float(info.get("AF", "nan"))
             except ValueError:
                 af = float("nan")
+            # gnomAD chrM v3.1 stores allele frequency as AF_hom + AF_het (no plain AF)
+            if af != af:  # isnan
+                try:
+                    af = float(info.get("AF_hom", "0")) + float(info.get("AF_het", "0"))
+                except ValueError:
+                    af = float("nan")
             try:
                 het_level = float(info.get("mean_hl", "nan"))
             except ValueError:
@@ -205,14 +211,14 @@ def add_benign_proxies(
     """
     common = gnomad_df[gnomad_df["af"] >= af_threshold].copy()
 
-    if not pathogenic_df.empty:
+    if not pathogenic_df.empty and not common.empty:
         path_keys = set(
             zip(pathogenic_df["pos"], pathogenic_df["ref"], pathogenic_df["alt"], strict=False)
         )
         mask = common.apply(lambda r: (r["pos"], r["ref"], r["alt"]) not in path_keys, axis=1)
         common = common[mask]
 
-    benign = common[["pos", "ref", "alt"]].copy()
+    benign = common[["pos", "ref", "alt"]].copy() if not common.empty else pd.DataFrame(columns=["pos", "ref", "alt"])
     benign["label"] = 0
 
     return pd.concat([pathogenic_df, benign], ignore_index=True)

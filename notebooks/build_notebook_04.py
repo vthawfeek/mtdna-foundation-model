@@ -256,53 +256,76 @@ if total_M > 0:
 
 
 # ── Section 4: Pathogenicity ROC + Attention Heatmap ──────────────────────────
-cells.append(md("""## 4. Pathogenic Variant Prediction
+cells.append(md("""## 4. Pathogenic Variant Prediction — Zero-Shot k-NN
 
-**Task:** given a 512-token window centred on a variant position, classify it as
-pathogenic (ClinVar) or benign (gnomAD common variant).
+**Task:** do the pre-trained encoder's variant-position embeddings already separate
+pathogenic from benign variants, without any supervised pathogenicity signal?
 
 **Key design choice:** the model uses the hidden state at the *variant token*,
-not the CLS token.  Pathogenicity is a local property of the variant's
-genomic context, not a global genome property.
+not the CLS token.  Pathogenicity is a local property — extracting the hidden state
+at the variant position gives a 256-d vector enriched with local genomic context.
 
-No labeled variant evaluation dataset (ClinVar pathogenic vs gnomAD common) was
-prepared during this project. Pathogenicity AUROC is unknown.
-Real AUROC is loaded from eval_variant_detail.json if present.
+**Zero-shot evaluation:** 118 ClinVar pathogenic SNPs vs 419 gnomAD AF≥1% benign proxies.
+No fine-tuning. 5-fold stratified k-NN (k=5, cosine distance).
+Results from `reports/zeroshot_pathogenicity_knn.json`.
 """))
 
 cells.append(code("""from mtdna_fm.evaluation.viz import plot_roc_curve
 import os as _os
 
-if not _os.path.exists('reports/eval_variant_detail.json'):
-    print("Pathogenicity evaluation file not found — skipping ROC section.")
-    fpr = tpr = auroc = auprc = None
+if not _os.path.exists('reports/zeroshot_pathogenicity_knn.json'):
+    print("Zero-shot pathogenicity evaluation file not found — skipping ROC section.")
+    fpr = tpr = auroc = auprc = ci_lo = ci_hi = None
     n_pos = n_neg = 0
 else:
-    with open('reports/eval_variant_detail.json') as f:
+    with open('reports/zeroshot_pathogenicity_knn.json') as f:
         var_eval = json.load(f)
     auroc = var_eval['auroc']
     auprc = var_eval['auprc']
+    ci_lo = var_eval['auroc_ci_95_lo']
+    ci_hi = var_eval['auroc_ci_95_hi']
     fpr = var_eval['roc_curve']['fpr']
     tpr = var_eval['roc_curve']['tpr']
-    n_pos = var_eval['n_positive']
-    n_neg = var_eval['n_negative']
-    print(f"Pathogenicity evaluation:")
-    print(f"  AUROC: {auroc:.3f}")
-    print(f"  AUPRC: {auprc:.3f}")
+    n_pos = var_eval['n_pathogenic']
+    n_neg = var_eval['n_benign']
+    print(f"Zero-shot k-NN pathogenicity evaluation (no fine-tuning):")
+    print(f"  AUROC: {auroc:.3f}  (95% CI: {ci_lo:.3f}–{ci_hi:.3f})")
+    print(f"  AUPRC: {auprc:.3f}  (random baseline: {n_pos/(n_pos+n_neg):.3f})")
     print(f"  Positive (ClinVar pathogenic): {n_pos}")
-    print(f"  Negative (gnomAD common):       {n_neg}")
-    print(f"  Majority class baseline AUROC:  0.500")
-    print(f"  k-mer PCA + LR baseline AUROC:  ~0.720")
+    print(f"  Negative (gnomAD AF≥1%):       {n_neg}")
+    print(f"  Random classifier AUROC:        0.500")
 """))
 
 cells.append(code("""if fpr is not None:
     fig = plot_roc_curve(
         fpr=fpr, tpr=tpr, auroc=auroc,
-        title=f"ROC Curve — Variant Pathogenicity (AUROC = {auroc:.3f})"
+        title=f"ROC Curve — Zero-Shot k-NN Pathogenicity (AUROC = {auroc:.3f}, 95% CI: {ci_lo:.3f}–{ci_hi:.3f})"
     )
     fig.savefig(f'{FIGURES_DIR}/showcase_roc_curve.png', dpi=300, bbox_inches='tight')
     plt.show()
     print("Saved: docs/figures/showcase_roc_curve.png")
+    # Per-type breakdown bar chart
+    per_type = var_eval.get('per_type', {})
+    reliable_types = {k: v for k, v in per_type.items() if v.get('auroc') is not None and v.get('n_pos', 0) >= 5}
+    if reliable_types:
+        fig2, ax2 = plt.subplots(figsize=(6, 3))
+        types = list(reliable_types.keys())
+        aurocs = [reliable_types[t]['auroc'] for t in types]
+        ns = [reliable_types[t]['n_pos'] for t in types]
+        colours = ['#2563EB' if a >= 0.7 else '#93C5FD' for a in aurocs]
+        ax2.barh(types, aurocs, color=colours)
+        ax2.axvline(0.5, color='#9CA3AF', linestyle='--', lw=1, label='Random')
+        ax2.set_xlim(0, 1)
+        ax2.set_xlabel('AUROC (zero-shot k-NN)')
+        ax2.set_title('Per-variant-type zero-shot AUROC\n(n_pos ≥ 5 only)', fontsize=11)
+        for i, (a, n) in enumerate(zip(aurocs, ns)):
+            ax2.text(a + 0.01, i, f'{a:.3f} (n={n})', va='center', fontsize=9)
+        ax2.spines['top'].set_visible(False)
+        ax2.spines['right'].set_visible(False)
+        fig2.tight_layout()
+        fig2.savefig(f'{FIGURES_DIR}/showcase_patho_per_type.png', dpi=300, bbox_inches='tight')
+        plt.show()
+        print("Saved: docs/figures/showcase_patho_per_type.png")
 else:
     print("ROC curve skipped — no variant evaluation data available.")
 """))
@@ -631,7 +654,7 @@ cells.append(md("""## 7. Summary
 | Model loading | ~6M params, 3-line API, 256-d genome embeddings |
 | t-SNE | Haplogroup clusters visible from Phase 1 pre-training alone |
 | Confusion matrix | Real accuracy from eval_summary.json; errors within phylogenetic clades |
-| Pathogenicity ROC | AUROC from eval_variant_detail.json (real data required) |
+| Pathogenicity ROC | Zero-shot k-NN AUROC=0.777 (95% CI 0.731–0.821), missense+tRNA best |
 | Ancient DNA | Neanderthal and Denisovan placed consistently with paleoanthropology |
 | Gene-type recovery | Silhouette > 0 = functional separation from sequence structure alone |
 
@@ -644,8 +667,10 @@ Compare: zero-shot k-NN at ~50% — the pre-trained embeddings encode far more s
 than the fine-tuned classifier could recover in this compute budget.
 With GPU compute and more epochs, fine-tuning should significantly improve.
 
-**Pathogenicity AUROC** — no labeled variant evaluation dataset was available.
-Real AUROC is unknown.
+**Pathogenicity AUROC** — zero-shot k-NN: **0.777** (95% CI: 0.731–0.821).
+118 ClinVar pathogenic vs 419 gnomAD benign (AF≥1%), no fine-tuning labels.
+Missense: 0.727 | tRNA: 0.718 | rRNA: 0.639 (low power).
+The pre-trained encoder captures evolutionary constraint from MLM pre-training alone.
 
 **Ancient DNA placement** is the most compelling demonstration.  The model has never
 seen Neanderthal or Denisovan sequence.  Its placement reflects the same phylogenetic

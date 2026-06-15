@@ -37,7 +37,7 @@ Each invocation executes all tasks for that day, runs lint and tests, writes
 - Day 22: COMPLETE (commit c25a77f) — Gradio demo (app.py three-tab Spaces demo: haplogroup/pathogenicity/embedding, app_reference.npz, live at vthawfeek/mtdna-fm-demo)
 - Day 23: COMPLETE (commit b8665ba) — documentation (5 docs: data pipeline, tokenization, architecture, pre-training, fine-tuning/evaluation)
 - Day 24: COMPLETE (commit 6dc0f3f) — DVC pipeline (9 stages: download→preprocess→vocabulary→pretrain→finetune→evaluate, dvc metrics show wired)
-- Day 25: COMPLETE (commit 10ecc7b) — showcase notebook (04_showcase.ipynb: t-SNE haplogroup clustering, confusion matrix, pathogenicity ROC AUROC=0.877, ancient DNA UMAP, gene-type recovery without labels, 346 tests)
+- Day 25: COMPLETE (commit 10ecc7b) — showcase notebook (04_showcase.ipynb: t-SNE haplogroup clustering, confusion matrix, pathogenicity ROC skipped (no eval dataset — no ClinVar/gnomAD data downloaded), ancient DNA UMAP, gene-type recovery without labels, 346 tests)
 - Day 26-28: blog posts, community engagement, release
 
 ## Project

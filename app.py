@@ -639,6 +639,7 @@ of 100 human mtDNA genomes spanning 26 haplogroups. Download the embedding for d
 **Vocabulary:** 4,096 6-mers + 6 special tokens = 4,102 tokens
 **Fine-tuning:** LoRA r=8 haplogroup classification (26 classes)
 **Zero-shot k-NN accuracy:** ~50% on haplogroup identification without any fine-tuning labels
+**Zero-shot pathogenicity AUROC:** 0.777 (95% CI: 0.731–0.821) on ClinVar pathogenic vs gnomAD benign variants, no fine-tuning
 **Limitations:** Trained on HmtDB (European population bias). Haplogroup fine-tuning accuracy is limited by CPU compute — zero-shot embeddings are the more reliable signal.
 """
     )
