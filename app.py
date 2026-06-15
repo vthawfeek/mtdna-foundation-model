@@ -29,6 +29,7 @@ import gradio as gr
 import matplotlib
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch
 
 matplotlib.use("Agg")
@@ -213,6 +214,60 @@ CLADE_COLOURS: dict[str, str] = {
 BASE_MODEL = "vthawfeek/mtdna-foundation-model"
 HAPLO_ADAPTER = "vthawfeek/mtdna-fm-haplogroup"
 
+# mtDNA gene intervals (1-based, rCRS NC_012920.1)
+_TRNA_INTERVALS = [
+    (577, 647), (1602, 1670), (3230, 3304), (4263, 4331), (4329, 4400),
+    (4402, 4469), (5512, 5579), (5587, 5655), (5657, 5729), (5761, 5826),
+    (5826, 5891), (7446, 7514), (7518, 7585), (8295, 8364), (9991, 10058),
+    (10405, 10469), (12138, 12206), (12207, 12265), (12266, 12336),
+    (14674, 14742), (15888, 15953), (15956, 16023),
+]
+_RRNA_INTERVALS = [(648, 1601), (1671, 3229)]
+_CODING_INTERVALS = [
+    (3307, 4262), (4470, 5511), (5904, 7445), (7586, 8269), (8366, 8572),
+    (8527, 9207), (9207, 9990), (10059, 10404), (10470, 10766), (10760, 12137),
+    (12337, 14148), (14149, 14673), (14747, 15887),
+]
+
+_VARIANT_TYPE_NOTES: dict[str, tuple[str, str]] = {
+    "protein_coding": (
+        "Protein-coding gene",
+        "AUROC 0.727 (n=56 pathogenic in reference set). Reliable.",
+    ),
+    "tRNA": (
+        "tRNA gene",
+        "AUROC 0.718 (n=44 pathogenic), AUPRC 0.773. Reliable.",
+    ),
+    "rRNA": (
+        "rRNA gene (12S or 16S)",
+        "AUROC 0.639 (n=5 pathogenic). Low statistical power — treat as indicative only.",
+    ),
+    "d_loop": (
+        "D-loop / control region",
+        "Insufficient pathogenic variants in reference set (n=1). Result unreliable for this region.",
+    ),
+    "other": (
+        "Intergenic / other",
+        "Unreliable — reference set has inverted class balance for this category.",
+    ),
+}
+
+
+def _get_variant_type(pos_1based: int) -> str:
+    """Classify a 1-based rCRS position into a functional category."""
+    if pos_1based >= 16024 or pos_1based <= 576:
+        return "d_loop"
+    for s, e in _TRNA_INTERVALS:
+        if s <= pos_1based <= e:
+            return "tRNA"
+    for s, e in _RRNA_INTERVALS:
+        if s <= pos_1based <= e:
+            return "rRNA"
+    for s, e in _CODING_INTERVALS:
+        if s <= pos_1based <= e:
+            return "protein_coding"
+    return "other"
+
 # rCRS reference snippet (first 240 bp of human mtDNA, NC_012920.1)
 EXAMPLE_SEQUENCE = (
     "GATCACAGGTCTATCACCCTATTAACCACTCACGGGAGCTCTCCATGCATTTGGTATTTT"
@@ -226,6 +281,7 @@ EXAMPLE_SEQUENCE = (
 
 _models: dict[str, Any] = {}
 _reference_data: dict[str, Any] | None = None
+_patho_reference_data: dict[str, Any] | None = None
 
 
 def _haplogroup_colour(label: str) -> str:
@@ -310,6 +366,26 @@ def _load_reference() -> dict:
     else:
         _reference_data = {"embeddings": None, "labels": [], "umap_2d": None}
     return _reference_data
+
+
+def _load_patho_reference() -> dict:
+    """Load pre-computed pathogenicity k-NN reference embeddings and rCRS."""
+    global _patho_reference_data
+    if _patho_reference_data is not None:
+        return _patho_reference_data
+
+    ref_path = Path("app_patho_reference.npz")
+    if ref_path.exists():
+        data = np.load(ref_path, allow_pickle=False)
+        _patho_reference_data = {
+            "X": data["X"].astype(np.float32),
+            "y": data["y"].astype(np.int32),
+            "positions": data["positions"].astype(np.int32),
+            "rcrs": data["rcrs"].tobytes().decode("ascii"),
+        }
+    else:
+        _patho_reference_data = {"X": None, "y": None, "positions": None, "rcrs": None}
+    return _patho_reference_data
 
 
 def _project_query(
@@ -523,6 +599,99 @@ def embed_genome_tab(sequence_input: str) -> tuple[Any, str, str]:
         return None, f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```", ""
 
 
+# ── Tab 3: Variant Pathogenicity ──────────────────────────────────────────────
+
+def predict_pathogenicity(
+    position_input: float | int | None,
+    ref_allele: str,
+    alt_allele: str,
+) -> tuple[str, Any, str]:
+    """Zero-shot pathogenicity prediction via cosine k-NN on pre-trained encoder embeddings."""
+    try:
+        position = int(position_input)
+    except (TypeError, ValueError):
+        return "**Error:** Position must be a number between 1 and 16569.", None, ""
+    if not (1 <= position <= 16569):
+        return "**Error:** Position must be between 1 and 16569.", None, ""
+    if ref_allele not in ("A", "T", "G", "C"):
+        return "**Error:** Ref allele must be A, T, G, or C.", None, ""
+    if alt_allele not in ("A", "T", "G", "C"):
+        return "**Error:** Alt allele must be A, T, G, or C.", None, ""
+    if ref_allele == alt_allele:
+        return "**Error:** Ref and alt alleles must be different.", None, ""
+
+    try:
+        _load_models()
+        ref_data = _load_patho_reference()
+
+        if ref_data["X"] is None:
+            return "**Error:** app_patho_reference.npz not found.", None, ""
+
+        rcrs = ref_data["rcrs"]
+        rcrs_ref = rcrs[position - 1]
+        ref_warning = (
+            f"\n\n> ⚠️ rCRS has '{rcrs_ref}' at position {position}; "
+            f"proceeding with specified ref '{ref_allele}'."
+            if rcrs_ref != ref_allele
+            else ""
+        )
+
+        mutated_seq = rcrs[: position - 1] + alt_allele + rcrs[position:]
+        embedder = _models["embedder"]
+        query_emb = embedder.embed_variant(mutated_seq, pos_0=position - 1, pooling="token")
+
+        # Cosine k-NN (k=5)
+        X = ref_data["X"]
+        y = ref_data["y"]
+        ref_positions = ref_data["positions"]
+        query_norm = query_emb / (np.linalg.norm(query_emb) + 1e-8)
+        X_norms = X / (np.linalg.norm(X, axis=1, keepdims=True) + 1e-8)
+        cosine_dists = 1.0 - (X_norms @ query_norm)
+        k = 5
+        top_k = np.argsort(cosine_dists)[:k]
+        top_labels = y[top_k]
+        top_dists = cosine_dists[top_k]
+        top_positions = ref_positions[top_k]
+
+        patho_score = float(top_labels.sum()) / k
+        is_pathogenic = patho_score >= 0.5
+        label = "LIKELY PATHOGENIC" if is_pathogenic else "LIKELY BENIGN"
+        emoji = "🔴" if is_pathogenic else "🟢"
+
+        var_type = _get_variant_type(position)
+        type_name, type_note = _VARIANT_TYPE_NOTES[var_type]
+
+        result_md = (
+            f"## {emoji} {label}\n\n"
+            f"**Pathogenicity score:** {patho_score:.2f} "
+            f"({int(top_labels.sum())}/{k} nearest neighbors are pathogenic)\n\n"
+            f"**Variant:** m.{position}{ref_allele}>{alt_allele}  \n"
+            f"**Region:** {type_name}"
+            + ref_warning
+        )
+
+        neighbors_df = pd.DataFrame({
+            "Rank": list(range(1, k + 1)),
+            "Position": [int(p) for p in top_positions],
+            "Label": ["Pathogenic" if lbl == 1 else "Benign" for lbl in top_labels],
+            "Cosine distance": [round(float(d), 4) for d in top_dists],
+        })
+
+        reliability_md = (
+            f"**Variant type:** {type_name}  \n"
+            f"**Reliability:** {type_note}  \n\n"
+            "> Zero-shot 5-fold cosine k-NN. AUROC=0.777 (95% CI 0.731–0.821) on "
+            "118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mtDNA SNPs.  \n"
+            "> **Research use only. Not for clinical diagnosis.**"
+        )
+
+        return result_md, neighbors_df, reliability_md
+
+    except Exception as exc:
+        import traceback as _tb
+        return f"**Error:** {exc}\n\n```\n{_tb.format_exc()}```", None, ""
+
+
 # ── Gradio interface ───────────────────────────────────────────────────────────
 
 THEME = gr.themes.Soft(
@@ -632,15 +801,77 @@ of 100 human mtDNA genomes spanning 26 haplogroups. Download the embedding for d
                 outputs=[emb_seq_input, emb_plot, emb_text, emb_csv],
             )
 
+        # ── Tab 3: Variant Pathogenicity ──────────────────────────────────────
+        with gr.Tab("🔬 Variant Pathogenicity"):
+            gr.Markdown(
+                """
+Predict whether a mitochondrial DNA variant is **pathogenic or benign** using zero-shot k-NN
+on pre-trained encoder embeddings. The encoder learned evolutionary conservation through masked
+language modeling on 117k cross-species vertebrate sequences — **no pathogenicity labels were
+used in training**.
+
+**AUROC = 0.777** (95% CI: 0.731–0.821) on 118 ClinVar pathogenic vs 419 gnomAD benign variants.
+Reliable for missense and tRNA variants. Unreliable for D-loop and intergenic positions.
+
+> **Research use only. Not for clinical diagnosis.**
+                """
+            )
+            with gr.Row():
+                patho_pos_input = gr.Number(
+                    label="Variant position (1–16569, rCRS coordinates)",
+                    precision=0,
+                    value=3243,
+                )
+                patho_ref_input = gr.Dropdown(
+                    choices=["A", "T", "G", "C"],
+                    label="Ref allele",
+                    value="A",
+                )
+                patho_alt_input = gr.Dropdown(
+                    choices=["A", "T", "G", "C"],
+                    label="Alt allele",
+                    value="G",
+                )
+            with gr.Row():
+                patho_btn = gr.Button("Predict Pathogenicity", variant="primary")
+                patho_example_btn = gr.Button(
+                    "Run example (m.3243A>G — MELAS, tRNA-Leu)",
+                    size="sm",
+                    variant="secondary",
+                )
+            with gr.Row():
+                with gr.Column(scale=1):
+                    patho_result = gr.Markdown(label="Prediction")
+                    patho_reliability = gr.Markdown(label="Reliability notes")
+                with gr.Column(scale=1):
+                    patho_neighbors = gr.DataFrame(
+                        label="5 nearest reference variants (ClinVar / gnomAD)",
+                        headers=["Rank", "Position", "Label", "Cosine distance"],
+                    )
+
+            patho_btn.click(
+                fn=predict_pathogenicity,
+                inputs=[patho_pos_input, patho_ref_input, patho_alt_input],
+                outputs=[patho_result, patho_neighbors, patho_reliability],
+            )
+            patho_example_btn.click(
+                fn=lambda: (3243, "A", "G") + predict_pathogenicity(3243, "A", "G"),
+                inputs=[],
+                outputs=[
+                    patho_pos_input, patho_ref_input, patho_alt_input,
+                    patho_result, patho_neighbors, patho_reliability,
+                ],
+            )
+
     gr.Markdown(
         """
 ---
 **Model details:** 6-layer BERT encoder · 8 attention heads · 256 hidden dims · ~6M parameters
 **Vocabulary:** 4,096 6-mers + 6 special tokens = 4,102 tokens
 **Fine-tuning:** LoRA r=8 haplogroup classification (26 classes)
-**Zero-shot k-NN accuracy:** ~50% on haplogroup identification without any fine-tuning labels
-**Zero-shot pathogenicity AUROC:** 0.777 (95% CI: 0.731–0.821) on ClinVar pathogenic vs gnomAD benign variants, no fine-tuning
-**Limitations:** Trained on HmtDB (European population bias). Haplogroup fine-tuning accuracy is limited by CPU compute — zero-shot embeddings are the more reliable signal.
+**Zero-shot haplogroup k-NN:** ~50% accuracy without any labels (vs 3.85% random)
+**Zero-shot pathogenicity AUROC:** 0.777 (95% CI: 0.731–0.821) on ClinVar pathogenic vs gnomAD benign variants — Tab 3
+**Limitations:** Trained on HmtDB (European population bias). Pathogenicity tab is for research use only, not clinical diagnosis.
 """
     )
 
