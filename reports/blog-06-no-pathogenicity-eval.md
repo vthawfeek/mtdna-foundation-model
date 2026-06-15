@@ -8,6 +8,8 @@ But before fine-tuning there is a more interesting question: does the pre-traine
 
 This post is about what that number means, where it comes from, and why a pre-trained encoder trained purely on masked language modeling over vertebrate mitochondrial sequences would produce it without ever seeing a pathogenicity label.
 
+![Zero-shot pathogenicity prediction: AUROC 0.777 from a pre-trained encoder with no pathogenicity labels, evaluated on ClinVar pathogenic variants vs gnomAD common variants.](../docs/figures/t6.png)
+
 ---
 
 ## The variant-token architecture
