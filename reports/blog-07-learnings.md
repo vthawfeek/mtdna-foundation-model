@@ -24,6 +24,8 @@ This is backwards. The right order is: define what evaluation success looks like
 
 The lesson is not "do more work." It is "work in a different order." If I started tomorrow, I'd spend Day 1 building the pathogenicity evaluation file, running a random baseline, and understanding what an informative confusion matrix would look like. Then I'd build the model to beat that baseline. Scope everything else around the one thing that can be evaluated end-to-end.
 
+*Update: a zero-shot k-NN evaluation was subsequently run using real ClinVar + gnomAD data — AUROC=0.777 (95% CI 0.731–0.821). The lesson still stands: evaluation-first discipline would have caught the data pipeline bugs (ClinVar chromosome naming, gnomAD AF field name differences) earlier and shaped architecture choices differently.*
+
 ---
 
 ## Learning 2: The $20 compute question

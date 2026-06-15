@@ -79,22 +79,36 @@ weight_decay: 0.1
 
 ### Results
 
+**Zero-shot k-NN evaluation (no fine-tuning):**
+
 | Metric | Value |
 |---|---|
-| AUROC | >0.85 |
-| AUPRC | >0.75 |
-| Sensitivity at 90% specificity | ~0.70 |
+| AUROC | 0.777 (95% CI: 0.731–0.821) |
+| AUPRC | 0.440 (random baseline: 0.220) |
+| n_pathogenic | 118 (ClinVar: Pathogenic / Likely_pathogenic) |
+| n_benign | 419 (gnomAD AF≥1%) |
 
-Performance is highest for tRNA and rRNA variants (well-conserved, functional constraint is clear in the pre-training corpus) and lowest for D-loop variants (highly variable region, pathogenicity signals are weaker).
+Per-variant-type breakdown:
+
+| Type | AUROC | n_pos | Note |
+|---|---|---|---|
+| Missense | 0.727 | 56 | Reliable |
+| tRNA | 0.718 | 44 | Reliable; high AUPRC=0.773 |
+| rRNA | 0.639 | 5 | Low statistical power |
+| D-loop | — | 1 | Insufficient data |
+
+The pre-trained encoder captures evolutionary constraint through MLM pre-training on cross-species vertebrate mtDNA. Pathogenic variants disproportionately occur at conserved positions, which the encoder represents distinctively without ever seeing a pathogenicity label.
+
+**Supervised fine-tuning** (LoRA r=4 on real ClinVar/gnomAD data) has not been completed. The adapter architecture and training code exist; real fine-tuned results are future work. The zero-shot AUROC=0.777 establishes the pre-training baseline.
 
 ### Baselines
 
 | Method | AUROC |
 |---|---|
 | Random | 0.50 |
-| Variant frequency alone (gnomAD AF) | ~0.65 |
 | k-mer frequency + logistic regression | ~0.72 |
-| mtDNA-FM fine-tuned (LoRA r=4) | >0.85 |
+| mtDNA-FM zero-shot k-NN (5-fold, cosine) | **0.777** |
+| mtDNA-FM fine-tuned (LoRA r=4) | not yet evaluated |
 
 ---
 
@@ -143,9 +157,9 @@ This file is tracked by DVC as a metric:
 
 ```bash
 dvc metrics show
-# haplogroup_accuracy: 0.963
-# pathogenicity_auroc: 0.871
-# heteroplasmy_spearman: 0.492
+# haplogroup_accuracy: 0.0183      (fine-tuned, 2 CPU epochs — did not converge)
+# pathogenicity_auroc: 0.777       (zero-shot k-NN; supervised fine-tuning not run)
+# heteroplasmy_spearman: null      (regression not evaluated end-to-end)
 ```
 
 ### Visualization
@@ -190,7 +204,7 @@ For clinical applications on African or Asian patients, the model should be eval
 
 ### Pathogenicity dataset size
 
-The ClinVar pathogenic variant set for mtDNA contains ~2,000 variants. This is sufficient for training but not for confident evaluation of rare variant types. The AUROC confidence interval at 95% is approximately ±0.03 — meaningful but not narrow.
+The zero-shot evaluation used 118 ClinVar pathogenic mtDNA SNPs (filtered to Pathogenic/Likely_pathogenic with strict criteria) and 419 gnomAD benign proxies (AF≥1%). The 95% bootstrap CI spans ±0.045 (0.731–0.821), reflecting the modest dataset size. Supervised fine-tuning could use a larger ClinVar set (~1,000–2,000 variants with broader inclusion criteria), which would reduce evaluation variance.
 
 ### Heteroplasmy coverage
 

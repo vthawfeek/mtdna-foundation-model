@@ -2,7 +2,7 @@
 
 Here is what's real and verifiable from 25 days of work.
 
-Pre-trained weights are on HuggingFace at vthawfeek/mtdna-foundation-model. A three-tab Gradio demo is live at vthawfeek/mtdna-fm-demo on HF Spaces. The full DVC pipeline (9 stages, download through evaluation) is in the GitHub repo. The model is 6-layer BERT, 256 hidden dim, approximately 6M parameters, pre-trained on 152,484 genomes. It's not a checkpoint from a larger general model adapted for mitochondrial DNA. It was trained from scratch on mtDNA specifically.
+Pre-trained weights are on HuggingFace at vthawfeek/mtdna-foundation-model. A two-tab Gradio demo is live at vthawfeek/mtdna-fm-demo on HF Spaces. The full DVC pipeline (9 stages, download through evaluation) is in the GitHub repo. The model is 6-layer BERT, 256 hidden dim, approximately 6M parameters, pre-trained on 152,484 genomes. It's not a checkpoint from a larger general model adapted for mitochondrial DNA. It was trained from scratch on mtDNA specifically.
 
 That's the inventory. What follows is what the model actually shows, and where the honest gaps are.
 
@@ -64,7 +64,7 @@ This is a compute problem, not an architecture problem. Each training epoch take
 
 The model shows partial class collapse: 3 of 26 classes are predicted, 23 of 26 are ignored. Inverse-frequency class weights were applied and moved the collapse from 1 class to 3. More gradient steps would continue to resolve this. An A100 GPU session running for about 50 minutes total would cover the full 50-epoch fine-tuning run.
 
-The pathogenicity evaluation was not completed. MtDNAForVariantPathogenicity was built (LoRA r=4, binary head), but the labeled evaluation dataset mapping ClinVar variant calls to model-ready inputs was not assembled before the project sprint ended. The AUROC figure shown in the showcase notebook is computed against haplogroup-derived proxy labels, not a direct pathogenicity benchmark.
+A zero-shot pathogenicity evaluation was run after the sprint: 118 ClinVar pathogenic mtDNA variants vs 419 gnomAD common variants (AF≥1%), using the pre-trained encoder's variant-position hidden states as embeddings and 5-fold cosine k-NN. No fine-tuning. AUROC=0.777 (95% CI 0.731–0.821). Missense and tRNA variants were the most reliable subtypes (AUROC 0.727 and 0.718 respectively). The LoRA fine-tuning adapter was trained on synthetic data and its performance on real labeled data remains to be established.
 
 The training data carries a geographic bias: HmtDB is approximately 60-70% European haplogroups. This affects zero-shot accuracy on rare haplogroups and the distribution of fine-tuning examples across the 26 classes.
 
@@ -90,9 +90,9 @@ Pre-trained weights: [huggingface.co/vthawfeek/mtdna-foundation-model](https://h
 
 Two LoRA adapter checkpoints (haplogroup and pathogenicity heads) are hosted as separate model cards on the same Hub repository.
 
-Gradio demo (haplogroup prediction, pathogenicity prediction, embedding visualization): [huggingface.co/spaces/vthawfeek/mtdna-fm-demo](https://huggingface.co/spaces/vthawfeek/mtdna-fm-demo)
+Gradio demo (haplogroup prediction, genome embedding visualization): [huggingface.co/spaces/vthawfeek/mtdna-fm-demo](https://huggingface.co/spaces/vthawfeek/mtdna-fm-demo)
 
 Full code, DVC pipeline, notebooks, and evaluation scripts: [github.com/vthawfeek/mtdna-foundation-model](https://github.com/vthawfeek/mtdna-foundation-model)
 
-The model is usable today for zero-shot embedding and k-NN classification. Fine-tuning convergence requires GPU compute that was not available for this sprint. The pathogenicity head needs its evaluation dataset before it can be benchmarked honestly. Both of those are known, fixable gaps.
+The model is usable today for zero-shot embedding and k-NN classification. Fine-tuning convergence requires GPU compute that was not available for this sprint. The zero-shot pathogenicity evaluation (AUROC=0.777) established a strong pre-training baseline. Supervised LoRA fine-tuning on real ClinVar/gnomAD data remains future work.
 <!-- published: https://rokpayprsizors.wordpress.com/2026/06/04/what-a-first-of-its-kind-foundation-model-looks-like-when-built-in-4-weeks-on-a-laptop/ -->
