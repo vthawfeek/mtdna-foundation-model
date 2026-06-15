@@ -41,12 +41,19 @@ But class weighting addresses the loss gradient at each step. It doesn't make co
 The weights were computed from the actual training window counts:
 
 ```python
-class_counts = torch.bincount(torch.tensor([w["label"] for w in train_ds._windows]))
-class_weights = 1.0 / (class_counts.float() + 1e-6)
-class_weights = class_weights / class_weights.sum()
+label_tensor = torch.tensor([w["label"] for w in train_ds._windows])
+class_counts = torch.bincount(label_tensor, minlength=n_labels).float()
+class_weights = len(train_ds) / (n_labels * (class_counts + 1e-6))
 ```
 
-The resulting weights ranged from 0.975 to 1.680. The ratio between the most and least common classes is about 1.7x, which is mild by the standards of real-world class imbalance (ratios of 100:1 are common in clinical datasets). For a 26-class problem where the rarest class has dozens of representatives and the most common class has thousands of windows, 1.7x weighting is not enough to overcome the gradient pressure from majority classes in the first few epochs.
+This is the sklearn-style balanced weighting: `n / (K × count_k)`, where n is the total number of training windows, K is the number of classes, and count_k is the number of windows for class k. Weights are not normalised to sum to 1 — they're kept in natural units near 1.0 for balanced classes and scale inversely with count.
+
+The training set contained 1,267 sequences distributed across 26 classes. Most classes had exactly 50 sequences. The rarest were haplogroup E (29 sequences) and L5 (38 sequences). Because all human mitochondrial genomes are the same length (~16,569 bp), the sliding-window procedure produces approximately the same number of windows per sequence (~63 windows at stride 256). Window counts therefore scale linearly with sequence counts:
+
+- Most common classes (50 sequences): ~3,150 windows → weight ≈ 1.005
+- Haplogroup E (29 sequences): ~1,827 windows → weight ≈ 1.733
+
+The resulting weights ranged from 0.975 to 1.680 — a 1.7x ratio driven by the 50/29 ≈ 1.72× difference in sequence counts between the most and least represented haplogroups. For a classification task that needs 10 to 50 epochs of gradient updates to converge, a 1.7x loss penalty on minority classes shifts the gradient marginally but does not change the number of epochs required for the decision boundary to separate.
 
 The weights were correctly computed and applied. The problem is that "correctly applying class weights" is not the same as "running enough epochs to converge."
 
