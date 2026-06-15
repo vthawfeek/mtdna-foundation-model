@@ -638,7 +638,7 @@ def predict_pathogenicity(
 
         mutated_seq = rcrs[: position - 1] + alt_allele + rcrs[position:]
         embedder = _models["embedder"]
-        query_emb = embedder.embed_variant(mutated_seq, pos_0=position - 1, pooling="token")
+        query_emb = embedder.embed_variant(mutated_seq, position - 1, pooling="token")
 
         # Cosine k-NN (k=5)
         X = ref_data["X"]
