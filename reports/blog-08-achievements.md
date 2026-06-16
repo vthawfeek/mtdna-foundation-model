@@ -6,6 +6,8 @@ Pre-trained weights are on HuggingFace at vthawfeek/mtdna-foundation-model. A tw
 
 That's the inventory. What follows is what the model actually shows, and where the honest gaps are.
 
+![mtDNA-FM results summary: zero-shot k-NN 50% haplogroup accuracy, AUROC 0.777 pathogenicity, ancient DNA placement, and gene-type recovery without labels.](../docs/figures/t8.png)
+
 ---
 
 ## The zero-shot k-NN result
