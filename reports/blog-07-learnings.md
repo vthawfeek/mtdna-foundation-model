@@ -4,6 +4,8 @@ I'm at the end of a 25-day sprint building a foundation model for mitochondrial 
 
 This isn't a clean retrospective on a finished, polished project. It's what I'd actually change before starting the next iteration.
 
+![Six lessons from building mtDNA-FM: evaluation order, compute planning, task scope, dataset bias, ablations, and baselines.](../docs/figures/t7.png)
+
 ---
 
 ## The setup
