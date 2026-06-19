@@ -74,22 +74,22 @@ def figure3():
 
     # Panel B: Bar chart — method comparison
     ax = axes[1]
-    methods = ["Random\nbaseline", "6-mer freq\n+ LR", "mtDNA-FM\nzero-shot k-NN"]
-    accs = [3.85, 65.0, 50.0]
-    colors = ["#aaaaaa", "#4393c3", "#d6604d"]
+    methods = ["Random\nbaseline\n(8-class)", "mtDNA-FM\nzero-shot k-NN\n(8-class)"]
+    accs = [12.5, 50.0]
+    colors = ["#aaaaaa", "#d6604d"]
     bars = ax.bar(methods, accs, color=colors, edgecolor="gray",
-                  linewidth=0.8, width=0.55)
-    ax.set_ylabel("26-class haplogroup accuracy (%)")
-    ax.set_title("(b)  Haplogroup classification\n"
-                 "(test set $n=1{,}263$)", fontweight="bold")
-    ax.set_ylim(0, 82)
-    ax.axhline(3.85, color="#cc0000", linestyle="--", linewidth=1.0,
-               label="Random baseline (3.85%)")
+                  linewidth=0.8, width=0.45)
+    ax.set_ylabel("8-class haplogroup accuracy (%)")
+    ax.set_title("(b)  Zero-shot haplogroup verification\n"
+                 "(8-class panel, zero-shot 3-NN)", fontweight="bold")
+    ax.set_ylim(0, 65)
+    ax.axhline(12.5, color="#cc0000", linestyle="--", linewidth=1.0,
+               label="Random baseline (12.5%)")
     for bar, val in zip(bars, accs):
         ax.text(bar.get_x() + bar.get_width() / 2, val + 1.5,
                 f"{val:.1f}%", ha="center", va="bottom",
                 fontweight="bold", fontsize=9.5)
-    ax.text(2.0, 53.5, "12.5× above\nrandom", ha="center", va="bottom",
+    ax.text(1.0, 53.0, "4× above\nrandom", ha="center", va="bottom",
             fontsize=8.5, color="#d6604d", style="italic")
     ax.legend(fontsize=8, loc="upper left")
 

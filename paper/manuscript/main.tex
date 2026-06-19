@@ -53,10 +53,10 @@ eliminating the artificial discontinuity at the genome junction; and (ii) a
 fraction (0--1) alongside sequence content. Pre-trained via a two-phase curriculum on 152,590
 complete vertebrate mtDNA sequences (Phase~1: 117,615 cross-species; Phase~2: 34,975 human
 HmtDB sequences), mtDNA-FM produces embeddings with strong zero-shot capabilities without any
-task-specific labels. Zero-shot nearest-neighbour search achieves 50\% accuracy on 26-class
-haplogroup identification (3.85\% random baseline, 12.5$\times$ lift), and zero-shot variant
-embeddings discriminate ClinVar pathogenic mtDNA SNPs from gnomAD common variants with AUROC
-0.777 (95\% CI 0.731--0.821). The model correctly places archaic human sequences (Neanderthal
+task-specific labels. Zero-shot 3-nearest-neighbour search on an 8-class haplogroup
+verification panel achieves 50\% accuracy (12.5\% random baseline, 4$\times$ lift), and
+zero-shot variant embeddings discriminate ClinVar pathogenic mtDNA SNPs from gnomAD common
+variants with AUROC 0.777 (95\% CI 0.731--0.821). The model correctly places archaic human sequences (Neanderthal
 NC\_011137.1, Denisovan FR695060.1) outside modern human variation, and shows gene structure in the embedding space, with rRNA genes separated from protein-coding and tRNA genes, without any functional labels. LoRA fine-tuning
 for haplogroup classification achieves 1.83\% under CPU compute constraints (class collapse
 documented as a known limitation requiring GPU resources); this reflects a compute limitation,
@@ -271,9 +271,10 @@ Phase~2 adds a heteroplasmy regression loss weighted by $\lambda_\text{het} = 0.
 \mathcal{L} = \mathcal{L}_\text{MLM} + \lambda_\text{het}\, \mathcal{L}_\text{het}
 \end{equation}
 
-Both phases use AdamW, cosine learning rate schedule (peak $10^{-4}$, 2,000-step warmup), and
-gradient accumulation to effective batch size 256. Phase~1 runs for 50,000 steps; Phase~2 for
-25,000 steps with a fresh optimizer state (domain-adaptive fine-tuning).
+Both phases use AdamW optimizer, cosine learning rate schedule, gradient checkpointing, and
+effective batch size 128 (per-step batch~16, gradient accumulation~8). Phase~1: peak LR
+$1\times10^{-4}$, 2,000-step linear warmup, 50,000 steps. Phase~2: peak LR $3\times10^{-5}$,
+500-step warmup, 25,000 steps, with a fresh optimizer state (domain-adaptive fine-tuning).
 
 \subsection{Fine-tuning Tasks}
 
@@ -323,14 +324,14 @@ produced by the full architecture.
 \subsection{Haplogroup Classification}
 \label{sec:haplo}
 
-Table~\ref{tab:haplogroup} compares \mtdnafm against baselines on 26-way haplogroup
-classification. Without any fine-tuning, zero-shot nearest-neighbour search on mtDNA-FM
-embeddings achieves 50\% accuracy on the held-out test set of 1,263 sequences --- a 12.5$\times$
-lift over the 3.85\% random baseline and comparable to a 6-mer frequency logistic regression
-baseline ($\approx$65\%). Figure~\ref{fig:haplogroup} shows the UMAP of 100 sequences:
-haplogroups separate into visible clusters. Misclassifications are phylogenetically structured:
-haplogroup H is confused with its direct ancestor HV; L0 is confused with its sibling L1.
-No cross-clade errors (e.g., African L predicted as European H) are observed.
+Table~\ref{tab:haplogroup} compares \mtdnafm against baselines. As a zero-shot verification,
+3-nearest-neighbour search achieves 50\% accuracy on an 8-class haplogroup panel (random
+baseline 12.5\%; 4$\times$ lift). Figure~\ref{fig:haplogroup} shows the UMAP of 100 sequences
+sampled across 50 sub-haplogroups: African root L clades, Asian M clade, and European H/J/U
+clades form distinct regions without supervision. Misclassifications within this verification
+panel are phylogenetically structured: haplogroup H is confused with its direct ancestor HV;
+L0 is confused with its sibling L1. No cross-clade errors (e.g., African L predicted as European H) are observed. Full 26-class zero-shot evaluation on the complete held-out test set is
+reserved for the extended paper.
 
 LoRA fine-tuning under CPU compute constraints achieved 1.83\% accuracy (macro-F1 0.0045) after
 2 epochs --- below the random baseline --- due to class collapse: the classifier predicted only
@@ -342,19 +343,22 @@ and comparison against DNABERT-2 are reserved for the extended paper.
 
 \begin{table}[h]
 \centering
-\caption{26-way haplogroup classification (test set $n=1,263$). \dag~CPU compute limitation;
-see text. \ddag~Pending GPU fine-tuning.}
+\caption{Haplogroup classification results. Zero-shot k-NN uses an 8-class verification panel;
+fine-tuning uses the full 26-class setting. \dag~CPU compute limitation; see text.
+\ddag~Pending GPU fine-tuning.}
 \label{tab:haplogroup}
-\begin{tabular}{lcc}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Method} & \textbf{Accuracy (\%)} & \textbf{Macro-F1} \\
+\textbf{Method} & \textbf{Setting} & \textbf{Accuracy (\%)} & \textbf{Macro-F1} \\
 \midrule
-Random baseline & 3.8 & 0.038 \\
-6-mer frequency + LR & $\sim$65 & --- \\
-DNABERT-2 + k-NN & \multicolumn{2}{c}{\textit{pending}} \\
-\mtdnafm (zero-shot k-NN) & \textbf{50.0} & $\sim$0.45 \\
-\mtdnafm (fine-tuned LoRA, CPU)\dag & 1.8 & 0.005 \\
-\mtdnafm (fine-tuned LoRA, GPU)\ddag & \multicolumn{2}{c}{\textit{pending}} \\
+Random baseline & 8-class & 12.5 & 0.125 \\
+\mtdnafm (zero-shot k-NN) & 8-class & \textbf{50.0} & --- \\
+\midrule
+Random baseline & 26-class & 3.85 & 0.038 \\
+6-mer frequency + LR & 26-class & $\sim$65 & --- \\
+DNABERT-2 + k-NN & 26-class & \multicolumn{2}{c}{\textit{pending}} \\
+\mtdnafm (fine-tuned LoRA, CPU)\dag & 26-class & 1.83 & 0.0045 \\
+\mtdnafm (fine-tuned LoRA, GPU)\ddag & 26-class & \multicolumn{2}{c}{\textit{pending}} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -366,8 +370,8 @@ DNABERT-2 + k-NN & \multicolumn{2}{c}{\textit{pending}} \\
 (a)~UMAP projection of mtDNA-FM embeddings for 100 sequences (stratified across 50 haplogroups),
 coloured by major haplogroup. African root L clades, Asian M clade, and European H/J/U clades
 form separate regions without supervision.
-(b)~26-class haplogroup accuracy comparison: zero-shot k-NN on mtDNA-FM embeddings (50.0\%)
-is 12.5$\times$ above the random baseline (3.85\%).}
+(b)~8-class haplogroup accuracy (verification panel): zero-shot k-NN on mtDNA-FM embeddings
+(50.0\%) is 4$\times$ above the random baseline (12.5\%).}
 \label{fig:haplogroup}
 \end{figure}
 
@@ -381,8 +385,9 @@ low false-positive rate (TPR 0.69 at FPR 0.21), indicating reliable high-confide
 
 Performance stratified by variant class: missense variants ($n_+$=56, AUROC 0.727), tRNA
 variants ($n_+$=44, AUROC 0.718; AUPR 0.773 reflecting high precision), rRNA variants
-($n_+$=5, AUROC 0.639 with limited power). D-loop variants are insufficiently represented
-($n_+$=1) for evaluation. This zero-shot discrimination reflects evolutionary constraint
+($n_+$=5, AUROC 0.639 with limited power). D-loop variants ($n_+$=1) and a mixed ``other''
+category ($n_+$=12) are reported in the aggregate but not stratified individually due to
+insufficient per-class representation. This zero-shot discrimination reflects evolutionary constraint
 captured from the cross-species vertebrate pre-training corpus: pathogenic variants occur
 disproportionately at conserved positions, making their embeddings distinctively different
 from population-common variants.
@@ -478,7 +483,7 @@ API.
 \textbf{Limitations.}
 \begin{itemize}
 \item \textit{European cohort bias.} HmtDB contains $\sim$60--70\% European-origin sequences.
-Performance on underrepresented haplogroups (L0, L1, some M sub-branches) is lower (Figure~S3).
+Performance on underrepresented haplogroups (L0, L1, some M sub-branches) is lower (Table~S3).
 \item \textit{SNPs only.} Pathogenicity and heteroplasmy models handle single-nucleotide variants;
 insertions and deletions require a different tokenization strategy.
 \item \textit{No wet-lab validation.} All results are computational; experimental validation
@@ -501,9 +506,9 @@ organellar and viral genomes.
 
 We introduced mtDNA-FM, the first foundation model for mitochondrial DNA, with two novel
 architectural components (circular positional encoding and heteroplasmy projection channel) and
-a two-phase pre-training curriculum. Zero-shot nearest-neighbour search achieves 50\% on
-26-class haplogroup identification (12.5$\times$ random) and AUROC 0.777 on pathogenic variant
-discrimination without any task-specific labels. Archaic DNA is placed outside modern human variation without archaic sequences in training. Gene structure is visible in the embedding space, with rRNA genes separated from protein-coding and tRNA genes, without functional annotations. All code, model weights,
+a two-phase pre-training curriculum. Zero-shot nearest-neighbour search achieves 50\% on an 8-class haplogroup verification panel
+(4$\times$ random) and AUROC 0.777 on pathogenic variant discrimination without any task-specific
+labels. Archaic DNA is placed outside modern human variation without archaic sequences in training. Gene structure is visible in the embedding space, with rRNA genes separated from protein-coding and tRNA genes, without functional annotations. All code, model weights,
 and the DVC reproducibility pipeline are publicly available.
 
 %% =========================================================================

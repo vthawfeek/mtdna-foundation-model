@@ -35,9 +35,9 @@ mtDNA-FM: A Domain-Specialized Foundation Model for Mitochondrial DNA}}
 \midrule
 Training steps & 50,000 & 25,000 \\
 Warmup steps & 2,000 & 500 \\
-Peak learning rate & $1 \times 10^{-4}$ & $5 \times 10^{-5}$ \\
+Peak learning rate & $1 \times 10^{-4}$ & $3 \times 10^{-5}$ \\
 LR schedule & Cosine decay & Cosine decay \\
-Batch size (effective) & 256 & 256 \\
+Batch size (effective) & 128 & 128 \\
 Gradient accumulation steps & 8 & 8 \\
 Optimizer & AdamW ($\beta_1=0.9, \beta_2=0.999$) & AdamW \\
 Weight decay & 0.01 & 0.01 \\
@@ -206,7 +206,7 @@ X & 0.000 & 0.000 & 0.000 & 585 \\
 \toprule
 \textbf{Dataset} & \textbf{Source} & \textbf{Size} & \textbf{Purpose} & \textbf{Version/Date} \\
 \midrule
-HmtDB & \citet{clima2017hmtdb} & 47,000 seqs & Phase 2 pre-train, fine-tune & Retrieved 2024 \\
+HmtDB & \citet{clima2017hmtdb} & 34,975 seqs used (47,000 total in database) & Phase 2 pre-train, fine-tune & Retrieved 2024 \\
 NCBI vertebrate mtDNA & NCBI Entrez & 117,615 seqs & Phase 1 pre-train & Retrieved 2024 \\
 PhyloTree & \citet{vanoven2009phylotree} & 26 major groups & Haplogroup labels & Build 17 \\
 gnomAD v3.1 chrM & \citet{karczewski2020gnomad} & $\sim$5,000 vars & Benign variants & v3.1 \\
