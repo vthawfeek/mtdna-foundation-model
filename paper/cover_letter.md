@@ -40,7 +40,7 @@ Sincerely,
 **Thawfeek Varusai**
 Independent Researcher
 vthawfeek@gmail.com
-ORCID: [add your ORCID here]
+ORCID: 0000-0002-7864-5971
 
 ---
 
