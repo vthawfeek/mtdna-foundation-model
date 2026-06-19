@@ -296,15 +296,15 @@ population allele frequency $> 0.01$.
 
 \textbf{Haplogroup zero-shot evaluation.} Because HmtDB was inaccessible at evaluation time,
 we used NCBI human mitochondrial genomes with haplogroup annotations embedded in their record
-titles (Entrez query: \texttt{human[Organism] AND mitochondrion[Filter] AND complete
-genome[Title] AND haplogroup[Title]}). This yielded 15,741 records; haplogroup labels were
-parsed from the description field using a regular expression, retaining 13,884 sequences with
-unambiguous major-class assignments. A stratified 80/10/10 train/validation/test split
-(\texttt{random\_state=42}) was applied; the zero-shot k-NN uses the train split as a
-library (up to 60 sequences per class) and the test split as queries (up to 40 per class).
-Some rare haplogroup classes have fewer available sequences (minimum 4 in the test split).
-Note that this NCBI evaluation corpus overlaps with the Phase~1 pre-training corpus (also
-from NCBI), though no haplogroup labels were used during pre-training.
+titles.\footnote{Entrez query: \texttt{human[Organism] AND mitochondrion[Filter] AND complete
+genome[Title] AND haplogroup[Title]}.} This yielded 15,741 records;
+haplogroup labels were parsed from the description field using a regular expression, retaining
+13,884 sequences with unambiguous major-class assignments. A stratified 80/10/10
+train/validation/test split (\texttt{random\_state=42}) was applied; the zero-shot k-NN uses
+the train split as a library (up to 60 sequences per class) and the test split as queries
+(up to 40 per class). Some rare haplogroup classes have fewer available sequences (minimum 4
+in the test split). Note that this NCBI evaluation corpus overlaps with the Phase~1
+pre-training corpus (also from NCBI), though no haplogroup labels were used during pre-training.
 
 \textbf{Pathogenicity and fine-tuning evaluation.} Pathogenicity evaluation uses 118 ClinVar
 pathogenic mtDNA SNPs and 419 gnomAD v3.1 chrM common variants (AF $>0.01$). Fine-tuning
