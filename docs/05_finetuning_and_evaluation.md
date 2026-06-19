@@ -22,7 +22,7 @@ target_modules: ["query", "key", "value", "dense"]
 lora_dropout: 0.1
 ```
 
-`r=8` is appropriate here because the dataset is large (~47k sequences) and the task is complex (26 classes spanning millions of years of phylogenetic divergence). A larger rank provides more expressive capacity for the fine-tuning signal to reshape attention patterns.
+`r=8` is appropriate here because the dataset is large (34,975 sequences) and the task is complex (26 classes spanning millions of years of phylogenetic divergence). A larger rank provides more expressive capacity for the fine-tuning signal to reshape attention patterns.
 
 **Training configuration:**
 ```yaml

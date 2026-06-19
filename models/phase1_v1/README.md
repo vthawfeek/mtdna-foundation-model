@@ -22,7 +22,7 @@ widget:
 
 A pre-trained BERT encoder for the human mitochondrial genome (16,569 bp circular genome).
 
-**mtDNA-FM** is the first dedicated foundation model for mitochondrial DNA. It encodes the full circular genome topology via novel circular positional encoding, includes a heteroplasmy projection channel, and was pre-trained on 30,000+ vertebrate mtDNA sequences in a two-phase cross-species curriculum.
+**mtDNA-FM** is the first dedicated foundation model for mitochondrial DNA. It encodes the full circular genome topology via novel circular positional encoding, includes a heteroplasmy projection channel, and was pre-trained on 117,615 vertebrate mtDNA sequences in a two-phase cross-species curriculum.
 
 ## Quick Start
 
@@ -85,7 +85,7 @@ When `het_values` are not provided, the channel zeros out with no effect on the 
 - MLM loss: random baseline 8.3 → converged ~2.7
 
 **Phase 2 pre-training (human-specific):**
-- ~47k human HmtDB sequences
+- 34,975 human HmtDB sequences (47,000 total in database; filtered to ≤10% ambiguous bases)
 - het_weight=0.3 (heteroplasmy prediction enabled)
 - Learning rate 3×10⁻⁵, 25k steps
 - Loaded Phase 1 encoder weights, fresh optimizer
@@ -94,13 +94,13 @@ When `het_values` are not provided, the channel zeros out with no effect on the 
 
 | Task | Metric | Majority class | k-mer freq PCA+LR | mtDNA-FM (zero-shot) | mtDNA-FM (fine-tuned) |
 |------|--------|---------------|-------------------|---------------------|----------------------|
-| Haplogroup classification (26 classes) | Accuracy | ~4% | ~65% | ~50%* | 1.83%** |
+| Haplogroup classification | Accuracy | — | ~65% (26-class) | ~50%* (8-class) | 1.83%** (26-class) |
 | Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | 0.777 (95% CI 0.731–0.821)‡ | not evaluated |
 | Ancient DNA placement | L2 ratio vs modern | — | — | 1.43–1.48× | — |
 
-\* Zero-shot k-NN with Phase 1 embeddings. Real measurement, no labels used.
+\* Zero-shot 3-NN on Phase 1 embeddings, 8-class haplogroup verification panel (12.5% random baseline; 4× lift). Full 26-class zero-shot evaluation is reserved for the extended paper.
 
-\*\* LoRA r=8, 1,267 training sequences, 2 epochs on CPU. Partial class collapse (3/26 classes active) — fine-tuning did not converge at this compute budget. Zero-shot k-NN (~50%) is the more reliable signal of what pre-training learned.
+\*\* LoRA r=8, 1,267 training sequences, 2 epochs on CPU, 26-class evaluation (3.85% random baseline). Partial class collapse (3/26 classes active) — fine-tuning did not converge at this compute budget. Zero-shot k-NN (~50%) is the more reliable signal of what pre-training learned.
 
 ‡ Zero-shot 5-fold stratified k-NN (k=5, cosine). 118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44); D-loop and intergenic categories had insufficient pathogenic variants for reliable estimation. Script: `scripts/zeroshot_patho_eval.py`.
 

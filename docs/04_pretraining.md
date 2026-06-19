@@ -8,7 +8,7 @@ This document covers the two-phase curriculum rationale, expected MLM loss dynam
 
 ### Why two phases?
 
-Phase 1 trains on 30k cross-species vertebrate mtDNA sequences. Phase 2 loads those weights and continues on 47k human HmtDB sequences with the heteroplasmy loss enabled.
+Phase 1 trains on 117,615 cross-species vertebrate mtDNA sequences. Phase 2 loads those weights and continues on 34,975 human HmtDB sequences with the heteroplasmy loss enabled.
 
 The rationale is domain-adaptive pre-training: start with broad diversity (many species, many evolutionary distances), then specialize on the target domain (human variation, haplogroup structure, heteroplasmy).
 

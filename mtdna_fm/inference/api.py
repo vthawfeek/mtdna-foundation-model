@@ -94,13 +94,16 @@ class MtDNAEmbedder:
         the inner encoder (MtDNAForMaskedModeling.mtdna) and discards the
         prediction heads — they are not needed for inference.
         """
+        # Use the original string for HF Hub IDs; only convert to Path for local dirs.
+        # On Windows, Path("org/repo") becomes "org\repo" which breaks HF Hub routing.
         path = Path(model_name_or_path)
+        resolved = str(path) if path.is_dir() else model_name_or_path
 
         # Load vocabulary from the checkpoint directory
-        vocabulary = KmerVocabulary.from_pretrained(str(path))
+        vocabulary = KmerVocabulary.from_pretrained(resolved)
 
         # Load full pretraining model, then extract the base encoder
-        full_model = MtDNAForMaskedModeling.from_pretrained(str(path))
+        full_model = MtDNAForMaskedModeling.from_pretrained(resolved)
         encoder: MtDNAModel = full_model.mtdna
 
         return cls(encoder, vocabulary, **kwargs)

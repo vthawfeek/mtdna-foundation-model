@@ -16,7 +16,7 @@ mtDNA has no ends. Imagine removing the end-caps from a chromosome and joining t
 
 The D-loop control region makes the topology problem concrete. The D-loop spans approximately positions 576 to 16,024, which sounds strange until you realise it wraps around the junction point at position 16,569/1. Both the heavy-strand promoter and the light-strand promoter are in this region. So is the origin of heavy-strand replication. The D-loop is functionally unified, but positions 16,024 and 576 are at opposite ends of a linearised sequence.
 
-I measured entropy across 47,000 human mitochondrial sequences from HmtDB. The D-loop region shows approximately 7x higher per-position entropy than protein-coding regions. It is where most haplogroup-defining variation sits. It is also where any linear model would introduce a discontinuity.
+I measured entropy across 34,975 human mitochondrial sequences used from HmtDB. The D-loop region shows approximately 7x higher per-position entropy than protein-coding regions. It is where most haplogroup-defining variation sits. It is also where any linear model would introduce a discontinuity.
 
 ![Per-position sequence entropy across the human mitochondrial genome. The D-loop (positions ~576-16,024, wrapping through the junction) shows dramatically higher variability than protein-coding regions.](../docs/figures/positional_entropy.png)
 
@@ -46,11 +46,11 @@ mtDNA is strictly maternally inherited. It does not recombine. Every human alive
 
 This has a consequence for the sequence data. Mutations accumulate in mtDNA at a roughly constant rate, and they never get shuffled by recombination. The genealogical relationship between any two sequences is a tree. Sequences cluster into haplogroups based on shared derived mutations. L clades are the oldest, rooted in sub-Saharan Africa. M and N macrohaplogroups expanded out of Africa approximately 60,000-70,000 years ago. H, V, J, T, and a dozen others mark the later expansion into Europe and Western Asia. B, A, C, and D trace the peopling of East Asia and the Americas.
 
-For a foundation model, this structure is a pre-training signal. The sequences carry explicit phylogenetic information. If the model learns good representations, haplogroup separation should emerge zero-shot before any fine-tuning. I tested this: zero-shot k-NN classification on the pre-trained encoder reaches approximately 50% accuracy on a 26-class haplogroup task, against a random baseline of 3.8%. The pre-training signal is real.
+For a foundation model, this structure is a pre-training signal. The sequences carry explicit phylogenetic information. If the model learns good representations, haplogroup separation should emerge zero-shot before any fine-tuning. I tested this: zero-shot k-NN classification on the pre-trained encoder reaches approximately 50% accuracy on an 8-class haplogroup verification panel, against a random baseline of 12.5% (4× lift). The pre-training signal is real.
 
 ![Haplogroup distribution in the HmtDB training corpus. European haplogroups (H, HV, J, T, U) are heavily overrepresented.](../docs/figures/haplogroup_distribution.png)
 
-But the dataset structure is non-trivial. The HmtDB corpus of approximately 47,000 human sequences is 60-70% European. Haplogroup H alone represents roughly 40-45% of European populations. A model trained naively on this corpus will have dense, well-separated representations for H, HV, J, and T, and sparse representations for the L clades and the Asian-specific lineages. Haplogroup balance is a genuine concern for any downstream application in population genetics or clinical genetics outside European ancestry groups.
+But the dataset structure is non-trivial. The HmtDB corpus (34,975 sequences used out of 47,000 total) is 60-70% European. Haplogroup H alone represents roughly 40-45% of European populations. A model trained naively on this corpus will have dense, well-separated representations for H, HV, J, and T, and sparse representations for the L clades and the Asian-specific lineages. Haplogroup balance is a genuine concern for any downstream application in population genetics or clinical genetics outside European ancestry groups.
 
 ---
 
@@ -68,7 +68,7 @@ The three features that make this a different model rather than a fine-tuned exi
 
 ## What I am building
 
-A 6-layer BERT encoder with circular positional encoding, a heteroplasmy input channel, and pre-training on approximately 47,000 human mtDNA sequences plus cross-species vertebrate sequences for Phase 1. Fine-tuning tasks: haplogroup classification (26 classes), pathogenic variant prediction, and heteroplasmy regression.
+A 6-layer BERT encoder with circular positional encoding, a heteroplasmy input channel, and pre-training on 34,975 human mtDNA sequences plus cross-species vertebrate sequences for Phase 1. Fine-tuning tasks: haplogroup classification (26 classes), pathogenic variant prediction, and heteroplasmy regression.
 
 The pre-training is running. The architecture is working. The zero-shot results are not zero.
 

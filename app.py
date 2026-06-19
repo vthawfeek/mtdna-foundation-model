@@ -713,7 +713,7 @@ with gr.Blocks(
 # mtDNA-FM: Mitochondrial DNA Foundation Model
 
 A pre-trained BERT encoder for the human mitochondrial genome (16,569 bp).
-Trained on cross-species vertebrate mtDNA (Phase 1) then fine-tuned on 47,000 human HmtDB sequences (Phase 2).
+Trained on cross-species vertebrate mtDNA (Phase 1) then continued on 34,975 human HmtDB sequences (Phase 2).
 Novel architecture: **circular positional encoding** + **heteroplasmy projection channel**.
 
 **[GitHub](https://github.com/vthawfeek/mtdna-foundation-model)**  ·

@@ -77,7 +77,7 @@ This is not a reason to declare the approach wrong. It's a statement about what'
 
 ## What the zero-shot k-NN result says
 
-The fine-tuned accuracy is 1.83%. The zero-shot k-NN accuracy, using the pre-trained embeddings with no fine-tuning at all, is approximately **50%** on the same 26-class problem.
+The fine-tuned accuracy is 1.83%. The zero-shot k-NN accuracy, using the pre-trained embeddings with no fine-tuning at all, is approximately **50%** on an 8-haplogroup verification panel (12.5% random baseline; 4× lift).
 
 ![Zero-shot k-NN vs fine-tuned haplogroup classification accuracy. The pre-trained embeddings, with no task-specific training, outperform the fine-tuned classifier by 27x.](../docs/figures/knn_haplogroup_accuracy.png)
 
@@ -85,7 +85,7 @@ These two numbers measure completely different things.
 
 The zero-shot k-NN test works like this: take the pre-trained encoder, embed every sequence into a 256-dimensional vector, and for each test sequence find its k nearest neighbours in the training set. Predict the majority haplogroup of those neighbours. No gradient updates. No labeled examples during training. No classifier head.
 
-50% accuracy on a 26-class problem, with 3.85% random baseline, means the pre-trained embeddings cluster phylogenetically related sequences near each other in 256-d space. The representation geometry reflects evolutionary structure. That's what the pre-training learned.
+50% accuracy on the 8-class verification panel, with 12.5% random baseline (4× lift), means the pre-trained embeddings cluster phylogenetically related sequences near each other in 256-d space. The representation geometry reflects evolutionary structure. That's what the pre-training learned.
 
 The fine-tuned classifier at 1.83% tells you: the LoRA adapter on top of those representations hasn't had enough gradient steps to decode the structure. The pre-trained representations are not the problem.
 

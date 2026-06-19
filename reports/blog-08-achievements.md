@@ -16,9 +16,9 @@ The clearest signal from this project comes from an experiment that requires no 
 
 The setup: take the pre-trained encoder, embed a set of human mitochondrial DNA sequences, and run k-nearest-neighbor classification in embedding space. For a test sequence, find its k nearest neighbors in the training set, predict the majority haplogroup among those neighbors. No gradient updates. No task-specific labels. The model was never told which haplogroup any sequence belongs to.
 
-Result: approximately 50% accuracy on 26-class haplogroup classification. Random baseline is 3.85%.
+Result: approximately 50% accuracy on an 8-class haplogroup verification panel. Random baseline is 12.5% (4× lift). Full 26-class zero-shot evaluation is reserved for the extended paper.
 
-This number means the pre-training produced a representation space where evolutionarily related sequences land near each other, based entirely on sequence patterns. The 117,000 cross-species vertebrate genomes in Phase 1 pre-training, combined with 35,000 human-specific sequences in Phase 2, produced embeddings where haplogroup structure is recoverable without a single labeled example.
+This number means the pre-training produced a representation space where evolutionarily related sequences land near each other, based entirely on sequence patterns. The 117,000 cross-species vertebrate genomes in Phase 1 pre-training, combined with 34,975 human-specific sequences in Phase 2, produced embeddings where haplogroup structure is recoverable without a single labeled example.
 
 ![t-SNE projection of haplogroup embeddings. Phylogenetically related haplogroups cluster together with no fine-tuning.](../docs/figures/showcase_tsne.png)
 

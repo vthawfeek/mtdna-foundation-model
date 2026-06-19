@@ -145,7 +145,7 @@ The projection is a `Linear(1, hidden_size)` layer followed by `LayerNorm`. This
 
 ## Vocabulary Statistics
 
-For the human mtDNA corpus (HmtDB, ~47k sequences):
+For the human mtDNA corpus (HmtDB, 34,975 sequences used):
 
 | Statistic | Value |
 |---|---|

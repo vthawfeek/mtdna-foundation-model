@@ -132,7 +132,7 @@ Starting from a random baseline of ln(4096) ≈ 8.32, the question is how far th
 
 ![Attention heatmap at training step 0. Even before pre-training, the circular positional encoding creates structured attention patterns across the genome.](../docs/figures/attention_heatmap_step0.png)
 
-The Phase 1 pre-training on 117,000 cross-species vertebrate mtDNA genomes builds broad representations of evolutionary conserved sequence patterns. Phase 2 on 35,000 human HmtDB genomes with het_weight=0.3 specializes those representations toward human-specific signal. The two-phase structure is the training strategy, which gets its own post.
+The Phase 1 pre-training on 117,000 cross-species vertebrate mtDNA genomes builds broad representations of evolutionary conserved sequence patterns. Phase 2 on 34,975 human HmtDB genomes with het_weight=0.3 specializes those representations toward human-specific signal. The two-phase structure is the training strategy, which gets its own post.
 
 The circular PE is the piece I expect will make the biggest difference relative to a generic BERT. Whether it does is an empirical question, and I've built ablation experiments to test it.
 <!-- published: https://rokpayprsizors.wordpress.com/2026/06/04/three-architecture-decisions-i-made-for-mtdna-fm-and-why-each-one-was-non-obvious/ -->
