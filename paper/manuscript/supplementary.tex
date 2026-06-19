@@ -148,6 +148,56 @@ gradients do not flow through the positional encoding.
 %% =========================================================================
 \section*{S3. Per-class Haplogroup Metrics}
 
+\subsection*{S3.1 Zero-shot 5-NN (26-class evaluation)}
+
+Per-class precision, recall, and F1 from zero-shot cosine 5-nearest-neighbour classification
+on 757 test sequences across 26 major PhyloTree haplogroup classes. No haplogroup labels
+were used in pre-training. Sequences from NCBI haplogroup-labeled human mitochondrial genomes
+(15,364 sequences; stratified 80/10/10 split, \texttt{random\_state=42}).
+
+\begin{table}[h]
+\centering
+\caption{Per-class zero-shot 5-NN haplogroup metrics (757 test queries, 1509 train
+library sequences, cosine distance). No haplogroup labels used in pre-training.}
+\begin{tabular}{lcccc}
+\toprule
+\textbf{Haplogroup} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{N test} \\
+\midrule
+A & 0.218 & 0.475 & 0.299 & 40 \\
+B & 0.667 & 0.800 & 0.727 & 40 \\
+C & 0.667 & 0.600 & 0.632 & 40 \\
+D & 0.068 & 0.100 & 0.081 & 40 \\
+E & 0.273 & 0.750 & 0.400 & 4 \\
+F & 0.774 & 0.667 & 0.716 & 36 \\
+G & 0.098 & 0.400 & 0.157 & 10 \\
+H & 0.061 & 0.050 & 0.055 & 40 \\
+HV & 0.036 & 0.040 & 0.038 & 25 \\
+I & 0.762 & 0.800 & 0.780 & 40 \\
+J & 0.185 & 0.125 & 0.149 & 40 \\
+K & 0.182 & 0.150 & 0.164 & 40 \\
+L0 & 0.857 & 0.750 & 0.800 & 40 \\
+L1 & 0.727 & 0.571 & 0.640 & 28 \\
+L2 & 0.861 & 0.775 & 0.816 & 40 \\
+L3 & 0.485 & 0.400 & 0.438 & 40 \\
+L4 & 0.474 & 0.818 & 0.600 & 11 \\
+L5 & 1.000 & 0.750 & 0.857 & 4 \\
+M & 0.412 & 0.175 & 0.246 & 40 \\
+N & 0.133 & 0.095 & 0.111 & 21 \\
+R & 0.857 & 0.316 & 0.462 & 19 \\
+T & 0.133 & 0.050 & 0.073 & 40 \\
+U & 0.389 & 0.175 & 0.241 & 40 \\
+V & 0.056 & 0.091 & 0.069 & 11 \\
+W & 0.000 & 0.000 & 0.000 & 16 \\
+X & 0.071 & 0.083 & 0.077 & 12 \\
+\midrule
+\textbf{Macro avg} & \textbf{0.3703} & & & 757 \\
+\bottomrule
+\end{tabular}
+\label{tab:per_class_zeroshot}
+\end{table}
+
+\subsection*{S3.2 LoRA Fine-tuning (CPU, 2 epochs)}
+
 Results from LoRA fine-tuning under CPU compute constraints (2~epochs; class collapse
 to haplogroups D, G, R). Non-zero recall for D (24.4\%), G (62.3\%), and R (13.6\%)
 reflects the partial model: these three haplogroups have the largest training window counts
@@ -209,10 +259,8 @@ X & 0.000 & 0.000 & 0.000 & 585 \\
 HmtDB & \citet{clima2017hmtdb} & 34,975 seqs used (47,000 total in database) & Phase 2 pre-train, fine-tune & Retrieved 2024 \\
 NCBI vertebrate mtDNA & NCBI Entrez & 117,615 seqs & Phase 1 pre-train & Retrieved 2024 \\
 PhyloTree & \citet{vanoven2009phylotree} & 26 major groups & Haplogroup labels & Build 17 \\
-gnomAD v3.1 chrM & \citet{karczewski2020gnomad} & $\sim$5,000 vars & Benign variants & v3.1 \\
-ClinVar & \citet{landrum2018clinvar} & $\sim$2,000 vars & Pathogenic variants & 2024-01 \\
-MITOMAP & \citet{lott2013mitomap} & $\sim$X vars & External validation & Accessed 2024 \\
-HelixMTdb & \citet{bolze2019helixmtdb} & $\sim$X vars & External validation & v1 \\
+gnomAD v3.1 chrM & \citet{karczewski2020gnomad} & 419 benign SNPs (AF $>$1\%) & Benign variants & v3.1 \\
+ClinVar & \citet{landrum2018clinvar} & 118 pathogenic SNPs & Pathogenic variants & 2024-01 \\
 \bottomrule
 \end{tabular}
 \end{table}

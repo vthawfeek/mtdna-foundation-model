@@ -22,7 +22,7 @@ This manuscript presents the first foundation model dedicated to mitochondrial D
 
 The key results reported in this preprint are entirely zero-shot (no task-specific labels in training):
 
-- **50% zero-shot haplogroup identification** (8-class k-NN verification panel; 12.5% random baseline, 4× lift)
+- **37.9% zero-shot haplogroup identification** (26-class cosine 5-NN; 3.85% random baseline, 9.8× lift; 95% CI 34.4–41.2%)
 - **AUROC 0.777** (95% CI 0.731–0.821) on pathogenic variant discrimination (118 ClinVar pathogenic vs. 419 gnomAD benign SNPs)
 - **Correct phylogenetic placement** of Neanderthal and Denisovan sequences without any archaic DNA in training
 - **Unsupervised recovery of gene-type structure** (protein-coding, tRNA, rRNA) in embedding space

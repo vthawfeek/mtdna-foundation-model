@@ -94,13 +94,13 @@ When `het_values` are not provided, the channel zeros out with no effect on the 
 
 | Task | Metric | Majority class | k-mer freq PCA+LR | mtDNA-FM (zero-shot) | mtDNA-FM (fine-tuned) |
 |------|--------|---------------|-------------------|---------------------|----------------------|
-| Haplogroup classification | Accuracy | — | ~65% (26-class) | ~50%* (8-class) | 1.83%** (26-class) |
+| Haplogroup classification | Accuracy | 3.85% | ~65% (26-class) | **37.9%\* (26-class)** | 1.83%** (26-class) |
 | Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | 0.777 (95% CI 0.731–0.821)‡ | not evaluated |
 | Ancient DNA placement | L2 ratio vs modern | — | — | 1.43–1.48× | — |
 
-\* Zero-shot 3-NN on Phase 1 embeddings, 8-class haplogroup verification panel (12.5% random baseline; 4× lift). Full 26-class zero-shot evaluation is reserved for the extended paper.
+\* Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.8× lift**; 95% CI 34.4–41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
 
-\*\* LoRA r=8, 1,267 training sequences, 2 epochs on CPU, 26-class evaluation (3.85% random baseline). Partial class collapse (3/26 classes active) — fine-tuning did not converge at this compute budget. Zero-shot k-NN (~50%) is the more reliable signal of what pre-training learned.
+\*\* LoRA r=8, 1,267 training sequences, 2 epochs on CPU, 26-class evaluation (3.85% random baseline). Partial class collapse (3/26 classes active) — fine-tuning did not converge at this compute budget. Zero-shot k-NN (37.9%) is the more reliable signal of what pre-training learned.
 
 ‡ Zero-shot 5-fold stratified k-NN (k=5, cosine). 118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44); D-loop and intergenic categories had insufficient pathogenic variants for reliable estimation. Script: `scripts/zeroshot_patho_eval.py`.
 
@@ -155,7 +155,7 @@ model.print_trainable_parameters()
 
 - **Population bias:** HmtDB has strong European bias (haplogroup H is overrepresented). Performance on underrepresented haplogroups (especially African L sub-haplogroups) may be lower.
 - **Heteroplasmy channel:** The het projection is architecturally present; Phase 2 training used het_weight=0.3, but real per-base heteroplasmy labels were limited to gnomAD variant-level data rather than full-genome measurements.
-- **Zero-shot haplogroup:** Phase 2 zero-shot 5-NN is 50% (vs 12.5% random baseline on 8-class sampled subset). Full 26-class zero-shot accuracy will be lower.
+- **Zero-shot haplogroup:** Phase 2 zero-shot 5-NN achieves 37.9% on the full 26-class evaluation (3.85% random baseline; 9.8× lift; 95% CI 34.4–41.2%).
 - **Cosine similarity collapse:** Mean-pooled CLS embeddings before fine-tuning exhibit high cosine similarity. Use L2 distance for zero-shot comparisons.
 
 ## Citation

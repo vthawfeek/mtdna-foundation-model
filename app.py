@@ -869,7 +869,7 @@ Reliable for missense and tRNA variants. Unreliable for D-loop and intergenic po
 **Model details:** 6-layer BERT encoder · 8 attention heads · 256 hidden dims · ~6M parameters
 **Vocabulary:** 4,096 6-mers + 6 special tokens = 4,102 tokens
 **Fine-tuning:** LoRA r=8 haplogroup classification (26 classes)
-**Zero-shot haplogroup k-NN:** ~50% accuracy without any labels (vs 3.85% random)
+**Zero-shot haplogroup k-NN:** 37.9% on 26-class evaluation without any labels (3.85% random; 9.8× lift)
 **Zero-shot pathogenicity AUROC:** 0.777 (95% CI: 0.731–0.821) on ClinVar pathogenic vs gnomAD benign variants — Tab 3
 **Limitations:** Trained on HmtDB (European population bias). Pathogenicity tab is for research use only, not clinical diagnosis.
 """

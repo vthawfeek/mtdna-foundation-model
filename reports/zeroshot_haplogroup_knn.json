@@ -1,0 +1,230 @@
+{
+  "method": "zero-shot cosine 5-NN",
+  "model": "vthawfeek/mtdna-foundation-model",
+  "n_classes": 26,
+  "classes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "HV",
+    "I",
+    "J",
+    "K",
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "M",
+    "N",
+    "R",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X"
+  ],
+  "n_train_library": 1509,
+  "n_test_queries": 757,
+  "train_per_class": 60,
+  "test_per_class": 40,
+  "random_baseline": 0.0385,
+  "accuracy": 0.3791,
+  "accuracy_ci_95_lo": 0.3435,
+  "accuracy_ci_95_hi": 0.4122,
+  "lift_over_random": 9.85,
+  "macro_f1": 0.3703,
+  "per_class": [
+    {
+      "label": "A",
+      "precision": 0.2184,
+      "recall": 0.475,
+      "f1": 0.2992,
+      "support": 40
+    },
+    {
+      "label": "B",
+      "precision": 0.6667,
+      "recall": 0.8,
+      "f1": 0.7273,
+      "support": 40
+    },
+    {
+      "label": "C",
+      "precision": 0.6667,
+      "recall": 0.6,
+      "f1": 0.6316,
+      "support": 40
+    },
+    {
+      "label": "D",
+      "precision": 0.0678,
+      "recall": 0.1,
+      "f1": 0.0808,
+      "support": 40
+    },
+    {
+      "label": "E",
+      "precision": 0.2727,
+      "recall": 0.75,
+      "f1": 0.4,
+      "support": 4
+    },
+    {
+      "label": "F",
+      "precision": 0.7742,
+      "recall": 0.6667,
+      "f1": 0.7164,
+      "support": 36
+    },
+    {
+      "label": "G",
+      "precision": 0.0976,
+      "recall": 0.4,
+      "f1": 0.1569,
+      "support": 10
+    },
+    {
+      "label": "H",
+      "precision": 0.0606,
+      "recall": 0.05,
+      "f1": 0.0548,
+      "support": 40
+    },
+    {
+      "label": "HV",
+      "precision": 0.0357,
+      "recall": 0.04,
+      "f1": 0.0377,
+      "support": 25
+    },
+    {
+      "label": "I",
+      "precision": 0.7619,
+      "recall": 0.8,
+      "f1": 0.7805,
+      "support": 40
+    },
+    {
+      "label": "J",
+      "precision": 0.1852,
+      "recall": 0.125,
+      "f1": 0.1493,
+      "support": 40
+    },
+    {
+      "label": "K",
+      "precision": 0.1818,
+      "recall": 0.15,
+      "f1": 0.1644,
+      "support": 40
+    },
+    {
+      "label": "L0",
+      "precision": 0.8571,
+      "recall": 0.75,
+      "f1": 0.8,
+      "support": 40
+    },
+    {
+      "label": "L1",
+      "precision": 0.7273,
+      "recall": 0.5714,
+      "f1": 0.64,
+      "support": 28
+    },
+    {
+      "label": "L2",
+      "precision": 0.8611,
+      "recall": 0.775,
+      "f1": 0.8158,
+      "support": 40
+    },
+    {
+      "label": "L3",
+      "precision": 0.4848,
+      "recall": 0.4,
+      "f1": 0.4384,
+      "support": 40
+    },
+    {
+      "label": "L4",
+      "precision": 0.4737,
+      "recall": 0.8182,
+      "f1": 0.6,
+      "support": 11
+    },
+    {
+      "label": "L5",
+      "precision": 1.0,
+      "recall": 0.75,
+      "f1": 0.8571,
+      "support": 4
+    },
+    {
+      "label": "M",
+      "precision": 0.4118,
+      "recall": 0.175,
+      "f1": 0.2456,
+      "support": 40
+    },
+    {
+      "label": "N",
+      "precision": 0.1333,
+      "recall": 0.0952,
+      "f1": 0.1111,
+      "support": 21
+    },
+    {
+      "label": "R",
+      "precision": 0.8571,
+      "recall": 0.3158,
+      "f1": 0.4615,
+      "support": 19
+    },
+    {
+      "label": "T",
+      "precision": 0.1333,
+      "recall": 0.05,
+      "f1": 0.0727,
+      "support": 40
+    },
+    {
+      "label": "U",
+      "precision": 0.3889,
+      "recall": 0.175,
+      "f1": 0.2414,
+      "support": 40
+    },
+    {
+      "label": "V",
+      "precision": 0.0556,
+      "recall": 0.0909,
+      "f1": 0.069,
+      "support": 11
+    },
+    {
+      "label": "W",
+      "precision": 0.0,
+      "recall": 0.0,
+      "f1": 0.0,
+      "support": 16
+    },
+    {
+      "label": "X",
+      "precision": 0.0714,
+      "recall": 0.0833,
+      "f1": 0.0769,
+      "support": 12
+    }
+  ],
+  "knn_k": 5,
+  "random_state": 42,
+  "bootstrap_n": 1000
+}
