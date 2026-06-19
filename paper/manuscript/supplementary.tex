@@ -8,8 +8,10 @@
 \usepackage{booktabs}
 \usepackage{hyperref}
 \usepackage{xcolor}
+\usepackage{xspace}
 
 \newcommand{\todo}[1]{\textcolor{red}{\textbf{[TODO: #1]}}}
+\newcommand{\mtdnafm}{\textsc{mtDNA-FM}\xspace}
 
 \begin{document}
 
@@ -146,41 +148,49 @@ gradients do not flow through the positional encoding.
 %% =========================================================================
 \section*{S3. Per-class Haplogroup Metrics}
 
+Results from LoRA fine-tuning under CPU compute constraints (2~epochs; class collapse
+to haplogroups D, G, R). Non-zero recall for D (24.4\%), G (62.3\%), and R (13.6\%)
+reflects the partial model: these three haplogroups have the largest training window counts
+and were the only predicted classes. All other classes have zero recall due to class collapse.
+See Section~4.2 of the main text for full discussion.
+
 \begin{table}[h]
 \centering
-\caption{Per-class haplogroup classification metrics from fine-tuned \mtdnafm.}
+\caption{Per-class haplogroup classification metrics from LoRA fine-tuning (CPU, 2 epochs).
+$N$~test refers to the number of test windows (not sequences) per class; each genome
+contributes $\approx$65 windows.}
 \begin{tabular}{lcccc}
 \toprule
-\textbf{Haplogroup} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{N test} \\
+\textbf{Haplogroup} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{N windows} \\
 \midrule
-A & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-B & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-C & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-D & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-E & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-F & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-G & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-H & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-HV & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-I & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-J & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-K & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-L0 & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-L1 & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-L2 & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-L3 & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-L4 & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-M & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-N & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-O & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-R & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-T & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-U & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-V & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-W & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
-X & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
+A & 0.000 & 0.000 & 0.000 & 3,250 \\
+B & 0.000 & 0.000 & 0.000 & 7,215 \\
+C & 0.000 & 0.000 & 0.000 & 4,160 \\
+D & 0.040 & 0.244 & 0.069 & 2,925 \\
+E & 0.000 & 0.000 & 0.000 & 390 \\
+F & 0.000 & 0.000 & 0.000 & 2,145 \\
+G & 0.011 & 0.623 & 0.021 & 780 \\
+H & 0.000 & 0.000 & 0.000 & 9,945 \\
+HV & 0.000 & 0.000 & 0.000 & 845 \\
+I & 0.000 & 0.000 & 0.000 & 1,170 \\
+J & 0.000 & 0.000 & 0.000 & 2,470 \\
+K & 0.000 & 0.000 & 0.000 & 1,300 \\
+L0 & 0.000 & 0.000 & 0.000 & 3,575 \\
+L1 & 0.000 & 0.000 & 0.000 & 1,820 \\
+L2 & 0.000 & 0.000 & 0.000 & 4,485 \\
+L3 & 0.000 & 0.000 & 0.000 & 5,265 \\
+L4 & 0.000 & 0.000 & 0.000 & 780 \\
+L5 & 0.000 & 0.000 & 0.000 & 260 \\
+M & 0.000 & 0.000 & 0.000 & 5,265 \\
+N & 0.000 & 0.000 & 0.000 & 1,170 \\
+R & 0.015 & 0.136 & 0.026 & 1,040 \\
+T & 0.000 & 0.000 & 0.000 & 4,160 \\
+U & 0.000 & 0.000 & 0.000 & 6,760 \\
+V & 0.000 & 0.000 & 0.000 & 975 \\
+W & 0.000 & 0.000 & 0.000 & 520 \\
+X & 0.000 & 0.000 & 0.000 & 585 \\
 \midrule
-\textbf{Macro average} & \todo{X} & \todo{X} & \todo{X} & \todo{X} \\
+\textbf{Macro avg} & 0.003 & 0.039 & 0.004 & 73,255 \\
 \bottomrule
 \end{tabular}
 \label{tab:per_class_haplogroup}
@@ -231,9 +241,9 @@ Reproduce the full pipeline: \texttt{dvc repro}
 %% =========================================================================
 \section*{S6. Ablation Learning Curves}
 
-\todo{Insert ablation training curves here after running ablation scripts.
-Figures: (a) Phase 1 MLM loss: circular vs sinusoidal vs learnable PE;
-(b) Phase 1 MLM loss: two-phase vs single-phase; (c) Phase 2 MLM loss: with vs without het channel.}
+Ablation training curves (circular PE vs.\ sinusoidal PE vs.\ learnable PE; two-phase vs.\
+single-phase training; with vs.\ without heteroplasmy channel) will be included in the next
+version of this preprint following GPU-accelerated ablation runs.
 
 %% =========================================================================
 \bibliographystyle{plainnat}
