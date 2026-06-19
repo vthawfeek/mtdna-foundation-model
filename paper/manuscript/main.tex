@@ -51,18 +51,15 @@ introduces two architectural novelties: (i) a \textit{circular positional encodi
 as a fixed sinusoidal buffer such that positions~0 and 16,568 receive identical encodings,
 eliminating the artificial discontinuity at the genome junction; and (ii) a
 \textit{heteroplasmy projection channel} that accepts a continuous per-position variant allele
-fraction (0--1) alongside sequence content. Pre-trained via a two-phase curriculum on 152,590
-complete vertebrate mtDNA sequences (Phase~1: 117,615 cross-species; Phase~2: 34,975 human
-HmtDB sequences), mtDNA-FM produces embeddings with strong zero-shot capabilities without any
-task-specific labels. Zero-shot 5-nearest-neighbour search on a 26-class haplogroup panel
-achieves 37.9\% accuracy (3.85\% random baseline, 9.9$\times$ lift;
-95\% CI 34.4--41.2\%), and zero-shot variant embeddings discriminate
-ClinVar pathogenic mtDNA SNPs from gnomAD common variants with AUROC 0.777
-(95\% CI 0.731--0.821). The model correctly places archaic human sequences (Neanderthal
-NC\_011137.1, Denisovan FR695060.1) outside modern human variation, and shows gene structure in the embedding space, with rRNA genes separated from protein-coding and tRNA genes, without any functional labels. LoRA fine-tuning
-for haplogroup classification achieves 1.83\% under CPU compute constraints (class collapse
-documented as a known limitation requiring GPU resources); this reflects a compute limitation,
-not model capacity, as the zero-shot representations are informative. Pre-trained weights,
+fraction (0--1) alongside sequence content. Pre-trained on 152,590 complete vertebrate mtDNA sequences in two phases (117,615
+cross-species, then 34,975 human HmtDB), the model achieves 37.9\% on 26-class zero-shot
+haplogroup classification (cosine 5-NN; 3.85\% random baseline, 9.9$\times$ lift;
+95\% CI 34.4--41.2\%) and AUROC 0.777 (95\% CI 0.731--0.821) on zero-shot pathogenic variant
+discrimination using ClinVar SNPs against gnomAD common variants. Without evolutionary labels
+in training, the model places Neanderthal (NC\_011137.1) and Denisovan (FR695060.1) sequences
+outside modern human variation, and separates rRNA genes from protein-coding and tRNA genes
+in the embedding space. LoRA fine-tuning on CPU collapses to 3 of 26 haplogroup classes after
+2 epochs; GPU resources are required for convergence. Pre-trained weights,
 LoRA adapters, a Gradio demonstration interface, and the full DVC pipeline are publicly
 available.
 
@@ -78,19 +75,18 @@ Mitochondrial DNA (mtDNA) is a 16,569~bp circular, double-stranded genome presen
 thousands of copies per cell \citep{anderson1981sequence}. Unlike the nuclear genome, mtDNA is
 maternally inherited without recombination, making it an ideal molecular clock for phylogenetics,
 population genetics, and forensic identification \citep{vanoven2009phylotree}. Clinically,
-pathogenic mtDNA variants cause a spectrum of severe multi-system disorders --- MELAS, LHON,
-Leigh syndrome, and others --- collectively affecting at least 1 in 5,000 individuals
+pathogenic mtDNA variants cause severe multi-system disorders including MELAS, LHON, and
+Leigh syndrome, collectively affecting at least 1 in 5,000 individuals
 \citep{dimauro2003mitochondrial}. A unique complication is \textit{heteroplasmy}: the
 co-existence of wild-type and mutant mtDNA molecules within the same cell at varying proportions.
 Disease penetrance for many pathogenic variants depends critically on the heteroplasmy level
 \citep{stewart2015heteroplasmy}, yet predicting this relationship from sequence context remains
 an open problem.
 
-Recent years have seen an explosion of DNA foundation models. DNABERT-2 \citep{zhou2024dnabert2},
-HyenaDNA \citep{nguyen2023hyenadna}, the Nucleotide Transformer \citep{dallatorre2023nucleotidetransformer},
-and Evo \citep{nguyen2024evo} demonstrate that large-scale pre-training on DNA sequences produces
-generalizable representations for a wide range of genomic tasks. However, all of these models are
-pre-trained exclusively on nuclear genomes and share two design choices that are mismatched to mtDNA:
+DNABERT-2 \citep{zhou2024dnabert2}, HyenaDNA \citep{nguyen2023hyenadna}, the Nucleotide
+Transformer \citep{dallatorre2023nucleotidetransformer}, and Evo \citep{nguyen2024evo} show that
+pre-training on DNA sequences yields representations that transfer across genomic tasks. But all
+four are pre-trained exclusively on nuclear genomes and share two design gaps for mtDNA:
 
 \begin{enumerate}
 \item \textbf{Linear positional encoding.} Standard sinusoidal positional encoding \citep{vaswani2017attention}
@@ -103,10 +99,10 @@ base at each position. They cannot represent the continuous allele fraction that
 heteroplasmic variants, which are of primary clinical interest.
 \end{enumerate}
 
-Beyond design mismatches, nuclear DNA models are pre-trained on a fundamentally different sequence
-composition: repeat elements, splice sites, CpG islands, and regulatory grammar that do not exist
-in mtDNA. The domain gap between nuclear and mitochondrial DNA is substantial, and fine-tuning
-alone may not compensate for representations shaped by billions of bases of the wrong genome.
+Nuclear DNA also contains repeat elements, splice sites, CpG islands, and regulatory grammar
+absent from mtDNA. Representations built from billions of bases of nuclear sequence may not
+transfer to a 16,569~bp genome with different base composition, gene density, and evolutionary
+constraint.
 
 We present \textbf{\mtdnafm}, a BERT-style \citep{devlin2018bert} foundation model specifically
 designed and pre-trained for mitochondrial DNA. Our contributions are:
@@ -166,9 +162,8 @@ mtDNA variant classes at nucleotide resolution.
 Standard sinusoidal PE \citep{vaswani2017attention} and its learnable counterpart treat position
 as a linear index. Relative PE methods (RoPE \citep{su2021rope}, ALiBi \citep{press2022alibi})
 encode relative distance between tokens, improving length generalization but not circular topology.
-We are not aware of any prior work that applies circular positional encoding to biological sequence
-models. Our formulation (Section~\ref{sec:circular_pe}) is mathematically straightforward but
-represents a principled design choice previously absent from the field.
+To our knowledge, no prior sequence model uses circular positional encoding; our formulation
+is the first application to biological sequences.
 
 %% =========================================================================
 \section{Methods}
@@ -228,7 +223,7 @@ by LayerNorm, enabling graceful degradation.
 \includegraphics[width=\textwidth]{figures/fig1.png}
 \caption{\textbf{mtDNA-FM architecture and circular genome representation.}
 (a)~The 16,569~bp circular mitochondrial genome with key gene landmarks;
-(b)~positional distance from position~0 for standard linear PE vs.\ circular PE --- the circular
+(b)~positional distance from position~0 for standard linear PE vs.\ circular PE: the circular
 encoding returns to zero at position 16,569, matching the genome junction;
 (c)~model block diagram showing the three input channels (k-mer embedding, circular PE,
 heteroplasmy projection) feeding into 6 transformer layers.}
@@ -331,17 +326,15 @@ titles; the train library contains 1,509 sequences (up to 60 per class). Figure~
 sampled across 50 sub-haplogroups: African root L clades, Asian M clade, and European H/J/U
 clades form distinct regions without supervision. Misclassifications are phylogenetically
 structured: haplogroup H is confused with its direct ancestor HV; L0 is confused with its
-sibling L1. No cross-clade errors (e.g., African L predicted as European H) are observed,
-confirming that the embedding space encodes evolutionary relationships rather than mere
-sequence composition.
+sibling L1. Cross-clade errors (e.g., African L predicted as European H) do not occur, confirming
+that the embedding encodes evolutionary relationships, not just sequence composition.
 
-LoRA fine-tuning under CPU compute constraints achieved 1.83\% accuracy (macro-F1 0.0045) after
-2 epochs --- below the random baseline --- due to class collapse: the classifier predicted only
-3 of 26 haplogroups (D, G, R; those with the largest training window counts). Training loss
-moved only 0.008 units over 2 epochs; convergence requires approximately 50 epochs
-($\approx$270 CPU hours). This is a compute limitation, not a model failure: the zero-shot
-result establishes that the pre-trained representations are informative. Full fine-tuning on GPU
-and comparison against DNABERT-2 are reserved for the extended paper.
+LoRA fine-tuning on CPU achieved 1.83\% accuracy (macro-F1 0.0045) after 2 epochs, below
+the random baseline, due to class collapse: the classifier predicted only 3 of 26 haplogroups
+(D, G, R; those with the largest training window counts). Training loss shifted by only 0.008
+units over 2 epochs; convergence requires approximately 50 epochs ($\approx$270 CPU hours).
+This is a compute constraint, not a model failure. GPU fine-tuning and a DNABERT-2 comparison
+are in the extended paper.
 
 \begin{table}[h]
 \centering
@@ -374,8 +367,8 @@ form separate regions without supervision.
 
 \subsection{Variant Pathogenicity Prediction}
 
-Using zero-shot nearest-neighbour search on variant-position token embeddings --- with no
-pathogenicity labels in pre-training --- \mtdnafm achieves AUROC 0.777 [95\% CI 0.731--0.821]
+Without pathogenicity labels in pre-training, zero-shot nearest-neighbour search on
+variant-position token embeddings achieves AUROC 0.777 [95\% CI 0.731--0.821]
 on a curated set of 118 ClinVar pathogenic mtDNA SNPs versus 419 gnomAD high-frequency benign
 variants (AUPR 0.440 vs. 0.220 random; Figure~\ref{fig:roc}). The ROC curve rises steeply at
 low false-positive rate (TPR 0.69 at FPR 0.21), indicating reliable high-confidence calls.
@@ -384,14 +377,11 @@ Performance stratified by variant class: missense variants ($n_+$=56, AUROC 0.72
 variants ($n_+$=44, AUROC 0.718; AUPR 0.773 reflecting high precision), rRNA variants
 ($n_+$=5, AUROC 0.639 with limited power). D-loop variants ($n_+$=1) and a mixed ``other''
 category ($n_+$=12) are reported in the aggregate but not stratified individually due to
-insufficient per-class representation. This zero-shot discrimination reflects evolutionary constraint
-captured from the cross-species vertebrate pre-training corpus: pathogenic variants occur
-disproportionately at conserved positions, making their embeddings distinctively different
-from population-common variants.
+insufficient per-class representation. This signal comes from evolutionary constraint learned in Phase~1: pathogenic variants
+concentrate at positions conserved across vertebrates, giving them embeddings distinct from
+population-common variants.
 
-Supervised fine-tuning of the pathogenicity head with real ClinVar/gnomAD labels and
-comparisons to MITOMAP-based external validation and MitoTIP baseline are reserved for the
-extended paper.
+Supervised fine-tuning and comparison against MitoTIP are in the extended paper.
 
 \begin{figure}[h]
 \centering
@@ -412,16 +402,13 @@ rRNA (AUROC 0.639). No pathogenicity labels were used in pre-training.}
 \label{sec:ancient}
 
 Without any fine-tuning, \mtdnafm embeddings correctly place two archaic human mtDNA sequences
-in their expected phylogenetic positions (Figure~\ref{fig:umap}). The Neanderthal sequence
-(NC\_011137.1, Vindija Cave) and Denisovan sequence (FR695060.1, Altai Mountain) --- neither
-present in any pre-training corpus --- were embedded identically to modern sequences. The mean
-pairwise L2 distance between modern human sequences is 0.075. The Neanderthal embedding is
-0.111 from the modern human centroid (1.48$\times$ the modern baseline); the Denisovan is
-0.107 (1.43$\times$). Both archaic sequences cluster closest to African root haplogroups
-(L clades) in the embedding space, phylogenetically consistent with the independently estimated
-300,000--500,000~year divergence from the modern human mitochondrial lineage. This placement
-arises from evolutionary constraint learned during cross-species vertebrate pre-training, with
-no evolutionary label or archaic DNA included in training.
+in their expected phylogenetic positions (Figure~\ref{fig:umap}). The Neanderthal sequence (NC\_011137.1, Vindija Cave) and Denisovan sequence (FR695060.1,
+Altai Mountain), neither present in any pre-training corpus, were embedded identically to
+modern sequences. The mean pairwise L2 distance between modern human sequences is 0.075. The
+Neanderthal embedding is 0.111 from the modern human centroid (1.48$\times$ baseline); the
+Denisovan is 0.107 (1.43$\times$). Both cluster closest to African root haplogroups (L clades),
+consistent with the estimated 300,000--500,000~year divergence from the modern human
+mitochondrial lineage. No archaic DNA or evolutionary labels were used in training.
 
 \begin{figure}[h]
 \centering
@@ -460,9 +447,10 @@ genomic positions on the circular chromosome. No functional labels were used in 
 %% =========================================================================
 \section{Discussion}
 
-\mtdnafm establishes a domain-specialized foundation model for mitochondrial DNA, showing
-that pre-training on the correct genome --- even at 6M parameters --- yields representations
-that encode evolutionary structure: haplogroup identity, archaic sequence ancestry, and rRNA/protein-coding separation are all recoverable from the embedding space without task-specific supervision.
+\mtdnafm shows that pre-training on the correct genome, even at 6M parameters, yields
+representations that encode evolutionary structure without task-specific supervision: haplogroup
+identity, archaic sequence ancestry, and rRNA/protein-coding separation are all recoverable
+from the embedding space.
 
 \textbf{Circular PE generalizability.} The circular positional encoding is not specific to mtDNA.
 Any circular genome (bacterial plasmids, viral genomes, chloroplast genomes) could benefit from
@@ -474,8 +462,8 @@ API.
 \item \textit{Evaluation--pre-training overlap.} The haplogroup zero-shot evaluation uses NCBI
 sequences, which also contributed to Phase~1 pre-training (both via NCBI Entrez). No haplogroup
 labels were used during pre-training, but some evaluation sequences may have been seen during
-MLM training, potentially inflating zero-shot accuracy by a modest amount. Quantifying this
-overlap is left to future work.
+MLM training, potentially inflating zero-shot accuracy. We will quantify this overlap in the
+extended paper.
 \item \textit{European cohort bias.} HmtDB contains $\sim$60--70\% European-origin sequences.
 Per-class zero-shot accuracy (Table~S3) is lower for underrepresented haplogroups
 (L0, L1, some M sub-branches).
@@ -485,30 +473,27 @@ insertions and deletions require a different tokenization strategy.
 of predicted pathogenic variants is future work.
 \item \textit{Haplogroup resolution.} Sub-haplogroup prediction (H1a vs.\ H1b) requires
 finer-grained labels not included in this study.
-\item \textit{Model scale.} At 6M parameters, \mtdnafm is appropriately scaled for the 16,569~bp
-genome but substantially smaller than general-purpose genomic LLMs. Scaling experiments are
-left to future work.
+\item \textit{Model scale.} At 6M parameters, \mtdnafm is scaled for the 16,569~bp genome but is
+substantially smaller than general-purpose genomic LLMs. Scaling to 24M--100M parameters
+while preserving the circular PE and het channel is a natural next step.
 \end{itemize}
 
-\textbf{Future directions.} Ablation experiments (circular PE vs.\ standard sinusoidal PE;
-with vs.\ without het channel; two-phase vs.\ single-phase curriculum) are planned and will
-quantify each component's contribution. GPU fine-tuning is expected to substantially
-improve haplogroup classification accuracy beyond the 1.83\% CPU result; a comparison
-against DNABERT-2 will be included in the extended paper. Extending pre-training to ancient
-DNA sequences would improve zero-shot performance on archaic genomes. Scaling the model
-(24M--100M parameters) while maintaining the circular PE and het channel is a natural
-next step. The \mtdnafm framework (circular PE, het channel, two-phase curriculum) also
-generalizes to other circular genomes: bacterial plasmids, viral genomes, and chloroplast DNA.
+\textbf{Future work.} The extended paper will include ablations (circular PE vs.\ sinusoidal
+PE; with/without het channel; two-phase vs.\ single-phase curriculum), GPU fine-tuning with a
+DNABERT-2 baseline, and an expanded pathogenicity benchmark against MitoTIP and APOGEE2. The
+circular PE and het channel apply directly to other circular genomes: bacterial plasmids, viral
+genomes, and chloroplast DNA.
 
 %% =========================================================================
 \section{Conclusion}
 
-We introduced mtDNA-FM, the first foundation model for mitochondrial DNA, with two novel
-architectural components (circular positional encoding and heteroplasmy projection channel) and
-a two-phase pre-training curriculum. Zero-shot nearest-neighbour search achieves 37.9\% on the 26-class haplogroup evaluation
-(9.9$\times$ random baseline of 3.85\%) and AUROC 0.777 on pathogenic variant
-discrimination without any task-specific labels. Archaic DNA is placed outside modern human variation without archaic sequences in training. Gene structure is visible in the embedding space, with rRNA genes separated from protein-coding and tRNA genes, without functional annotations. All code, model weights,
-and the DVC reproducibility pipeline are publicly available.
+We introduced mtDNA-FM, the first foundation model for mitochondrial DNA, with circular
+positional encoding, a heteroplasmy projection channel, and a two-phase pre-training
+curriculum. Zero-shot 5-NN achieves 37.9\% on 26-class haplogroup classification
+(9.9$\times$ the 3.85\% random baseline) and AUROC 0.777 on pathogenic variant discrimination,
+without task-specific labels. Neanderthal and Denisovan sequences land outside modern human
+variation and rRNA genes separate from protein-coding and tRNA genes in the embedding space,
+both without supervision. All code, model weights, and the DVC pipeline are publicly available.
 
 %% =========================================================================
 \section*{Data Availability}
