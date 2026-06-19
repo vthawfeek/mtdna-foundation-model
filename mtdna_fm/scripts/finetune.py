@@ -63,6 +63,7 @@ class HaplogroupWindowDataset(Dataset):
         k: int = 6,
         max_sequences: int | None = None,
     ) -> None:
+        import numpy as np
         import pandas as pd
 
         from mtdna_fm.tokenizer.tokenize import tokenize_sequence
@@ -82,7 +83,15 @@ class HaplogroupWindowDataset(Dataset):
                 label_column,
             )
 
-        self._windows: list[dict[str, Any]] = []
+        self._window_size = window_size
+
+        # Store genome tokens as numpy int32 arrays (not Python lists) so that
+        # keeping all genomes in RAM costs ~1.5 GB instead of ~28 GB.
+        self._genome_ids: list[np.ndarray] = []
+        self._genome_pos: list[np.ndarray] = []
+        # Each entry: (genome_idx, window_start, label_idx)
+        self._window_index: list[tuple[int, int, int]] = []
+
         for _, row in df.iterrows():
             seq = row["sequence"]
             label_idx = self.LABEL2IDX[row[label_column]]
@@ -94,34 +103,34 @@ class HaplogroupWindowDataset(Dataset):
                 max_seq_len=len(seq),
                 circular=True,
             )
+            g_idx = len(self._genome_ids)
+            self._genome_ids.append(np.array(tokens["input_ids"], dtype=np.int32))
+            self._genome_pos.append(np.array(tokens["position_ids"], dtype=np.int32))
             n_tokens = len(tokens["input_ids"])
             for start in range(0, n_tokens, stride):
                 end = min(start + window_size, n_tokens)
                 if end - start < window_size // 4:
                     continue  # skip tiny trailing windows
-                pad_len = window_size - (end - start)
-                ids = tokens["input_ids"][start:end] + [0] * pad_len
-                pos = tokens["position_ids"][start:end] + [0] * pad_len
-                mask = [1] * (end - start) + [0] * pad_len
-                self._windows.append(
-                    {
-                        "input_ids": ids,
-                        "position_ids": pos,
-                        "attention_mask": mask,
-                        "label": label_idx,
-                    }
-                )
+                self._window_index.append((g_idx, start, label_idx))
 
     def __len__(self) -> int:
-        return len(self._windows)
+        return len(self._window_index)
 
     def __getitem__(self, idx: int) -> dict[str, torch.Tensor]:
-        w = self._windows[idx]
+        g_idx, start, label_idx = self._window_index[idx]
+        ws = self._window_size
+        ids_arr = self._genome_ids[g_idx]
+        pos_arr = self._genome_pos[g_idx]
+        end = min(start + ws, len(ids_arr))
+        pad = ws - (end - start)
+        ids = ids_arr[start:end].tolist() + [0] * pad
+        pos = pos_arr[start:end].tolist() + [0] * pad
+        mask = [1] * (end - start) + [0] * pad
         return {
-            "input_ids": torch.tensor(w["input_ids"], dtype=torch.long),
-            "position_ids": torch.tensor(w["position_ids"], dtype=torch.long),
-            "attention_mask": torch.tensor(w["attention_mask"], dtype=torch.long),
-            "labels": torch.tensor(w["label"], dtype=torch.long),
+            "input_ids": torch.tensor(ids, dtype=torch.long),
+            "position_ids": torch.tensor(pos, dtype=torch.long),
+            "attention_mask": torch.tensor(mask, dtype=torch.long),
+            "labels": torch.tensor(label_idx, dtype=torch.long),
         }
 
 
@@ -249,7 +258,7 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
     # After windowing, larger genomes produce more windows → severe class imbalance
     # even with balanced sequences per class. Balanced weights: n / (K * count_k).
     n_labels = cfg["num_labels"]
-    label_tensor = torch.tensor([w["label"] for w in train_ds._windows])
+    label_tensor = torch.tensor([w[2] for w in train_ds._window_index])
     class_counts = torch.bincount(label_tensor, minlength=n_labels).float()
     class_weights = len(train_ds) / (n_labels * (class_counts + 1e-6))
     log.info(
