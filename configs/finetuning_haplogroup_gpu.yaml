@@ -1,0 +1,47 @@
+# Haplogroup fine-tuning config for T4 GPU (Google Colab).
+#
+# Differences from finetuning_haplogroup_paper.yaml:
+#   1. base_model: HF Hub path (weights not stored locally)
+#   2. batch_size: 64  (T4 16GB VRAM handles larger batches)
+#   3. gradient_accumulation_steps: 2  (effective batch = 128)
+#   4. max_epochs: 40  (more data → more epochs needed; early-stop kicks in)
+#   5. warmup_ratio: 0.05  (shorter warmup relative to total steps)
+#   6. output_dir: models/finetune_haplogroup_gpu
+#
+# Data: data/processed/{train,val,test}.parquet must exist.
+# Run preprocessing first:
+#   mtdna-preprocess --hmtdb data/hmtdb_labeled --output-dir data/processed
+#   python paper/experiments/evaluation/fix_haplogroup_labels.py
+#
+# Usage:
+#   mtdna-finetune --task haplogroup --config configs/finetuning_haplogroup_gpu.yaml
+
+task: haplogroup_classification
+num_labels: 26
+label_column: major_haplogroup
+base_model: "vthawfeek/mtdna-foundation-model"
+
+use_lora: true
+lora_r: 8
+lora_alpha: 16
+lora_dropout: 0.1
+lora_target_modules:
+  - query
+  - key
+  - value
+  - dense
+
+batch_size: 64
+gradient_accumulation_steps: 2
+learning_rate: 1.0e-3
+max_epochs: 40
+warmup_ratio: 0.05
+weight_decay: 0.01
+max_grad_norm: 1.0
+fp16: false
+dropout: 0.1
+
+mlflow_experiment: "mtdna_fm_haplogroup_gpu"
+output_dir: "models/finetune_haplogroup_gpu"
+save_best_metric: "val_accuracy"
+eval_every_n_epochs: 1

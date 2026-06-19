@@ -159,11 +159,12 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     log.info("Device: %s", device)
 
-    # Load base encoder
-    if not Path(base_model_path).exists():
+    # Load base encoder — accept either a local directory or an HF Hub repo ID (owner/repo)
+    _is_hub_id = "/" in base_model_path and not Path(base_model_path).exists()
+    if not _is_hub_id and not Path(base_model_path).exists():
         typer.echo(
             f"[finetune] Base model not found at {base_model_path}. "
-            "Run Phase 2 pre-training first (mtdna-train --config configs/pretraining_phase2.yaml).",
+            "Provide a local directory or an HF Hub repo ID (e.g. vthawfeek/mtdna-foundation-model).",
             err=True,
         )
         raise typer.Exit(code=1)
