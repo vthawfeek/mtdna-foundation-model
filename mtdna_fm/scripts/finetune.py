@@ -62,6 +62,7 @@ class HaplogroupWindowDataset(Dataset):
         label_column: str = "haplogroup",
         k: int = 6,
         max_sequences: int | None = None,
+        max_per_class: int | None = None,
     ) -> None:
         import numpy as np
         import pandas as pd
@@ -74,6 +75,15 @@ class HaplogroupWindowDataset(Dataset):
 
         # Keep only rows with a known haplogroup label
         df = df[df[label_column].isin(self.HAPLOGROUPS)].reset_index(drop=True)
+
+        # Stratified cap: take at most max_per_class rows per class so dataset
+        # build stays within Colab RAM and time limits.
+        if max_per_class is not None:
+            df = (
+                df.groupby(label_column, group_keys=False)
+                .apply(lambda g: g.sample(min(len(g), max_per_class), random_state=42))
+                .reset_index(drop=True)
+            )
         if len(df) < 500:
             log.warning(
                 "HaplogroupWindowDataset: only %d sequences matched labels in column '%s'. "
@@ -225,6 +235,7 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
         train_parquet,
         vocabulary,
         label_column=cfg.get("label_column", "haplogroup"),
+        max_per_class=cfg.get("max_per_class"),
     )
     log.info("Training windows: %d", len(train_ds))
     if len(train_ds) < 100:
@@ -240,6 +251,7 @@ def finetune_haplogroup(cfg: dict[str, Any]) -> None:
         val_parquet,
         vocabulary,
         label_column=cfg.get("label_column", "haplogroup"),
+        max_per_class=cfg.get("max_per_class"),
     ) if Path(val_parquet).exists() else None
 
     train_dl = DataLoader(

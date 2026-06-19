@@ -20,6 +20,7 @@ task: haplogroup_classification
 num_labels: 26
 label_column: major_haplogroup
 base_model: "vthawfeek/mtdna-foundation-model"
+max_per_class: 100
 
 use_lora: true
 lora_r: 8
