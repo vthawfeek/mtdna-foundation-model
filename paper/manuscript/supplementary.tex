@@ -157,8 +157,10 @@ were used in pre-training. Sequences from NCBI haplogroup-labeled human mitochon
 
 \begin{table}[h]
 \centering
-\caption{Per-class zero-shot 5-NN haplogroup metrics (757 test queries, 1509 train
-library sequences, cosine distance). No haplogroup labels used in pre-training.}
+\caption{Per-class zero-shot 5-NN haplogroup metrics (757 test queries, 1,509 train
+library sequences, cosine distance). No haplogroup labels used in pre-training.
+Classes with $N<10$ test sequences (E$=$4, L5$=$4, G$=$10, L4$=$11, V$=$11) have
+high per-class metric variance; interpret their F1 scores with caution.}
 \begin{tabular}{lcccc}
 \toprule
 \textbf{Haplogroup} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{N test} \\

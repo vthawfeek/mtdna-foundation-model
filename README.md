@@ -26,7 +26,7 @@ embedding = embedder.embed_genome(sequence)   # shape: (256,)
 | Haplogroup classification | Accuracy | 3.85% | ~65% (26-class) | **37.9%¹ (26-class)** | 1.83%² (26-class) |
 | Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | 0.777 (95% CI 0.731–0.821)³ | not evaluated |
 
-¹ Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.8× lift**; 95% CI 34.4–41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
+¹ Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.9× lift**; 95% CI 34.4–41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
 ² LoRA r=8, 1,267 training sequences, 2 epochs on CPU, 26-class evaluation (3.85% random baseline). Partial class collapse (3/26 classes active). Fine-tuning did not converge — CPU compute constraint. Zero-shot k-NN (37.9%) is the more reliable signal of what the pre-training learned. See `reports/eval_summary.json`.
 ³ Zero-shot 5-fold stratified k-NN (k=5, cosine): 118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44). Script: `scripts/zeroshot_patho_eval.py`. Supervised LoRA fine-tuning on real data is future work.
 

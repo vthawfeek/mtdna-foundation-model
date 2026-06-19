@@ -54,7 +54,7 @@ fraction (0--1) alongside sequence content. Pre-trained via a two-phase curricul
 complete vertebrate mtDNA sequences (Phase~1: 117,615 cross-species; Phase~2: 34,975 human
 HmtDB sequences), mtDNA-FM produces embeddings with strong zero-shot capabilities without any
 task-specific labels. Zero-shot 5-nearest-neighbour search on a 26-class haplogroup panel
-achieves 37.9\% accuracy (3.85\% random baseline, 9.8$\times$ lift;
+achieves 37.9\% accuracy (3.85\% random baseline, 9.9$\times$ lift;
 95\% CI 34.4--41.2\%), and zero-shot variant embeddings discriminate
 ClinVar pathogenic mtDNA SNPs from gnomAD common variants with AUROC 0.777
 (95\% CI 0.731--0.821). The model correctly places archaic human sequences (Neanderthal
@@ -294,12 +294,24 @@ population allele frequency $> 0.01$.
 \subsection{Evaluation Setup}
 \label{sec:eval_setup}
 
-All evaluation uses a held-out test split from HmtDB sequences stratified by major haplogroup
-(80/10/10 train/val/test, \texttt{random\_state=42}). Metrics: accuracy and macro-F1 for
-classification; AUROC and AUPR for pathogenicity. Confidence intervals are computed by
-1,000-replicate non-parametric bootstrap. Baseline comparisons: 6-mer frequency vectors with
-logistic regression, and random performance. Comparison against DNABERT-2 embeddings is
-deferred to the extended paper.
+\textbf{Haplogroup zero-shot evaluation.} Because HmtDB was inaccessible at evaluation time,
+we used NCBI human mitochondrial genomes with haplogroup annotations embedded in their record
+titles (Entrez query: \texttt{human[Organism] AND mitochondrion[Filter] AND complete
+genome[Title] AND haplogroup[Title]}). This yielded 15,741 records; haplogroup labels were
+parsed from the description field using a regular expression, retaining 13,884 sequences with
+unambiguous major-class assignments. A stratified 80/10/10 train/validation/test split
+(\texttt{random\_state=42}) was applied; the zero-shot k-NN uses the train split as a
+library (up to 60 sequences per class) and the test split as queries (up to 40 per class).
+Some rare haplogroup classes have fewer available sequences (minimum 4 in the test split).
+Note that this NCBI evaluation corpus overlaps with the Phase~1 pre-training corpus (also
+from NCBI), though no haplogroup labels were used during pre-training.
+
+\textbf{Pathogenicity and fine-tuning evaluation.} Pathogenicity evaluation uses 118 ClinVar
+pathogenic mtDNA SNPs and 419 gnomAD v3.1 chrM common variants (AF $>0.01$). Fine-tuning
+evaluation uses HmtDB sequences with a stratified 80/10/10 split (\texttt{random\_state=42}).
+Metrics: accuracy and macro-F1 for classification; AUROC and AUPR for pathogenicity.
+Confidence intervals are 1,000-replicate non-parametric bootstrap. Baseline: 6-mer frequency
+vectors with logistic regression. Comparison against DNABERT-2 is deferred to the extended paper.
 
 %% =========================================================================
 \section{Results}
@@ -310,11 +322,11 @@ deferred to the extended paper.
 
 Without any fine-tuning, zero-shot 5-nearest-neighbour search (cosine distance) on \mtdnafm
 embeddings achieves \textbf{37.9\%} accuracy on the full 26-class haplogroup evaluation
-(95\% CI 34.4--41.2\%; random baseline 3.85\%, 9.8$\times$ lift;
+(95\% CI 34.4--41.2\%; random baseline 3.85\%, 9.9$\times$ lift;
 macro-F1 0.3703; Table~\ref{tab:haplogroup}). The evaluation set comprises 757 sequences
-balanced across 26 PhyloTree major haplogroup classes, drawn from 13,884 NCBI human
-mitochondrial genomes with haplogroup annotations in their titles; the train library contains
-1,509 sequences (60 per class). Figure~\ref{fig:haplogroup} shows the UMAP of 100 sequences
+across 26 PhyloTree major haplogroup classes (up to 40 per class; rare classes have fewer),
+drawn from 13,884 NCBI human mitochondrial genomes with haplogroup annotations in their
+titles; the train library contains 1,509 sequences (up to 60 per class). Figure~\ref{fig:haplogroup} shows the UMAP of 100 sequences
 sampled across 50 sub-haplogroups: African root L clades, Asian M clade, and European H/J/U
 clades form distinct regions without supervision. Misclassifications are phylogenetically
 structured: haplogroup H is confused with its direct ancestor HV; L0 is confused with its
@@ -355,7 +367,7 @@ Random baseline & 26-class & 3.85 & 0.038 \\
 coloured by major haplogroup. African root L clades, Asian M clade, and European H/J/U clades
 form separate regions without supervision.
 (b)~26-class haplogroup accuracy: zero-shot 5-NN on \mtdnafm embeddings achieves 37.9\%
-(9.8$\times$ above random baseline 3.85\%). No haplogroup labels were used in pre-training.}
+(9.9$\times$ above random baseline 3.85\%). No haplogroup labels were used in pre-training.}
 \label{fig:haplogroup}
 \end{figure}
 
@@ -458,6 +470,11 @@ API.
 
 \textbf{Limitations.}
 \begin{itemize}
+\item \textit{Evaluation--pre-training overlap.} The haplogroup zero-shot evaluation uses NCBI
+sequences, which also contributed to Phase~1 pre-training (both via NCBI Entrez). No haplogroup
+labels were used during pre-training, but some evaluation sequences may have been seen during
+MLM training, potentially inflating zero-shot accuracy by a modest amount. Quantifying this
+overlap is left to future work.
 \item \textit{European cohort bias.} HmtDB contains $\sim$60--70\% European-origin sequences.
 Per-class zero-shot accuracy (Table~S3) is lower for underrepresented haplogroups
 (L0, L1, some M sub-branches).
@@ -488,7 +505,7 @@ generalizes to other circular genomes: bacterial plasmids, viral genomes, and ch
 We introduced mtDNA-FM, the first foundation model for mitochondrial DNA, with two novel
 architectural components (circular positional encoding and heteroplasmy projection channel) and
 a two-phase pre-training curriculum. Zero-shot nearest-neighbour search achieves 37.9\% on the 26-class haplogroup evaluation
-(9.8$\times$ random baseline of 3.85\%) and AUROC 0.777 on pathogenic variant
+(9.9$\times$ random baseline of 3.85\%) and AUROC 0.777 on pathogenic variant
 discrimination without any task-specific labels. Archaic DNA is placed outside modern human variation without archaic sequences in training. Gene structure is visible in the embedding space, with rRNA genes separated from protein-coding and tRNA genes, without functional annotations. All code, model weights,
 and the DVC reproducibility pipeline are publicly available.
 
