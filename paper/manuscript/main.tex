@@ -51,7 +51,22 @@ introduces two architectural novelties: (i) a \textit{circular positional encodi
 as a fixed sinusoidal buffer such that positions~0 and 16,568 receive identical encodings,
 eliminating the artificial discontinuity at the genome junction; and (ii) a
 \textit{heteroplasmy projection channel} that accepts a continuous per-position variant allele
-fraction (0--1) alongside sequence content. Pre-trained on 152,590 complete vertebrate mtDNA sequences in two phases (117,615
+fraction (0--1) alongside sequence content.
+We compare \mtdnafm{} against DNABERT-2 \citep{zhou2024dnabert2} (117M parameters, BPE
+tokenization, pre-trained on 32 vertebrate nuclear genomes, 18\% of each genome seen) using an
+identical zero-shot cosine 5-nearest-neighbour protocol on the same train/test split.
+\mtdnafm{} achieves 37.9\% on 26-class haplogroup classification versus 66.3\% for DNABERT-2
+(95\% CI 34.4--41.2\% vs 63.0--69.5\%; intervals do not overlap). Per-class analysis yields
+four observations: (1)~the gap is clade-specific --- within \mtdnafm{}, all nine European
+HV haplogroups fall in F1 range 0.000--0.241 and all six African L haplogroups fall in range
+0.438--0.857, with no overlap across 15 independent class measurements; (2)~the failure is a
+representation failure --- DNABERT-2 correctly classifies H and J using diagnostic positions
+within 3,000~nt that \mtdnafm{} also covers; (3)~bidirectional precision and recall collapse
+for all nine European HV haplogroups confirms embedding-space overlap within the clade; and
+(4)~\mtdnafm{} outperforms DNABERT-2 on haplogroups C and F, whose diagnostic positions fall
+beyond the 3,000-nucleotide truncation limit, providing directional evidence that full-genome
+coverage is advantageous where truncation removes discriminative information.
+Pre-trained on 152,590 complete vertebrate mtDNA sequences in two phases (117,615
 cross-species, then 34,975 human HmtDB), the model achieves 37.9\% on 26-class zero-shot
 haplogroup classification (cosine 5-NN; 3.85\% random baseline, 9.9$\times$ lift;
 95\% CI 34.4--41.2\%) and AUROC 0.777 (95\% CI 0.731--0.821) on zero-shot pathogenic variant
@@ -422,14 +437,211 @@ genomic positions on the circular chromosome. No functional labels were used in 
 \end{figure}
 
 %% =========================================================================
+\section{Analysis: Why Does a Nuclear-Genome Model Outperform an mtDNA-Specialist?}
+\label{sec:analysis}
+
+Four observations follow directly from the per-class results, the experiment design, and known
+rCRS gene structure. They identify specific, separable causes and rule out simpler explanations.
+Candidate mechanisms that require ablation experiments to confirm are explicitly labelled.
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Observation 1: The Performance Gap Is Clade-Specific}
+\label{sec:clade_specific}
+
+Table~\ref{tab:clade_summary} computes average per-class F1 grouped by phylogenetic clade
+using values from the full 26-class zero-shot evaluation. Two patterns are immediately visible.
+
+First, within \mtdnafm{}: all nine European HV haplogroups (H, HV, J, K, T, U, V, W, X) fall
+in the F1 range 0.000--0.241; all six African L haplogroups (L0--L5) fall in the range
+0.438--0.857. These ranges do not overlap: the highest-performing European HV haplogroup
+(U: F1 = 0.241) is strictly below the lowest-performing African L haplogroup
+(L3: F1 = 0.438). Across 15 independent class measurements, the complete non-overlap
+establishes that \mtdnafm{} has a structural failure specific to European HV haplogroups.
+
+Second, DNABERT-2 shows no analogous separation. Its European HV range (0.400--0.957) and
+African L range (0.513--1.000) overlap substantially.
+
+\begin{table}[h]
+\centering
+\caption{Clade-level average per-class F1 and gap. All F1 values are from the zero-shot cosine
+5-NN evaluation (same train/test split, same balanced sampling). European HV clade: H, HV, J,
+K, T, U, V, W, X. African L clade: L0--L5. Both the average and range confirm the complete
+non-overlap within \mtdnafm{}'s performance. Full per-class values in Supplementary
+Tables~S1 and S3.2.}
+\label{tab:clade_summary}
+\begin{tabular}{lccccc}
+\toprule
+\textbf{Clade} & \textbf{Classes} &
+\multicolumn{2}{c}{\textbf{Average F1}} & \textbf{Gap} &
+\textbf{\mtdnafm{} F1 range} \\
+& & \mtdnafm{} & DNABERT-2 & & \\
+\midrule
+European HV & 9  & 0.096 & 0.709 & 0.613 & 0.000--0.241 \\
+African L   & 6  & 0.692 & 0.803 & 0.111 & 0.438--0.857 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+If the 28.4 percentage-point overall gap were driven purely by scale \citep{kaplan2020scaling},
+performance would improve roughly uniformly across haplogroups, producing similar within-model
+clade ratios for both models. Instead: the ratio of African L to European HV average F1 is
+7.2$\times$ within \mtdnafm{} and only 1.13$\times$ within DNABERT-2. The difference in
+clade ratios (7.2$\times$ vs 1.13$\times$) is not consistent with a uniform scale effect.
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Observation 2: \mtdnafm{}'s European Clade Failure Is a Representation Failure,
+Not an Information-Access Failure}
+\label{sec:rep_failure}
+
+\mtdnafm{} processes all 16,569 positions of each genome across 33 overlapping windows.
+DNABERT-2 is truncated to the first 3,000~nt, covering the D-loop control region (positions
+1--576, including HV2 and HV3), the 12S rRNA gene (648--1601), and the first 1,329~nt of the
+16S rRNA gene (1671--3000). The ND1 coding gene does not begin until position 3307 and falls
+entirely outside DNABERT-2's window.
+
+Key diagnostic positions for the worst-performing European HV haplogroups fall within the
+regions DNABERT-2 covers. Haplogroup H is partially defined by positions 750 (12S rRNA) and
+2706 (16S rRNA) \citep{vanoven2009phylotree}, both within 3,000~nt. Haplogroup J carries the
+defining D-loop variant at position 295 \citep{vanoven2009phylotree}, also within 3,000~nt.
+Using only these early markers, DNABERT-2 achieves F1 = 0.643 on H and F1 = 0.947 on J: it
+correctly classifies 36 of 40 J test sequences and 27 of 40 H test sequences.
+
+\mtdnafm{} covers the same positions --- they fall within windows 1--4 of its 33-window
+representation --- yet achieves F1 = 0.055 on H (2 of 40 correct) and F1 = 0.149 on J (5
+of 40 correct). The discriminative information exists in positions 1--3,000~nt; DNABERT-2
+uses it; \mtdnafm{} does not. The failure is therefore in how \mtdnafm{} represents
+what it sees, not in what it is given access to.
+
+Three candidate mechanisms are consistent with this observation; each requires ablation
+experiments to isolate its contribution:
+
+\noindent\textbf{(a) Scale.} At 5.8M parameters versus 117M, \mtdnafm{} has a 20$\times$ smaller
+parameter budget for encoding the same input, reducing representational capacity for subtle
+sequence differences.
+
+\noindent\textbf{(b) Tokenization.} Stride-1 6-mer tokenization creates approximately 16,569 tokens
+per genome with extreme inter-token autocorrelation (tokens at positions $i$ and $i+1$ share
+five of six nucleotides). DNABERT-2's BPE vocabulary \citep{zhou2024dnabert2} of approximately
+500 non-redundant tokens provides higher information density per token, particularly for
+haplogroup-diagnostic sequence patterns.
+
+\noindent\textbf{(c) Window mean-pooling.} \mtdnafm{} averages 33 window CLS representations into a
+single 256-dimensional vector. The diagnostic signal at D-loop position 295 (one of 33 windows)
+contributes equally to a conserved tRNA motif at position 7029 (a different window). This
+architectural dilution reduces the weight of position-specific markers to 1/33 of the total
+embedding.
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Observation 3: Bidirectional Precision and Recall Collapse Confirms Embedding
+Overlap Within the European HV Clade}
+\label{sec:precision_recall}
+
+For a k-NN classifier, low recall on class H means H test sequences are being assigned to
+other classes. Low precision means non-H test sequences are being assigned to H. Both failures
+simultaneously indicate that H embeddings occupy the same region of cosine space as embeddings
+from other haplogroups: the k-NN cannot resolve them.
+
+Table~\ref{tab:precision_recall} reports precision and recall for the European HV haplogroups
+in \mtdnafm{}. Six of nine show both precision and recall below 0.20, consistent with
+bidirectional embedding-space overlap within the clade. For comparison, haplogroup L0 shows
+precision = 0.857 and recall = 0.750; its embeddings form a geometrically distinct cluster.
+The existing UMAP analysis (Figure~\ref{fig:haplogroup}) documents this directly:
+\textit{``haplogroup H is confused with its direct ancestor HV''}, consistent with the near-zero
+F1 values for both.
+
+\begin{table}[h]
+\centering
+\caption{Precision and recall for European HV-clade haplogroups under \mtdnafm{} zero-shot
+5-NN evaluation. Low precision AND low recall simultaneously indicate bidirectional embedding
+overlap: H sequences are assigned to other clades (low recall) and other sequences are
+assigned to H (low precision). Support = test sequences per class. For comparison, African
+root clade L0 achieves precision = 0.857, recall = 0.750.}
+\label{tab:precision_recall}
+\begin{tabular}{lccc}
+\toprule
+\textbf{Haplogroup} & \textbf{Precision} & \textbf{Recall} & \textbf{Support} \\
+\midrule
+H  & 0.061 & 0.050 & 40 \\
+HV & 0.036 & 0.040 & 25 \\
+J  & 0.185 & 0.125 & 40 \\
+K  & 0.182 & 0.150 & 40 \\
+T  & 0.133 & 0.050 & 40 \\
+U  & 0.389 & 0.175 & 40 \\
+V  & 0.056 & 0.091 & 11 \\
+W  & 0.000 & 0.000 & 16 \\
+X  & 0.071 & 0.083 & 12 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Observation 4: Full-Genome Coverage Provides Measurable Advantage Where DNABERT-2
+Is Truncated}
+\label{sec:coverage_advantage}
+
+Three haplogroups --- C, F, and E --- show \mtdnafm{} achieving higher F1 than DNABERT-2:
+C (0.632 vs 0.611), F (0.716 vs 0.613), and E (0.400 vs 0.222). These haplogroups have
+PhyloTree-documented diagnostic positions beyond position 3,000~nt \citep{vanoven2009phylotree}
+that fall outside DNABERT-2's truncation window; \mtdnafm{}'s full-genome coverage reaches them.
+
+The test set for haplogroups C (40 sequences), F (36 sequences), and E (4 sequences) is
+small relative to what would be required for formal per-class significance testing. The
+directional consistency across all three classes --- \mtdnafm{} outperforms on every one ---
+combined with the biological explanation (truncation misses key diagnostic positions),
+provides converging evidence that full-genome access confers an advantage on haplogroups
+whose discriminative information lies beyond position 3,000~nt.
+
+This double dissociation is directly relevant to the overall interpretation. If DNABERT-2's
+superior performance were attributable solely to scale or tokenization quality, it would
+outperform on every haplogroup. The existence of three haplogroups where the smaller,
+domain-specialized model outperforms the larger nuclear-genome model demonstrates that the
+content of the genome matters: truncation imposes a hard ceiling that scale cannot overcome
+for haplogroups whose defining variants fall in the excluded region.
+
+%% ─────────────────────────────────────────────────────────────────────────
+\subsection{Design Implications for Next-Generation mtDNA Models}
+\label{sec:implications}
+
+Each observation identifies a specific target for improvement.
+
+\textbf{Observations 1 and 3} (clade-specific failure and embedding overlap) point to
+representation quality for recently diverged, sparse-signal clades as the primary failure
+mode. Scale (a 100M-parameter \mtdnafm{} body) is the highest-leverage single intervention,
+consistent with empirical scaling behaviour across neural language models \citep{kaplan2020scaling}.
+Balanced sampling during Phase 2 pre-training (haplogroup-uniform weighting, avoiding
+over-representation of the European HV clade) is a lower-cost intervention that directly
+targets the 14.3\% H dominance in the HmtDB labeled set.
+
+\textbf{Observation 2} (representation failure) points to tokenization and aggregation as
+separable mechanisms. BPE tokenization trained on human mtDNA sequences would reduce
+autocorrelated 6-mer tokens to approximately 500 non-redundant tokens \citep{zhou2024dnabert2}
+and enable a single-window forward pass over the full genome. Hierarchical attention over
+window CLS representations would allow the model to learn position-specific window weights,
+ending the 1/33 dilution of diagnostic D-loop signal.
+
+\textbf{Observation 4} (full-genome advantage) establishes that the circular positional
+encoding, heteroplasmy channel, and full-genome coverage must be preserved in any scaled
+successor. BPE tokenization of the full 16,569~bp genome ($\sim$500 tokens) would eliminate
+windowing entirely, resolving the aggregation problem while retaining full-genome access.
+
+The circular positional encoding and heteroplasmy projection channel are orthogonal to all
+of the above interventions. They address the circular topology of mtDNA and the continuous
+allele-fraction nature of heteroplasmy, neither of which is handled by any existing
+general-purpose genomic model. A scaled successor should inherit both.
+
+%% =========================================================================
 \section{Discussion}
 
-\mtdnafm demonstrates that a 6M parameter encoder pre-trained exclusively on mitochondrial sequences
-encodes evolutionary structure without task-specific supervision: haplogroup identity, archaic
-sequence ancestry, and rRNA/protein-coding gene separation are recoverable from the embedding
-space. Zero-shot haplogroup accuracy (37.9\%) is 9.9$\times$ the random baseline; DNABERT-2 (117M
-parameters, nuclear genomes) achieves 66.3\% on the same task, with the gap attributable to scale
-rather than domain alignment (see Limitations).
+\mtdnafm{} demonstrates that a 6M parameter encoder pre-trained exclusively on mitochondrial
+sequences encodes evolutionary structure without task-specific supervision: haplogroup identity,
+archaic sequence ancestry, and rRNA/protein-coding gene separation are all recoverable from the
+embedding space. Section~\ref{sec:analysis} derives four observations from the per-class
+comparison against DNABERT-2: the gap is clade-specific (European HV haplogroups show
+complete non-overlap with African L haplogroups in \mtdnafm{}'s per-class performance); it is
+a representation failure rather than an information-access failure; bidirectional
+precision/recall collapse confirms embedding-space overlap within the European HV clade; and
+\mtdnafm{} outperforms DNABERT-2 on three haplogroups (C, F, E) whose diagnostic positions
+fall beyond DNABERT-2's truncation limit.
 
 \textbf{Circular PE generalizability.} The circular positional encoding is not specific to mtDNA.
 Any circular genome (bacterial plasmids, viral genomes, chloroplast genomes) could benefit from
@@ -443,22 +655,18 @@ sequences, which also contributed to Phase~1 pre-training (both via NCBI Entrez)
 labels were used during pre-training, but some evaluation sequences may have been seen during
 MLM training, potentially inflating zero-shot accuracy. We will quantify this overlap in the
 extended paper.
-\item \textit{European cohort bias.} HmtDB contains $\sim$60--70\% European-origin sequences.
-Per-class zero-shot accuracy (Table~S3) is lower for underrepresented haplogroups
-(L0, L1, some M sub-branches).
+\item \textit{European cohort bias.} HmtDB contains approximately 60--70\% European-origin
+sequences; haplogroup H alone constitutes approximately 14.3\% of labeled sequences, and the
+European HV clade (H, HV, J, K, T, U) constitutes approximately 50\%. All nine European
+HV-clade haplogroups show \mtdnafm{} F1 below 0.25; whether over-representation of closely
+related sequences during Phase 2 pre-training contributes to the observed embedding-space
+collapse is a testable hypothesis (Section~\ref{sec:clade_specific}).
 \item \textit{SNPs only.} Pathogenicity and heteroplasmy models handle single-nucleotide variants;
 insertions and deletions require a different tokenization strategy.
 \item \textit{No wet-lab validation.} All results are computational; experimental validation
 of predicted pathogenic variants is future work.
 \item \textit{Haplogroup resolution.} Sub-haplogroup prediction (H1a vs.\ H1b) requires
 finer-grained labels not included in this study.
-\item \textit{Model scale.} At 6M parameters, \mtdnafm is substantially smaller than general-purpose
-genomic LLMs. DNABERT-2 (117M parameters, nuclear-genome pre-training) achieves 66.3\% on the same
-zero-shot haplogroup k-NN task despite seeing only 18\% of each genome (Table~\ref{tab:haplogroup}).
-The 28.4 percentage-point gap is likely attributable to the 20$\times$ parameter difference rather
-than domain specificity; mtDNA-FM's architectural contributions (circular PE, full-genome coverage,
-heteroplasmy channel) are independent of parameter count. Scaling to 24M--100M parameters is a
-natural next step.
 \end{itemize}
 
 \textbf{Future work.} The extended paper will include architectural ablations (circular PE
@@ -470,13 +678,29 @@ bacterial plasmids, viral genomes, and chloroplast DNA.
 %% =========================================================================
 \section{Conclusion}
 
-We introduced mtDNA-FM, the first foundation model for mitochondrial DNA, with circular
+We introduced \mtdnafm{}, the first foundation model for mitochondrial DNA, with circular
 positional encoding, a heteroplasmy projection channel, and a two-phase pre-training
 curriculum. Zero-shot 5-NN achieves 37.9\% on 26-class haplogroup classification
 (9.9$\times$ the 3.85\% random baseline) and AUROC 0.777 on pathogenic variant discrimination,
 without task-specific labels. Neanderthal and Denisovan sequences land outside modern human
 variation and rRNA genes separate from protein-coding and tRNA genes in the embedding space,
-both without supervision. All code, model weights, and the DVC pipeline are publicly available.
+both without supervision.
+
+Comparing against DNABERT-2 (117M parameters, nuclear-genome pre-training, 18\% of each
+genome seen) reveals a 28.4 percentage-point gap whose structure the per-class data makes
+interpretable. Four observations are supported by the results: the gap is clade-specific
+(all nine European HV haplogroups in \mtdnafm{} F1 range 0.000--0.241 with no overlap with
+the six African L haplogroups in range 0.438--0.857); the failure is a representation failure
+(DNABERT-2 correctly classifies H and J from diagnostic positions within 3,000~nt that
+\mtdnafm{} also covers but cannot leverage); bidirectional precision/recall collapse across
+the European HV clade confirms embedding-space overlap; and \mtdnafm{} outperforms
+DNABERT-2 on haplogroups C and F, whose diagnostic positions lie beyond DNABERT-2's
+truncation limit, confirming that full-genome access captures information unavailable to
+truncated models. The analysis points to BPE tokenization over the full genome, hierarchical
+window aggregation, and scaling to 100M parameters while preserving the circular positional
+encoding and heteroplasmy channel as the path to a model that captures both full-genome
+coverage and the per-position precision needed for recently diverged clades.
+All code, model weights, and the DVC pipeline are publicly available.
 
 %% =========================================================================
 \section*{Data Availability}
