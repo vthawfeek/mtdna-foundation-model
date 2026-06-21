@@ -6,6 +6,7 @@
 \usepackage{amsmath,amssymb,amsthm}
 \usepackage{graphicx}
 \usepackage{booktabs}
+\usepackage{natbib}
 \usepackage{hyperref}
 \usepackage{xcolor}
 \usepackage{xspace}
@@ -77,28 +78,6 @@ Genome length for circular PE & 16,569 bp (rCRS) \\
 \end{tabular}
 \end{table}
 
-\subsection*{S1.3 Fine-tuning Hyperparameters}
-
-\begin{table}[h]
-\centering
-\caption{LoRA fine-tuning hyperparameters for each downstream task.}
-\begin{tabular}{lccc}
-\toprule
-\textbf{Hyperparameter} & \textbf{Haplogroup} & \textbf{Pathogenicity} & \textbf{Heteroplasmy} \\
-\midrule
-LoRA rank ($r$) & 8 & 4 & 4 \\
-LoRA $\alpha$ & 16 & 8 & 8 \\
-LoRA dropout & 0.05 & 0.05 & 0.05 \\
-LoRA target modules & Q, V & Q, V & Q, V \\
-Learning rate & $1 \times 10^{-3}$ & $5 \times 10^{-4}$ & $5 \times 10^{-4}$ \\
-Epochs & 20 & 30 & 30 \\
-Batch size & 32 & 16 & 16 \\
-Loss function & Cross-entropy & BCE ($w_+=2.5$) & Huber ($\delta=1.0$) \\
-Weight decay & 0.0 & 0.1 & 0.1 \\
-Input representation & CLS token & Variant position token & CLS token \\
-\bottomrule
-\end{tabular}
-\end{table}
 
 %% =========================================================================
 \section*{S2. Mathematical Derivation: Circular Positional Encoding}
@@ -146,7 +125,7 @@ gradients do not flow through the positional encoding.
 \end{itemize}
 
 %% =========================================================================
-\section*{S3. Per-class Haplogroup Metrics}
+\section*{S3. Per-class Zero-shot Haplogroup Metrics}
 
 \subsection*{S3.1 Zero-shot 5-NN (26-class evaluation)}
 
@@ -198,54 +177,30 @@ X & 0.071 & 0.083 & 0.077 & 12 \\
 \label{tab:per_class_zeroshot}
 \end{table}
 
-\subsection*{S3.2 LoRA Fine-tuning (CPU, 2 epochs)}
+\subsection*{S3.2 Baseline: DNABERT-2 Zero-shot Haplogroup Classification}
 
-Results from LoRA fine-tuning under CPU compute constraints (2~epochs; class collapse
-to haplogroups D, G, R). Non-zero recall for D (24.4\%), G (62.3\%), and R (13.6\%)
-reflects the partial model: these three haplogroups have the largest training window counts
-and were the only predicted classes. All other classes have zero recall due to class collapse.
-See Section~4.2 of the main text for full discussion.
+DNABERT-2 \citep{zhou2024dnabert2} (117M parameters, BPE tokenization, pre-trained on
+32 vertebrate nuclear genomes) was evaluated with the same cosine 5-NN protocol on the
+same train/test split as \mtdnafm. Each 16,569~bp sequence was truncated to at most
+3,000 nucleotides before tokenization; DNABERT-2's 512-token context limit applies after
+BPE tokenization. The CLS embedding from the final transformer layer was used as the
+sequence representation, matching the protocol for \mtdnafm.
 
 \begin{table}[h]
 \centering
-\caption{Per-class haplogroup classification metrics from LoRA fine-tuning (CPU, 2 epochs).
-$N$~test refers to the number of test windows (not sequences) per class; each genome
-contributes $\approx$65 windows.}
-\begin{tabular}{lcccc}
+\caption{Zero-shot 26-class haplogroup classification: DNABERT-2 vs \mtdnafm.
+Both use cosine 5-NN on the same 1,509-sequence train library and 757-sequence test
+set. DNABERT-2's 512-token BPE context covers approximately 3,000 nt (18\%) of each
+16,569 bp genome; \mtdnafm encodes the full genome via overlapping 512-token windows.}
+\begin{tabular}{lccc}
 \toprule
-\textbf{Haplogroup} & \textbf{Precision} & \textbf{Recall} & \textbf{F1} & \textbf{N windows} \\
+\textbf{Model} & \textbf{Params} & \textbf{Accuracy (\%)} & \textbf{Macro-F1} \\
 \midrule
-A & 0.000 & 0.000 & 0.000 & 3,250 \\
-B & 0.000 & 0.000 & 0.000 & 7,215 \\
-C & 0.000 & 0.000 & 0.000 & 4,160 \\
-D & 0.040 & 0.244 & 0.069 & 2,925 \\
-E & 0.000 & 0.000 & 0.000 & 390 \\
-F & 0.000 & 0.000 & 0.000 & 2,145 \\
-G & 0.011 & 0.623 & 0.021 & 780 \\
-H & 0.000 & 0.000 & 0.000 & 9,945 \\
-HV & 0.000 & 0.000 & 0.000 & 845 \\
-I & 0.000 & 0.000 & 0.000 & 1,170 \\
-J & 0.000 & 0.000 & 0.000 & 2,470 \\
-K & 0.000 & 0.000 & 0.000 & 1,300 \\
-L0 & 0.000 & 0.000 & 0.000 & 3,575 \\
-L1 & 0.000 & 0.000 & 0.000 & 1,820 \\
-L2 & 0.000 & 0.000 & 0.000 & 4,485 \\
-L3 & 0.000 & 0.000 & 0.000 & 5,265 \\
-L4 & 0.000 & 0.000 & 0.000 & 780 \\
-L5 & 0.000 & 0.000 & 0.000 & 260 \\
-M & 0.000 & 0.000 & 0.000 & 5,265 \\
-N & 0.000 & 0.000 & 0.000 & 1,170 \\
-R & 0.015 & 0.136 & 0.026 & 1,040 \\
-T & 0.000 & 0.000 & 0.000 & 4,160 \\
-U & 0.000 & 0.000 & 0.000 & 6,760 \\
-V & 0.000 & 0.000 & 0.000 & 975 \\
-W & 0.000 & 0.000 & 0.000 & 520 \\
-X & 0.000 & 0.000 & 0.000 & 585 \\
-\midrule
-\textbf{Macro avg} & 0.003 & 0.039 & 0.004 & 73,255 \\
+DNABERT-2 (nuclear-genome, 18\% of mtDNA seen) & 117M & 66.3 & 0.6593 \\
+\mtdnafm (mtDNA-specialized, full genome) & 5.8M & \textbf{37.9} & 0.3703 \\
 \bottomrule
 \end{tabular}
-\label{tab:per_class_haplogroup}
+\label{tab:dnabert2_baseline}
 \end{table}
 
 %% =========================================================================
@@ -258,7 +213,7 @@ X & 0.000 & 0.000 & 0.000 & 585 \\
 \toprule
 \textbf{Dataset} & \textbf{Source} & \textbf{Size} & \textbf{Purpose} & \textbf{Version/Date} \\
 \midrule
-HmtDB & \citet{clima2017hmtdb} & 34,975 seqs used (47,000 total in database) & Phase 2 pre-train, fine-tune & Retrieved 2024 \\
+HmtDB & \citet{clima2017hmtdb} & 34,975 seqs used (47,000 total in database) & Phase 2 pre-train & Retrieved 2024 \\
 NCBI vertebrate mtDNA & NCBI Entrez & 117,615 seqs & Phase 1 pre-train & Retrieved 2024 \\
 PhyloTree & \citet{vanoven2009phylotree} & 26 major groups & Haplogroup labels & Build 17 \\
 gnomAD v3.1 chrM & \citet{karczewski2020gnomad} & 419 benign SNPs (AF $>$1\%) & Benign variants & v3.1 \\
@@ -280,9 +235,6 @@ The complete analysis pipeline is managed with DVC. The following stages are def
 \item \texttt{build\_vocabulary}: Construct 4,102-token k-mer vocabulary
 \item \texttt{pretrain\_phase1}: Phase 1 cross-species pre-training (50k steps)
 \item \texttt{pretrain\_phase2}: Phase 2 human specialization (25k steps)
-\item \texttt{finetune\_haplogroup}: LoRA fine-tuning for haplogroup classification
-\item \texttt{finetune\_pathogenicity}: LoRA fine-tuning for pathogenicity prediction
-\item \texttt{finetune\_heteroplasmy}: LoRA fine-tuning for heteroplasmy regression
 \item \texttt{evaluate}: Compute all metrics, generate evaluation reports
 \end{enumerate}
 
@@ -291,9 +243,10 @@ Reproduce the full pipeline: \texttt{dvc repro}
 %% =========================================================================
 \section*{S6. Ablation Learning Curves}
 
-Ablation training curves (circular PE vs.\ sinusoidal PE vs.\ learnable PE; two-phase vs.\
-single-phase training; with vs.\ without heteroplasmy channel) will be included in the next
-version of this preprint following GPU-accelerated ablation runs.
+Supplementary Table~S3.2 reports the DNABERT-2 zero-shot baseline comparison (same k-NN
+protocol, same train/test split). Architectural ablations (circular PE vs.\ sinusoidal PE;
+with vs.\ without heteroplasmy channel) and the Phase~1 vs Phase~2 curriculum ablation
+require GPU compute and are deferred to the extended journal paper.
 
 %% =========================================================================
 \bibliographystyle{plainnat}

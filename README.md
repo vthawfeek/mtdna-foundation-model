@@ -21,14 +21,14 @@ embedding = embedder.embed_genome(sequence)   # shape: (256,)
 
 ## Results
 
-| Task | Metric | Random | k-mer PCA + LR | mtDNA-FM (zero-shot) | mtDNA-FM (fine-tuned) |
-|------|--------|--------|----------------|---------------------|-----------------------|
-| Haplogroup classification | Accuracy | 3.85% | ~65% (26-class) | **37.9%¹ (26-class)** | 1.83%² (26-class) |
-| Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | 0.777 (95% CI 0.731–0.821)³ | not evaluated |
+| Task | Metric | Random | k-mer + LR | DNABERT-2 (zero-shot) | mtDNA-FM (zero-shot) |
+|------|--------|--------|------------|----------------------|---------------------|
+| Haplogroup classification | Accuracy | 3.85% | ~65% (26-class) | 66.3%1 (26-class) | **37.9%2 (26-class)** |
+| Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | not evaluated | **0.7773** (95% CI 0.731-0.821) |
 
-¹ Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.9× lift**; 95% CI 34.4–41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
-² LoRA r=8, 1,267 training sequences, 2 epochs on CPU, 26-class evaluation (3.85% random baseline). Partial class collapse (3/26 classes active). Fine-tuning did not converge — CPU compute constraint. Zero-shot k-NN (37.9%) is the more reliable signal of what the pre-training learned. See `reports/eval_summary.json`.
-³ Zero-shot 5-fold stratified k-NN (k=5, cosine): 118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44). Script: `scripts/zeroshot_patho_eval.py`. Supervised LoRA fine-tuning on real data is future work.
+1 DNABERT-2 (117M params, nuclear-genome pre-training) zero-shot 5-NN; same train/test split and k-NN protocol as mtDNA-FM. Each 16,569 bp genome truncated to ~3,000 nt (18%) due to 512-token BPE context limit. See `reports/dnabert2_haplogroup_knn.json`.
+2 Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.9x lift**; 95% CI 34.4-41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
+3 Zero-shot 5-fold stratified k-NN (k=5, cosine): 118 ClinVar pathogenic + 419 gnomAD AF>=1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44).
 
 ## Architecture
 

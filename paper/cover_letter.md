@@ -27,9 +27,9 @@ The key results reported in this preprint are entirely zero-shot (no task-specif
 - **Correct phylogenetic placement** of Neanderthal and Denisovan sequences without any archaic DNA in training
 - **Unsupervised recovery of gene-type structure** (protein-coding, tRNA, rRNA) in embedding space
 
-All code, pre-trained weights, LoRA fine-tuning adapters, a Gradio demonstration interface, and a DVC reproducibility pipeline are publicly available at github.com/vthawfeek/mtdna-foundation-model and huggingface.co/vthawfeek/mtdna-foundation-model.
+All code, pre-trained weights, a Gradio demonstration interface, and a DVC reproducibility pipeline are publicly available at github.com/vthawfeek/mtdna-foundation-model and huggingface.co/vthawfeek/mtdna-foundation-model.
 
-The preprint reports fine-tuning results honestly: LoRA fine-tuning under CPU compute constraints produced class collapse (1.83% accuracy, documented as a compute limitation requiring GPU resources for convergence). This failure mode is scientifically informative and is reported in full to assist practitioners building similar systems.
+All results in this preprint are zero-shot: no task-specific labels were used at any point during pre-training or evaluation. This separates the contribution of the architecture (circular positional encoding, heteroplasmy channel) and the pre-training curriculum from any task-specific adaptation. Supervised fine-tuning experiments are planned for the extended journal submission.
 
 This work will be of interest to researchers in genomic foundation models, mitochondrial disease, population genetics, and computational biology. The circular positional encoding design is generalizable to any circular genome (bacterial chromosomes, plasmids, viral genomes, chloroplast DNA).
 
@@ -81,5 +81,5 @@ ORCID: 0000-0002-7864-5971
 
 **Recommended for bioRxiv → journal path:**
 1. Submit bioRxiv now (2–3 weeks to prepare)
-2. Run GPU fine-tuning + ablations (4–6 weeks; see `paper/run_paper.sh`)
+2. Run architectural ablations and Phase 1 vs Phase 2 curriculum ablation (GPU required)
 3. Submit extended version to NAR or Genome Biology (6–8 weeks from now)

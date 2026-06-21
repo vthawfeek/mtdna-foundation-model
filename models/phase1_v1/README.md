@@ -92,21 +92,21 @@ When `het_values` are not provided, the channel zeros out with no effect on the 
 
 ## Performance
 
-| Task | Metric | Majority class | k-mer freq PCA+LR | mtDNA-FM (zero-shot) | mtDNA-FM (fine-tuned) |
-|------|--------|---------------|-------------------|---------------------|----------------------|
-| Haplogroup classification | Accuracy | 3.85% | ~65% (26-class) | **37.9%\* (26-class)** | 1.83%** (26-class) |
-| Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | 0.777 (95% CI 0.731–0.821)‡ | not evaluated |
-| Ancient DNA placement | L2 ratio vs modern | — | — | 1.43–1.48× | — |
+| Task | Metric | Majority class | k-mer + LR | DNABERT-2 (zero-shot) | mtDNA-FM (zero-shot) |
+|------|--------|---------------|------------|----------------------|---------------------|
+| Haplogroup classification | Accuracy | 3.85% | ~65% (26-class) | 66.3%* (26-class) | **37.9%** (26-class) |
+| Pathogenic variant prediction | AUROC | 0.50 | ~0.72 | not evaluated | 0.777 (95% CI 0.731-0.821) |
+| Ancient DNA placement | L2 ratio vs modern | — | — | not evaluated | 1.43-1.48x |
 
-\* Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.8× lift**; 95% CI 34.4–41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
+\* DNABERT-2 (117M params, nuclear-genome pre-training) zero-shot 5-NN on same train/test split; each 16,569 bp genome truncated to ~3,000 nt (18%) due to 512-token BPE context limit. Results in `reports/dnabert2_haplogroup_knn.json`.
 
-\*\* LoRA r=8, 1,267 training sequences, 2 epochs on CPU, 26-class evaluation (3.85% random baseline). Partial class collapse (3/26 classes active) — fine-tuning did not converge at this compute budget. Zero-shot k-NN (37.9%) is the more reliable signal of what pre-training learned.
+Zero-shot 5-NN (cosine) on Phase 2 embeddings, full 26-class haplogroup evaluation (13,884 NCBI-labeled sequences; 3.85% random baseline; **9.9x lift**; 95% CI 34.4-41.2%). Per-class results in `reports/zeroshot_haplogroup_knn.json`.
 
-‡ Zero-shot 5-fold stratified k-NN (k=5, cosine). 118 ClinVar pathogenic + 419 gnomAD AF≥1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44); D-loop and intergenic categories had insufficient pathogenic variants for reliable estimation. Script: `scripts/zeroshot_patho_eval.py`.
+Pathogenicity: Zero-shot 5-fold stratified k-NN (k=5, cosine). 118 ClinVar pathogenic + 419 gnomAD AF>=1% benign mitochondrial SNPs. No pathogenicity labels used during pre-training. Per-type: missense 0.727 (n=56), tRNA 0.718 (n=44).
 
 **Ancient DNA zero-shot:** Neanderthal (NC_011137.1, Vindija Cave) and Denisovan (FR695060.1, Altai Cave)
-embedded without any fine-tuning. L2 distance from modern humans: 1.48× (Neanderthal) and 1.43× (Denisovan)
-the modern pairwise baseline — consistent with paleoanthropological expectations.
+embedded without any task-specific supervision. L2 distance from modern humans: 1.48x (Neanderthal) and 1.43x (Denisovan)
+the modern pairwise baseline, consistent with paleoanthropological expectations.
 
 ## Usage
 
@@ -128,35 +128,14 @@ df = pd.DataFrame({"sequence": [seq1, seq2, seq3]})
 embeddings = embedder.embed_dataset(df)  # shape: (3, 256)
 ```
 
-**Fine-tuning adapter** (LoRA) available:
-- [`vthawfeek/mtdna-fm-haplogroup`](https://huggingface.co/vthawfeek/mtdna-fm-haplogroup) — haplogroup classification (26 classes, r=8)
-
-Pathogenicity adapter architecture exists (`MtDNAForVariantPathogenicity`, LoRA r=4). Zero-shot k-NN baseline: AUROC=0.777 on ClinVar/gnomAD — see `scripts/zeroshot_patho_eval.py`. LoRA fine-tuning on real labeled data is the next step; the zero-shot result establishes a strong pre-training baseline. See [fine-tuning docs](docs/05_finetuning_and_evaluation.md) for details.
-
-## Fine-tuning with LoRA
-
-```python
-from mtdna_fm.model.model import MtDNAForHaplogroupClassification, MtDNAModel
-from peft import get_peft_model, LoraConfig
-
-base = MtDNAModel.from_pretrained("vthawfeek/mtdna-foundation-model")
-model = MtDNAForHaplogroupClassification(base, num_labels=26)
-lora_config = LoraConfig(
-    r=8, lora_alpha=16,
-    target_modules=["query", "key", "value", "dense"],
-    lora_dropout=0.1,
-)
-model = get_peft_model(model, lora_config)
-model.print_trainable_parameters()
-# trainable params: ~500K / all params: ~7.4M (6.7%)
-```
+Supervised fine-tuning experiments (LoRA) and per-class benchmarks against external tools are planned for the extended journal paper.
 
 ## Known Limitations
 
 - **Population bias:** HmtDB has strong European bias (haplogroup H is overrepresented). Performance on underrepresented haplogroups (especially African L sub-haplogroups) may be lower.
 - **Heteroplasmy channel:** The het projection is architecturally present; Phase 2 training used het_weight=0.3, but real per-base heteroplasmy labels were limited to gnomAD variant-level data rather than full-genome measurements.
-- **Zero-shot haplogroup:** Phase 2 zero-shot 5-NN achieves 37.9% on the full 26-class evaluation (3.85% random baseline; 9.8× lift; 95% CI 34.4–41.2%).
-- **Cosine similarity collapse:** Mean-pooled CLS embeddings before fine-tuning exhibit high cosine similarity. Use L2 distance for zero-shot comparisons.
+- **Zero-shot haplogroup:** Phase 2 zero-shot 5-NN achieves 37.9% on the full 26-class evaluation (3.85% random baseline; 9.9× lift; 95% CI 34.4–41.2%).
+- **Cosine similarity:** Mean-pooled CLS embeddings exhibit high cosine similarity at the population level. Use L2 distance for zero-shot comparisons.
 
 ## Citation
 

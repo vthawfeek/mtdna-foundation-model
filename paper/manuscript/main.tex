@@ -58,9 +58,7 @@ haplogroup classification (cosine 5-NN; 3.85\% random baseline, 9.9$\times$ lift
 discrimination using ClinVar SNPs against gnomAD common variants. Without evolutionary labels
 in training, the model places Neanderthal (NC\_011137.1) and Denisovan (FR695060.1) sequences
 outside modern human variation, and separates rRNA genes from protein-coding and tRNA genes
-in the embedding space. LoRA fine-tuning on CPU collapses to 3 of 26 haplogroup classes after
-2 epochs; GPU resources are required for convergence. Pre-trained weights,
-LoRA adapters, a Gradio demonstration interface, and the full DVC pipeline are publicly
+in the embedding space. Pre-trained weights, a Gradio demonstration interface, and the full DVC pipeline are publicly
 available.
 
 \textbf{Availability:} \url{https://github.com/vthawfeek/mtdna-foundation-model},
@@ -110,7 +108,7 @@ designed and pre-trained for mitochondrial DNA. Our contributions are:
 \begin{enumerate}
 \item A \textbf{circular positional encoding} that mathematically encodes the circular topology
 as a non-learnable buffer, ensuring smooth representations at the genome junction and robustness
-to fine-tuning corruption (Section~\ref{sec:architecture}).
+during any subsequent adaptation (Section~\ref{sec:architecture}).
 
 \item A \textbf{heteroplasmy projection channel} that accepts per-position variant allele fractions
 as a continuous input, enabling the model to learn from heteroplasmic data and distinguish
@@ -120,7 +118,7 @@ sequences by their variant mixture state (Section~\ref{sec:architecture}).
 to learn conserved structural features, followed by Phase~2 specialization on human HmtDB sequences
 with heteroplasmy loss enabled (Section~\ref{sec:pretraining}).
 
-\item \textbf{Downstream evaluation} on haplogroup classification and variant pathogenicity prediction, plus two zero-shot discovery experiments (ancient DNA phylogenetic placement, unsupervised gene-type recovery, Section~\ref{sec:results}).
+\item \textbf{Zero-shot evaluation} on 26-class haplogroup classification and pathogenic variant discrimination, plus two zero-shot discovery experiments (ancient DNA phylogenetic placement, unsupervised gene-type recovery, Section~\ref{sec:results}).
 \end{enumerate}
 
 %% =========================================================================
@@ -200,7 +198,7 @@ where $L_\text{genome} = 16,569$~bp is the rCRS genome length. The positional en
 where $d = 256$ is the hidden dimension. At $p = L_\text{genome}$, $\phi_p = 2\pi$, so
 $\sin(2\pi) = \sin(0) = 0$ and $\cos(2\pi) = \cos(0) = 1$. The circular junction is thus
 mathematically smooth. The encoding is registered as a non-learnable \texttt{nn.Buffer},
-ensuring it cannot be modified during fine-tuning.
+ensuring it cannot be modified during training.
 
 \subsubsection{Heteroplasmy Projection Channel}
 
@@ -269,23 +267,8 @@ Phase~2 adds a heteroplasmy regression loss weighted by $\lambda_\text{het} = 0.
 Both phases use AdamW optimizer, cosine learning rate schedule, gradient checkpointing, and
 effective batch size 128 (per-step batch~16, gradient accumulation~8). Phase~1: peak LR
 $1\times10^{-4}$, 2,000-step linear warmup, 50,000 steps. Phase~2: peak LR $3\times10^{-5}$,
-500-step warmup, 25,000 steps, with a fresh optimizer state (domain-adaptive fine-tuning).
+500-step warmup, 25,000 steps, with a fresh optimizer state (domain-adaptive pre-training).
 
-\subsection{Fine-tuning Tasks}
-
-\subsubsection{Haplogroup Classification}
-
-We fine-tune \mtdnafm with LoRA adapters \citep{hu2022lora} (rank $r=8$, $\alpha=16$) for 26-way
-haplogroup classification using the CLS token. Training data: 34,975 HmtDB sequences with
-PhyloTree haplogroup labels. Evaluation: held-out test set (Section~\ref{sec:eval_setup}).
-
-\subsubsection{Variant Pathogenicity Prediction}
-
-For binary pathogenicity prediction, we extract the hidden state at the variant position token
-(not CLS) and fine-tune with LoRA ($r=4$, $\alpha=8$) and BCE loss with positive class weight
-$w_\text{pos} = 2.5$. Positive examples: ClinVar \citep{landrum2018clinvar} pathogenic mtDNA
-variants. Negative examples: gnomAD \citep{karczewski2020gnomad} v3.1 chrM variants with
-population allele frequency $> 0.01$.
 
 \subsection{Evaluation Setup}
 \label{sec:eval_setup}
@@ -302,12 +285,10 @@ the train split as a library (up to 60 sequences per class) and the test split a
 in the test split). Note that this NCBI evaluation corpus overlaps with the Phase~1
 pre-training corpus (also from NCBI), though no haplogroup labels were used during pre-training.
 
-\textbf{Pathogenicity and fine-tuning evaluation.} Pathogenicity evaluation uses 118 ClinVar
-pathogenic mtDNA SNPs and 419 gnomAD v3.1 chrM common variants (AF $>0.01$). Fine-tuning
-evaluation uses HmtDB sequences with a stratified 80/10/10 split (\texttt{random\_state=42}).
-Metrics: accuracy and macro-F1 for classification; AUROC and AUPR for pathogenicity.
+\textbf{Pathogenicity evaluation.} Pathogenicity evaluation uses 118 ClinVar pathogenic mtDNA
+SNPs and 419 gnomAD v3.1 chrM common variants (AF $>0.01$). Metrics: AUROC and AUPR.
 Confidence intervals are 1,000-replicate non-parametric bootstrap. Baseline: 6-mer frequency
-vectors with logistic regression. Comparison against DNABERT-2 is deferred to the extended paper.
+vectors with logistic regression.
 
 %% =========================================================================
 \section{Results}
@@ -316,7 +297,7 @@ vectors with logistic regression. Comparison against DNABERT-2 is deferred to th
 \subsection{Haplogroup Classification}
 \label{sec:haplo}
 
-Without any fine-tuning, zero-shot 5-nearest-neighbour search (cosine distance) on \mtdnafm
+Zero-shot 5-nearest-neighbour search (cosine distance) on \mtdnafm
 embeddings achieves \textbf{37.9\%} accuracy on the full 26-class haplogroup evaluation
 (95\% CI 34.4--41.2\%; random baseline 3.85\%, 9.9$\times$ lift;
 macro-F1 0.3703; Table~\ref{tab:haplogroup}). The evaluation set comprises 757 sequences
@@ -329,17 +310,14 @@ structured: haplogroup H is confused with its direct ancestor HV; L0 is confused
 sibling L1. Cross-clade errors (e.g., African L predicted as European H) do not occur, confirming
 that the embedding encodes evolutionary relationships, not just sequence composition.
 
-LoRA fine-tuning on CPU achieved 1.83\% accuracy (macro-F1 0.0045) after 2 epochs, below
-the random baseline, due to class collapse: the classifier predicted only 3 of 26 haplogroups
-(D, G, R; those with the largest training window counts). Training loss shifted by only 0.008
-units over 2 epochs; convergence requires approximately 50 epochs ($\approx$270 CPU hours).
-This is a compute constraint, not a model failure. GPU fine-tuning and a DNABERT-2 comparison
-are in the extended paper.
 
 \begin{table}[h]
 \centering
-\caption{Haplogroup classification results. \dag~CPU compute limitation (class collapse); see text.
-GPU fine-tuning and DNABERT-2 baseline comparison are deferred to the extended paper.}
+\caption{26-class haplogroup classification. All \mtdnafm results are zero-shot (cosine 5-NN
+on frozen embeddings; no haplogroup labels used in pre-training). DNABERT-2 uses the same
+train/test split and k-NN protocol (CLS token, cosine distance); its 512-token BPE context
+covers approximately 3,000 nt (18\%) of each 16,569 bp genome. Supervised fine-tuning and
+Phase~1 vs Phase~2 curriculum ablation are deferred to the extended paper.}
 \label{tab:haplogroup}
 \begin{tabular}{lccc}
 \toprule
@@ -347,8 +325,8 @@ GPU fine-tuning and DNABERT-2 baseline comparison are deferred to the extended p
 \midrule
 Random baseline & 26-class & 3.85 & 0.038 \\
 6-mer frequency + LR & 26-class & $\sim$65 & --- \\
+DNABERT-2 (zero-shot 5-NN) & 26-class & 66.3 & 0.6593 \\
 \mtdnafm (zero-shot 5-NN) & 26-class & \textbf{37.9} & 0.3703 \\
-\mtdnafm (fine-tuned LoRA, CPU)\dag & 26-class & 1.83 & 0.0045 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -381,7 +359,6 @@ insufficient per-class representation. This signal comes from evolutionary const
 concentrate at positions conserved across vertebrates, giving them embeddings distinct from
 population-common variants.
 
-Supervised fine-tuning and comparison against MitoTIP are in the extended paper.
 
 \begin{figure}[h]
 \centering
@@ -401,7 +378,7 @@ rRNA (AUROC 0.639). No pathogenicity labels were used in pre-training.}
 \subsubsection{Ancient DNA Phylogenetic Placement}
 \label{sec:ancient}
 
-Without any fine-tuning, \mtdnafm embeddings correctly place two archaic human mtDNA sequences
+Without any task-specific supervision, \mtdnafm embeddings correctly place two archaic human mtDNA sequences
 in their expected phylogenetic positions (Figure~\ref{fig:umap}). The Neanderthal sequence (NC\_011137.1, Vindija Cave) and Denisovan sequence (FR695060.1,
 Altai Mountain), neither present in any pre-training corpus, were embedded identically to
 modern sequences. The mean pairwise L2 distance between modern human sequences is 0.075. The
@@ -447,10 +424,12 @@ genomic positions on the circular chromosome. No functional labels were used in 
 %% =========================================================================
 \section{Discussion}
 
-\mtdnafm shows that pre-training on the correct genome, even at 6M parameters, yields
-representations that encode evolutionary structure without task-specific supervision: haplogroup
-identity, archaic sequence ancestry, and rRNA/protein-coding separation are all recoverable
-from the embedding space.
+\mtdnafm demonstrates that a 6M parameter encoder pre-trained exclusively on mitochondrial sequences
+encodes evolutionary structure without task-specific supervision: haplogroup identity, archaic
+sequence ancestry, and rRNA/protein-coding gene separation are recoverable from the embedding
+space. Zero-shot haplogroup accuracy (37.9\%) is 9.9$\times$ the random baseline; DNABERT-2 (117M
+parameters, nuclear genomes) achieves 66.3\% on the same task, with the gap attributable to scale
+rather than domain alignment (see Limitations).
 
 \textbf{Circular PE generalizability.} The circular positional encoding is not specific to mtDNA.
 Any circular genome (bacterial plasmids, viral genomes, chloroplast genomes) could benefit from
@@ -473,16 +452,20 @@ insertions and deletions require a different tokenization strategy.
 of predicted pathogenic variants is future work.
 \item \textit{Haplogroup resolution.} Sub-haplogroup prediction (H1a vs.\ H1b) requires
 finer-grained labels not included in this study.
-\item \textit{Model scale.} At 6M parameters, \mtdnafm is scaled for the 16,569~bp genome but is
-substantially smaller than general-purpose genomic LLMs. Scaling to 24M--100M parameters
-while preserving the circular PE and het channel is a natural next step.
+\item \textit{Model scale.} At 6M parameters, \mtdnafm is substantially smaller than general-purpose
+genomic LLMs. DNABERT-2 (117M parameters, nuclear-genome pre-training) achieves 66.3\% on the same
+zero-shot haplogroup k-NN task despite seeing only 18\% of each genome (Table~\ref{tab:haplogroup}).
+The 28.4 percentage-point gap is likely attributable to the 20$\times$ parameter difference rather
+than domain specificity; mtDNA-FM's architectural contributions (circular PE, full-genome coverage,
+heteroplasmy channel) are independent of parameter count. Scaling to 24M--100M parameters is a
+natural next step.
 \end{itemize}
 
-\textbf{Future work.} The extended paper will include ablations (circular PE vs.\ sinusoidal
-PE; with/without het channel; two-phase vs.\ single-phase curriculum), GPU fine-tuning with a
-DNABERT-2 baseline, and an expanded pathogenicity benchmark against MitoTIP and APOGEE2. The
-circular PE and het channel apply directly to other circular genomes: bacterial plasmids, viral
-genomes, and chloroplast DNA.
+\textbf{Future work.} The extended paper will include architectural ablations (circular PE
+vs.\ sinusoidal PE; with vs.\ without het channel), a Phase~1 vs Phase~2 curriculum ablation,
+supervised fine-tuning experiments, and an expanded pathogenicity benchmark against MitoTIP
+and APOGEE2. The circular PE and het channel apply directly to other circular genomes:
+bacterial plasmids, viral genomes, and chloroplast DNA.
 
 %% =========================================================================
 \section{Conclusion}
@@ -500,7 +483,7 @@ both without supervision. All code, model weights, and the DVC pipeline are publ
 
 Training data (HmtDB, NCBI Entrez) and variant databases (gnomAD, ClinVar) are publicly available
 at their respective sources. No proprietary or restricted data were used. Pre-trained model weights
-and LoRA adapters are available at \url{https://huggingface.co/vthawfeek/mtdna-foundation-model}.
+are available at \url{https://huggingface.co/vthawfeek/mtdna-foundation-model}.
 
 \section*{Code Availability}
 

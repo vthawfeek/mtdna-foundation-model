@@ -1,0 +1,232 @@
+{
+  "method": "zero-shot cosine 5-NN",
+  "model": "zhihan1996/DNABERT-2-117M",
+  "n_classes": 26,
+  "classes": [
+    "A",
+    "B",
+    "C",
+    "D",
+    "E",
+    "F",
+    "G",
+    "H",
+    "HV",
+    "I",
+    "J",
+    "K",
+    "L0",
+    "L1",
+    "L2",
+    "L3",
+    "L4",
+    "L5",
+    "M",
+    "N",
+    "R",
+    "T",
+    "U",
+    "V",
+    "W",
+    "X"
+  ],
+  "n_train_library": 1509,
+  "n_test_queries": 757,
+  "train_per_class": 60,
+  "test_per_class": 40,
+  "random_baseline": 0.0385,
+  "accuracy": 0.6631,
+  "accuracy_ci_95_lo": 0.6301,
+  "accuracy_ci_95_hi": 0.6948,
+  "lift_over_random": 17.22,
+  "macro_f1": 0.6593,
+  "per_class": [
+    {
+      "label": "A",
+      "precision": 0.9459,
+      "recall": 0.875,
+      "f1": 0.9091,
+      "support": 40
+    },
+    {
+      "label": "B",
+      "precision": 0.7273,
+      "recall": 0.8,
+      "f1": 0.7619,
+      "support": 40
+    },
+    {
+      "label": "C",
+      "precision": 0.6875,
+      "recall": 0.55,
+      "f1": 0.6111,
+      "support": 40
+    },
+    {
+      "label": "D",
+      "precision": 0.4074,
+      "recall": 0.55,
+      "f1": 0.4681,
+      "support": 40
+    },
+    {
+      "label": "E",
+      "precision": 0.1304,
+      "recall": 0.75,
+      "f1": 0.2222,
+      "support": 4
+    },
+    {
+      "label": "F",
+      "precision": 0.5897,
+      "recall": 0.6389,
+      "f1": 0.6133,
+      "support": 36
+    },
+    {
+      "label": "G",
+      "precision": 0.36,
+      "recall": 0.9,
+      "f1": 0.5143,
+      "support": 10
+    },
+    {
+      "label": "H",
+      "precision": 0.6136,
+      "recall": 0.675,
+      "f1": 0.6429,
+      "support": 40
+    },
+    {
+      "label": "HV",
+      "precision": 0.5,
+      "recall": 0.36,
+      "f1": 0.4186,
+      "support": 25
+    },
+    {
+      "label": "I",
+      "precision": 0.875,
+      "recall": 0.875,
+      "f1": 0.875,
+      "support": 40
+    },
+    {
+      "label": "J",
+      "precision": 1.0,
+      "recall": 0.9,
+      "f1": 0.9474,
+      "support": 40
+    },
+    {
+      "label": "K",
+      "precision": 0.8182,
+      "recall": 0.9,
+      "f1": 0.8571,
+      "support": 40
+    },
+    {
+      "label": "L0",
+      "precision": 0.8857,
+      "recall": 0.775,
+      "f1": 0.8267,
+      "support": 40
+    },
+    {
+      "label": "L1",
+      "precision": 0.96,
+      "recall": 0.8571,
+      "f1": 0.9057,
+      "support": 28
+    },
+    {
+      "label": "L2",
+      "precision": 0.9375,
+      "recall": 0.75,
+      "f1": 0.8333,
+      "support": 40
+    },
+    {
+      "label": "L3",
+      "precision": 0.5263,
+      "recall": 0.5,
+      "f1": 0.5128,
+      "support": 40
+    },
+    {
+      "label": "L4",
+      "precision": 0.625,
+      "recall": 0.9091,
+      "f1": 0.7407,
+      "support": 11
+    },
+    {
+      "label": "L5",
+      "precision": 1.0,
+      "recall": 1.0,
+      "f1": 1.0,
+      "support": 4
+    },
+    {
+      "label": "M",
+      "precision": 0.5,
+      "recall": 0.25,
+      "f1": 0.3333,
+      "support": 40
+    },
+    {
+      "label": "N",
+      "precision": 0.1562,
+      "recall": 0.2381,
+      "f1": 0.1887,
+      "support": 21
+    },
+    {
+      "label": "R",
+      "precision": 0.3846,
+      "recall": 0.5263,
+      "f1": 0.4444,
+      "support": 19
+    },
+    {
+      "label": "T",
+      "precision": 0.8276,
+      "recall": 0.6,
+      "f1": 0.6957,
+      "support": 40
+    },
+    {
+      "label": "U",
+      "precision": 0.6,
+      "recall": 0.3,
+      "f1": 0.4,
+      "support": 40
+    },
+    {
+      "label": "V",
+      "precision": 0.9167,
+      "recall": 1.0,
+      "f1": 0.9565,
+      "support": 11
+    },
+    {
+      "label": "W",
+      "precision": 0.6842,
+      "recall": 0.8125,
+      "f1": 0.7429,
+      "support": 16
+    },
+    {
+      "label": "X",
+      "precision": 0.6923,
+      "recall": 0.75,
+      "f1": 0.72,
+      "support": 12
+    }
+  ],
+  "knn_k": 5,
+  "random_state": 42,
+  "bootstrap_n": 1000,
+  "sequence_truncation_nt": 3000,
+  "max_bpe_tokens": 512
+}
