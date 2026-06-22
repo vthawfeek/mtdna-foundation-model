@@ -86,19 +86,7 @@ No formal citations exist for:
 - `paper/review/related_work.md` — narrative lit review
 - `paper/manuscript/references.bib` — BibTeX entries with verified DOIs
 
-### G7 — Ancient DNA validation is thin (two samples)
-
-The zero-shot ancient DNA result uses only Neanderthal (Vindija) and Denisovan (Altai).
-Broader coverage would make this a standalone result.
-
-**Required:**
-- Collect 10+ ancient mtDNA sequences: multiple Neanderthal caves (El Sidrón, Feldhofer),
-  multiple Denisovan samples, early modern humans (~45 kya), and archaic hominins if available
-- Report phylogenetic placement for all; show consistency with paleoanthropology
-
-Script: `experiments/evaluation/ancient_dna_extended.py`
-
-### G8 — No independent external validation for pathogenicity
+### G7 — No independent external validation for pathogenicity
 
 All pathogenicity evaluation uses ClinVar (training positives) and gnomAD (training negatives).
 There is potential data leakage: the model may have overfit to ClinVar curation artefacts.
@@ -114,14 +102,14 @@ Script: `experiments/evaluation/external_pathogenicity_eval.py`
 
 ## Minor Gaps
 
-### G9 — Figure quality
+### G8 — Figure quality
 
 Existing notebook figures are exploratory (matplotlib defaults, no consistent style).
 Paper requires 300 DPI, consistent color palette, proper axis labels and fonts.
 
 **Required:**
-- `paper/manuscript/figures/generate_figures.py` — reproducible script for all 6 paper figures
-- Figures 1–6 as described in the manuscript plan
+- `paper/manuscript/figures/generate_figures.py` — reproducible script for all 4 paper figures
+- Figures 1–4 as described in the manuscript (architecture, PE comparison, haplogroup, pathogenicity)
 
 ### G10 — Model card and data availability statement
 
@@ -145,9 +133,8 @@ bioRxiv requires a data availability section; journals require code availability
 | G3 DNABERT2 baseline | Critical | `experiments/baselines/dnabert2_baseline.py` | TODO |
 | G3 k-mer baseline (quantified) | Critical | `experiments/baselines/kmer_frequency_baseline.py` | TODO |
 | G4 Phase 2 training | Critical | CLI: `uv run mtdna-pretrain --phase 2` | TODO |
-| G5 CIs + seeds | Important | `experiments/evaluation/compute_confidence_intervals.py` | TODO |
-| G6 Lit review | Important | `review/related_work.md` + `manuscript/references.bib` | TODO |
-| G7 Ancient DNA extended | Important | `experiments/evaluation/ancient_dna_extended.py` | TODO |
-| G8 External pathogenicity | Important | `experiments/evaluation/external_pathogenicity_eval.py` | TODO |
-| G9 Paper figures | Minor | `manuscript/figures/generate_figures.py` | TODO |
-| G10 Model card update | Minor | `huggingface_hub/push_to_hub.py` | TODO |
+| G5 CIs + seeds | Important | `experiments/evaluation/compute_confidence_intervals.py` | DONE (bootstrap CIs in manuscript) |
+| G6 Lit review | Important | `review/related_work.md` + `manuscript/references.bib` | DONE |
+| G7 External pathogenicity | Important | `experiments/evaluation/external_pathogenicity_eval.py` | TODO (deferred to extended paper) |
+| G8 Paper figures (4) | Minor | `manuscript/figures/generate_figures.py` | DONE |
+| G9 Model card update | Minor | `huggingface_hub/push_to_hub.py` | DONE (HF Hub live) |

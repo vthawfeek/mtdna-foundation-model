@@ -64,7 +64,8 @@ RAW_DIR = PROJECT_ROOT / "data" / "raw"
 CLINVAR_DIR = RAW_DIR / "clinvar"
 GNOMAD_DIR = RAW_DIR / "gnomad"
 NCBI_FASTA = RAW_DIR / "ncbi" / "vertebrate_mtdna.fasta"
-MODEL_PATH = PROJECT_ROOT / "models" / "phase1_v1"
+_local_model = PROJECT_ROOT / "models" / "phase1_v1"
+MODEL_PATH = _local_model if (_local_model / "config.json").exists() else "vthawfeek/mtdna-foundation-model"
 REPORTS_DIR = PROJECT_ROOT / "reports"
 OUTPUT_JSON = REPORTS_DIR / "zeroshot_pathogenicity_knn.json"
 EMBEDDINGS_NPZ = REPORTS_DIR / "zeroshot_patho_embeddings.npz"
@@ -115,15 +116,32 @@ def download_gnomad_no_tabix(output_dir: Path) -> Path:
 
 
 def load_rcrs(fasta_path: Path) -> str:
-    """Extract NC_012920.1 (rCRS) from the NCBI vertebrate mtDNA fasta."""
+    """Extract NC_012920.1 (rCRS) from the NCBI vertebrate mtDNA fasta, or fetch from Entrez."""
     from Bio import SeqIO
 
-    for rec in SeqIO.parse(str(fasta_path), "fasta"):
-        if "NC_012920" in rec.id:
-            seq = str(rec.seq).upper()
-            log.info("Loaded rCRS %s: %d bp", rec.id, len(seq))
-            return seq
-    raise FileNotFoundError("NC_012920.1 not found in %s" % fasta_path)
+    if fasta_path.exists():
+        for rec in SeqIO.parse(str(fasta_path), "fasta"):
+            if "NC_012920" in rec.id:
+                seq = str(rec.seq).upper()
+                log.info("Loaded rCRS %s: %d bp", rec.id, len(seq))
+                return seq
+
+    # Fallback: download NC_012920.1 directly from NCBI Entrez
+    log.info("Vertebrate FASTA not found; fetching NC_012920.1 from NCBI Entrez ...")
+    from Bio import Entrez
+    Entrez.email = "vthawfeek@gmail.com"
+    handle = Entrez.efetch(db="nucleotide", id="NC_012920.1", rettype="fasta", retmode="text")
+    rec = SeqIO.read(handle, "fasta")
+    handle.close()
+    seq = str(rec.seq).upper()
+    log.info("Fetched rCRS %s from Entrez: %d bp", rec.id, len(seq))
+    # Cache it locally so subsequent runs don't need to re-download
+    rcrs_cache = fasta_path.parent / "rcrs_NC_012920.fasta"
+    rcrs_cache.parent.mkdir(parents=True, exist_ok=True)
+    with open(rcrs_cache, "w") as fh:
+        fh.write(f">{rec.id} {rec.description}\n{seq}\n")
+    log.info("Cached rCRS at %s", rcrs_cache)
+    return seq
 
 
 def apply_snp(rcrs: str, pos_1based: int, alt: str) -> str:

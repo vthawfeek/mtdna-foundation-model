@@ -24,8 +24,7 @@ The key results reported in this preprint are entirely zero-shot (no task-specif
 
 - **37.9% zero-shot haplogroup identification** (26-class cosine 5-NN; 3.85% random baseline, 9.9× lift; 95% CI 34.4–41.2%)
 - **AUROC 0.777** (95% CI 0.731–0.821) on pathogenic variant discrimination (118 ClinVar pathogenic vs. 419 gnomAD benign SNPs)
-- **Correct phylogenetic placement** of Neanderthal and Denisovan sequences without any archaic DNA in training
-- **Unsupervised recovery of gene-type structure** (protein-coding, tRNA, rRNA) in embedding space
+- **Four data-backed observations** explaining why a 5.8M-parameter domain-specialized model underperforms DNABERT-2 (117M parameters), with design implications for next-generation mtDNA models
 
 All code, pre-trained weights, a Gradio demonstration interface, and a DVC reproducibility pipeline are publicly available at github.com/vthawfeek/mtdna-foundation-model and huggingface.co/vthawfeek/mtdna-foundation-model.
 

@@ -72,58 +72,71 @@ def figure3():
     ax.legend(loc="upper left", fontsize=7.5, ncol=2, framealpha=0.8,
               markerscale=1.4, handlelength=1.0)
 
-    # Panel B: Bar chart — 26-class zero-shot results from evaluation JSON
+    # Panel B: Bar chart — 4-method comparison
     ax = axes[1]
-    knn_json = ROOT / "reports" / "zeroshot_haplogroup_knn.json"
-    if knn_json.exists():
-        with open(str(knn_json)) as f:
-            knn_data = json.load(f)
-        n_classes  = knn_data["n_classes"]
-        rand_pct   = knn_data["random_baseline"] * 100
-        acc_pct    = knn_data["accuracy"] * 100
-        ci_lo_pct  = knn_data["accuracy_ci_95_lo"] * 100
-        ci_hi_pct  = knn_data["accuracy_ci_95_hi"] * 100
-        lift       = knn_data["lift_over_random"]
-    else:
-        # Placeholder until evaluation completes
-        n_classes  = 26
-        rand_pct   = 3.85
-        acc_pct    = 50.0
-        ci_lo_pct  = acc_pct - 3
-        ci_hi_pct  = acc_pct + 3
-        lift       = round(acc_pct / rand_pct, 1)
+    knn_json   = ROOT / "reports" / "zeroshot_haplogroup_knn.json"
+    db2_json   = ROOT / "reports" / "dnabert2_haplogroup_knn.json"
+    kmer_json  = ROOT / "reports" / "kmer_baseline_haplogroup.json"
 
-    knn_k = knn_data.get("knn_k", 5) if knn_json.exists() else 5
+    with open(str(knn_json)) as f:
+        knn_data = json.load(f)
+    n_classes  = knn_data["n_classes"]
+    rand_pct   = knn_data["random_baseline"] * 100
+    acc_pct    = knn_data["accuracy"] * 100
+    ci_lo_pct  = knn_data["accuracy_ci_95_lo"] * 100
+    ci_hi_pct  = knn_data["accuracy_ci_95_hi"] * 100
+    lift       = knn_data["lift_over_random"]
+    knn_k      = knn_data.get("knn_k", 5)
 
-    methods = [f"Random\nbaseline\n({n_classes}-class)",
-               f"mtDNA-FM\nzero-shot k-NN\n({n_classes}-class)"]
-    accs = [rand_pct, acc_pct]
-    colors = ["#aaaaaa", "#d6604d"]
-    bars = ax.bar(methods, accs, color=colors, edgecolor="gray",
-                  linewidth=0.8, width=0.45)
+    db2_pct = 66.3
+    if db2_json.exists():
+        with open(str(db2_json)) as f:
+            db2_data = json.load(f)
+        db2_pct = db2_data["accuracy"] * 100
+
+    kmer_pct = 78.7
+    if kmer_json.exists():
+        with open(str(kmer_json)) as f:
+            kmer_data = json.load(f)
+        kmer_pct = kmer_data["accuracy"] * 100
+
+    methods = [
+        f"Random\nbaseline\n({n_classes}-class)",
+        f"mtDNA-FM\nzero-shot\n{knn_k}-NN",
+        f"DNABERT-2\nzero-shot\n{knn_k}-NN",
+        f"6-mer LR\nsupervised",
+    ]
+    accs   = [rand_pct, acc_pct, db2_pct, kmer_pct]
+    colors = ["#aaaaaa", "#d6604d", "#4393c3", "#66a61e"]
+    bars   = ax.bar(methods, accs, color=colors, edgecolor="gray",
+                    linewidth=0.8, width=0.5)
     ax.set_ylabel(f"{n_classes}-class haplogroup accuracy (%)")
-    ax.set_title(f"(b)  Zero-shot haplogroup classification\n"
-                 f"({n_classes}-class panel, {knn_k}-NN cosine)", fontweight="bold")
-    y_max = max(acc_pct * 1.3, rand_pct * 2.0, 12.0)
+    ax.set_title(f"(b)  Haplogroup classification accuracy\n"
+                 f"({n_classes}-class panel)", fontweight="bold")
+    y_max = max(kmer_pct * 1.25, 12.0)
     ax.set_ylim(0, y_max)
     ax.axhline(rand_pct, color="#cc0000", linestyle="--", linewidth=1.0,
                label=f"Random baseline ({rand_pct:.1f}%)")
-    # Error bar for model accuracy
+    # Error bar on mtDNA-FM zero-shot
     ax.errorbar(x=1, y=acc_pct,
                 yerr=[[acc_pct - ci_lo_pct], [ci_hi_pct - acc_pct]],
                 fmt="none", ecolor="black", elinewidth=1.5, capsize=4)
-    for bar, val in zip(bars, accs):
-        ax.text(bar.get_x() + bar.get_width() / 2, val + y_max * 0.02,
+    for i, (bar, val) in enumerate(zip(bars, accs)):
+        ax.text(bar.get_x() + bar.get_width() / 2, val + y_max * 0.015,
                 f"{val:.1f}%", ha="center", va="bottom",
-                fontweight="bold", fontsize=9.5)
-    ax.text(1.0, acc_pct + y_max * 0.13,
+                fontweight="bold", fontsize=8.5)
+    # Annotate mtDNA-FM lift
+    ax.text(1.0, acc_pct + y_max * 0.12,
             f"{lift:.1f}× above\nrandom", ha="center", va="bottom",
-            fontsize=8.5, color="#d6604d", style="italic")
-    ax.legend(fontsize=8, loc="upper left")
+            fontsize=7.5, color="#d6604d", style="italic")
+    # Annotate zero-shot vs supervised gap
+    ax.annotate("", xy=(2, db2_pct), xytext=(3, kmer_pct),
+                arrowprops=dict(arrowstyle="<->", color="#555555", lw=1.2))
+    ax.legend(fontsize=7.5, loc="upper left")
 
-    n_cls = knn_data["n_classes"] if knn_json.exists() else 26
+    n_cls = knn_data["n_classes"]
     fig.suptitle(
-        f"Figure 3: Haplogroup embedding structure and {n_cls}-class zero-shot classification",
+        f"Figure 3: Haplogroup embedding structure and {n_cls}-class classification",
         fontweight="bold", fontsize=11, y=1.02)
     _save(fig, "fig3")
 

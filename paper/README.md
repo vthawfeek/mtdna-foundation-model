@@ -12,7 +12,7 @@ paper/
 │   ├── supplementary.tex     # Supplementary materials
 │   ├── references.bib        # BibTeX bibliography
 │   └── figures/
-│       └── generate_figures.py  # Reproduces all 6 paper figures
+│       └── generate_figures.py  # Reproduces all 4 paper figures
 ├── experiments/
 │   ├── ablations/
 │   │   ├── ablate_circular_pe.py     # G1-A1: Circular PE vs linear/learnable
@@ -24,8 +24,7 @@ paper/
 │   └── evaluation/
 │       ├── create_eval_splits.py           # G2: Proper held-out test set
 │       ├── compute_confidence_intervals.py  # G5: Bootstrap CIs
-│       ├── external_pathogenicity_eval.py   # G8: MITOMAP/HelixMTdb validation
-│       └── ancient_dna_extended.py          # G7: 10+ ancient samples
+│       └── external_pathogenicity_eval.py   # G8: MITOMAP/HelixMTdb validation
 └── review/
     ├── gap_analysis.md       # Scientific gaps and resolution tracker
     ├── related_work.md       # Literature review narrative
@@ -102,12 +101,9 @@ uv run mtdna-evaluate --output reports/eval_summary.json
 uv run python paper/experiments/evaluation/compute_confidence_intervals.py
 ```
 
-### Step 6: External validation (G7, G8)
+### Step 6: External pathogenicity validation (G8)
 
 ```bash
-# Ancient DNA extended evaluation
-uv run python paper/experiments/evaluation/ancient_dna_extended.py
-
 # External pathogenicity validation (requires MITOMAP and HelixMTdb downloads)
 # See paper/experiments/evaluation/external_pathogenicity_eval.py for download instructions
 uv run python paper/experiments/evaluation/external_pathogenicity_eval.py
@@ -160,7 +156,6 @@ Pre-trained model weights and LoRA adapters are available on HuggingFace Hub:
 | k-mer baseline | ~10 min |
 | DNABERT2 baseline (CPU) | ~2h |
 | Confidence intervals | ~5 min |
-| Ancient DNA evaluation | ~30 min |
 | Figure generation | ~10 min |
 | LaTeX compilation | ~1 min |
 
@@ -176,9 +171,8 @@ See [gap_analysis.md](review/gap_analysis.md) for the full gap tracker.
 | G4 Phase 2 training | `uv run mtdna-pretrain --phase 2` | Run manually |
 | G5 Confidence intervals | `evaluation/compute_confidence_intervals.py` | Script ready |
 | G6 Literature review | `review/related_work.md` | Written; verify DOIs |
-| G7 Ancient DNA extended | `evaluation/ancient_dna_extended.py` | Script ready |
-| G8 External pathogenicity | `evaluation/external_pathogenicity_eval.py` | Needs MITOMAP download |
-| G9 Paper figures | `manuscript/figures/generate_figures.py` | Script ready |
+| G7 External pathogenicity | `evaluation/external_pathogenicity_eval.py` | Needs MITOMAP download |
+| G8 Paper figures (4) | `manuscript/figures/generate_figures.py` | Script ready |
 | G10 Model card | `huggingface_hub/push_to_hub.py` | Update after paper draft |
 
 ## Citation

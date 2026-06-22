@@ -1,20 +1,20 @@
 {
-  "auroc": 0.7775,
-  "auprc": 0.44,
-  "auroc_ci_95_lo": 0.7312082085185756,
-  "auroc_ci_95_hi": 0.8211637589190697,
+  "auroc": 0.7772,
+  "auprc": 0.4398,
+  "auroc_ci_95_lo": 0.7310731850547043,
+  "auroc_ci_95_hi": 0.8210194862310093,
   "n_pathogenic": 118,
   "n_benign": 419,
   "knn_k": 5,
   "knn_metric": "cosine",
   "cv_folds": 5,
-  "model": "/home/user/Documents/Personal/ai_lab/mtdna_foundation_model/models/phase1_v1",
+  "model": "vthawfeek/mtdna-foundation-model",
   "random_auroc": 0.5,
   "random_auprc": 0.21973929236499068,
   "per_type": {
     "missense": {
-      "auroc": 0.7269,
-      "auprc": 0.3036,
+      "auroc": 0.7263,
+      "auprc": 0.3034,
       "n_pos": 56,
       "n_neg": 248
     },
@@ -49,7 +49,7 @@
       0.0405727923627685,
       0.1026252983293556,
       0.21479713603818615,
-      0.4606205250596659,
+      0.4630071599045346,
       1.0
     ],
     "tpr": [
@@ -67,7 +67,7 @@
       0.5405405405405406,
       0.45569620253164556,
       0.47368421052631576,
-      0.3523489932885906,
+      0.3511705685618729,
       0.21973929236499068
     ],
     "recall": [
@@ -79,5 +79,5 @@
       1.0
     ]
   },
-  "elapsed_seconds": 54.9
+  "elapsed_seconds": 478.5
 }

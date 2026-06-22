@@ -17,7 +17,7 @@ models is unclear."
    circular topology handling — show this concretely with AUROC numbers.
 3. Acknowledge that fine-tuning DNABERT2 is a fair baseline; report it.
 4. Argue that domain-specific pre-training learns mtDNA-specific evolutionary patterns (haplogroup
-   clustering, gene-type recovery) that transfer learning from nuclear DNA does not.
+   clustering, pathogenic variant embedding contrast) that transfer learning from nuclear DNA does not.
 
 **Pre-emptive mitigation:** Add G3 baselines (DNABERT2 evaluated on same task) before submission.
 
@@ -109,19 +109,7 @@ regression is not sufficient for clinical application."
 
 ---
 
-## Objection 8: "The ancient DNA result is based on only two samples"
-
-**Expected wording:** "The zero-shot ancient DNA result is based on Neanderthal and Denisovan
-only. This is anecdotal."
-
-**Response strategy:**
-1. G7 expands to 10+ ancient samples from multiple sites and time periods.
-2. Report phylogenetic concordance as the primary metric: fraction of ancient samples that place
-   in the expected phylogenetic position relative to modern human haplogroups.
-
----
-
-## Objection 9: "Haplogroup fine-tuned accuracy (1.83%) is below random"
+## Objection 8: "Haplogroup fine-tuned accuracy (1.83%) is below random"
 
 **Current status:** Fine-tuned accuracy (1.83% test, 2-epoch CPU run) is below the 3.85% random baseline due to partial class collapse — only 3/26 classes have F1 > 0.01. Class weighting was applied but 2 CPU epochs are insufficient for LoRA convergence. The zero-shot k-NN result (~50%, no labels) from the pre-trained embeddings is the more meaningful claim and is substantially above the random baseline.
 

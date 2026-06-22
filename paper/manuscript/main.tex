@@ -47,11 +47,14 @@ exclusively on nuclear genomes and use linear positional encodings that structur
 misrepresent circular topology: they assign maximal positional distance to the two ends of the
 linearized genome, which are physically adjacent in the circular molecule. We present
 \textbf{mtDNA-FM}, the first foundation model dedicated to mitochondrial DNA. mtDNA-FM
-introduces two architectural novelties: (i) a \textit{circular positional encoding} implemented
-as a fixed sinusoidal buffer such that positions~0 and 16,568 receive identical encodings,
-eliminating the artificial discontinuity at the genome junction; and (ii) a
+incorporates two biologically motivated architectural design choices: (i) a
+\textit{circular positional encoding} implemented as a fixed sinusoidal buffer such that
+positions~0 and 16,568 receive identical encodings, reflecting the physical adjacency of these
+positions at the D-loop junction in the closed circular molecule and eliminating the artificial
+positional discontinuity that linear encodings impose; and (ii) a
 \textit{heteroplasmy projection channel} that accepts a continuous per-position variant allele
-fraction (0--1) alongside sequence content.
+fraction (0--1) alongside sequence content. Empirical ablation of circular versus standard
+sinusoidal positional encoding is deferred to the extended paper.
 We compare \mtdnafm{} against DNABERT-2 \citep{zhou2024dnabert2} (117M parameters, BPE
 tokenization, pre-trained on 32 vertebrate nuclear genomes, 18\% of each genome seen) using an
 identical zero-shot cosine 5-nearest-neighbour protocol on the same train/test split.
@@ -63,17 +66,16 @@ HV haplogroups fall in F1 range 0.000--0.241 and all six African L haplogroups f
 representation failure --- DNABERT-2 correctly classifies H and J using diagnostic positions
 within 3,000~nt that \mtdnafm{} also covers; (3)~bidirectional precision and recall collapse
 for all nine European HV haplogroups confirms embedding-space overlap within the clade; and
-(4)~\mtdnafm{} outperforms DNABERT-2 on haplogroups C and F, whose diagnostic positions fall
+(4)~\mtdnafm{} outperforms DNABERT-2 on haplogroups C, F, and E, whose diagnostic positions fall
 beyond the 3,000-nucleotide truncation limit, providing directional evidence that full-genome
 coverage is advantageous where truncation removes discriminative information.
 Pre-trained on 152,590 complete vertebrate mtDNA sequences in two phases (117,615
 cross-species, then 34,975 human HmtDB), the model achieves 37.9\% on 26-class zero-shot
 haplogroup classification (cosine 5-NN; 3.85\% random baseline, 9.9$\times$ lift;
 95\% CI 34.4--41.2\%) and AUROC 0.777 (95\% CI 0.731--0.821) on zero-shot pathogenic variant
-discrimination using ClinVar SNPs against gnomAD common variants. Without evolutionary labels
-in training, the model places Neanderthal (NC\_011137.1) and Denisovan (FR695060.1) sequences
-outside modern human variation, and separates rRNA genes from protein-coding and tRNA genes
-in the embedding space. Pre-trained weights, a Gradio demonstration interface, and the full DVC pipeline are publicly
+discrimination using ClinVar SNPs against gnomAD common variants. Both evaluations use the
+Phase~1 checkpoint; Phase~1 vs.\ Phase~2 ablation is deferred to the extended paper.
+Pre-trained weights, a Gradio demonstration interface, and the full DVC pipeline are publicly
 available.
 
 \textbf{Availability:} \url{https://github.com/vthawfeek/mtdna-foundation-model},
@@ -121,9 +123,13 @@ We present \textbf{\mtdnafm}, a BERT-style \citep{devlin2018bert} foundation mod
 designed and pre-trained for mitochondrial DNA. Our contributions are:
 
 \begin{enumerate}
-\item A \textbf{circular positional encoding} that mathematically encodes the circular topology
-as a non-learnable buffer, ensuring smooth representations at the genome junction and robustness
-during any subsequent adaptation (Section~\ref{sec:architecture}).
+\item A \textbf{circular positional encoding} that encodes the biologically correct circular
+topology as a non-learnable buffer: mtDNA is a closed circular molecule, and positions~0
+and~16,568 are physically adjacent at the D-loop control region boundary. Standard sinusoidal
+encodings assign maximal positional distance to these adjacent positions, creating a
+topologically incorrect inductive bias. Our circular encoding eliminates this mismatch,
+ensuring smooth representations at the genome junction. Empirical ablation against sinusoidal
+PE is deferred to the extended paper (Section~\ref{sec:architecture}).
 
 \item A \textbf{heteroplasmy projection channel} that accepts per-position variant allele fractions
 as a continuous input, enabling the model to learn from heteroplasmic data and distinguish
@@ -133,7 +139,7 @@ sequences by their variant mixture state (Section~\ref{sec:architecture}).
 to learn conserved structural features, followed by Phase~2 specialization on human HmtDB sequences
 with heteroplasmy loss enabled (Section~\ref{sec:pretraining}).
 
-\item \textbf{Zero-shot evaluation} on 26-class haplogroup classification and pathogenic variant discrimination, plus two zero-shot discovery experiments (ancient DNA phylogenetic placement, unsupervised gene-type recovery, Section~\ref{sec:results}).
+\item \textbf{Zero-shot evaluation} on 26-class haplogroup classification and pathogenic variant discrimination, with per-class analysis against DNABERT-2 (Section~\ref{sec:results}).
 \end{enumerate}
 
 %% =========================================================================
@@ -302,8 +308,7 @@ pre-training corpus (also from NCBI), though no haplogroup labels were used duri
 
 \textbf{Pathogenicity evaluation.} Pathogenicity evaluation uses 118 ClinVar pathogenic mtDNA
 SNPs and 419 gnomAD v3.1 chrM common variants (AF $>0.01$). Metrics: AUROC and AUPR.
-Confidence intervals are 1,000-replicate non-parametric bootstrap. Baseline: 6-mer frequency
-vectors with logistic regression.
+Confidence intervals are 1,000-replicate non-parametric bootstrap.
 
 %% =========================================================================
 \section{Results}
@@ -324,14 +329,19 @@ clades form distinct regions without supervision. Misclassifications are phyloge
 structured: haplogroup H is confused with its direct ancestor HV; L0 is confused with its
 sibling L1. Cross-clade errors (e.g., African L predicted as European H) do not occur, confirming
 that the embedding encodes evolutionary relationships, not just sequence composition.
+A supervised 6-mer frequency logistic regression on the same 1,509-sequence library achieves
+78.7\% accuracy (Macro-F1 0.678; Table~\ref{tab:haplogroup}), confirming that the task is
+solvable from sequence-level k-mer statistics and that the zero-shot gap reflects
+representation capacity rather than task difficulty.
 
 
 \begin{table}[h]
 \centering
-\caption{26-class haplogroup classification. All \mtdnafm results are zero-shot (cosine 5-NN
-on frozen embeddings; no haplogroup labels used in pre-training). DNABERT-2 uses the same
-train/test split and k-NN protocol (CLS token, cosine distance); its 512-token BPE context
-covers approximately 3,000 nt (18\%) of each 16,569 bp genome. Supervised fine-tuning and
+\caption{26-class haplogroup classification on the same 1,509-sequence train library and
+757-sequence test set (random\_state=42). Zero-shot methods use frozen embeddings with cosine
+5-NN (no haplogroup labels in pre-training). DNABERT-2's 512-token BPE context covers
+approximately 3,000~nt (18\%) of each genome. The supervised 6-mer logistic regression
+establishes an upper bound using the same split. Supervised fine-tuning of \mtdnafm and
 Phase~1 vs Phase~2 curriculum ablation are deferred to the extended paper.}
 \label{tab:haplogroup}
 \begin{tabular}{lccc}
@@ -339,9 +349,10 @@ Phase~1 vs Phase~2 curriculum ablation are deferred to the extended paper.}
 \textbf{Method} & \textbf{Setting} & \textbf{Accuracy (\%)} & \textbf{Macro-F1} \\
 \midrule
 Random baseline & 26-class & 3.85 & 0.038 \\
-6-mer frequency + LR & 26-class & $\sim$65 & --- \\
-DNABERT-2 (zero-shot 5-NN) & 26-class & 66.3 & 0.6593 \\
 \mtdnafm (zero-shot 5-NN) & 26-class & \textbf{37.9} & 0.3703 \\
+DNABERT-2 (zero-shot 5-NN) & 26-class & 66.3 & 0.6593 \\
+\midrule
+6-mer LR (supervised) & 26-class & 78.7 & 0.678 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -349,12 +360,14 @@ DNABERT-2 (zero-shot 5-NN) & 26-class & 66.3 & 0.6593 \\
 \begin{figure}[h]
 \centering
 \includegraphics[width=\textwidth]{figures/fig3.png}
-\caption{\textbf{Haplogroup embedding structure and 26-class zero-shot classification.}
+\caption{\textbf{Haplogroup embedding structure and 26-class classification.}
 (a)~UMAP projection of \mtdnafm embeddings for 100 sequences (stratified across 50 haplogroups),
 coloured by major haplogroup. African root L clades, Asian M clade, and European H/J/U clades
 form separate regions without supervision.
-(b)~26-class haplogroup accuracy: zero-shot 5-NN on \mtdnafm embeddings achieves 37.9\%
-(9.9$\times$ above random baseline 3.85\%). No haplogroup labels were used in pre-training.}
+(b)~26-class haplogroup accuracy across four methods on the same 1,509/757 train/test split.
+Random baseline 3.85\%; \mtdnafm zero-shot 37.9\% (9.9$\times$ above random; 95\% CI shown);
+DNABERT-2 zero-shot 66.3\%; supervised 6-mer logistic regression 78.7\% (task is solvable).
+Neither \mtdnafm nor DNABERT-2 used haplogroup labels.}
 \label{fig:haplogroup}
 \end{figure}
 
@@ -363,16 +376,23 @@ form separate regions without supervision.
 Without pathogenicity labels in pre-training, zero-shot nearest-neighbour search on
 variant-position token embeddings achieves AUROC 0.777 [95\% CI 0.731--0.821]
 on a curated set of 118 ClinVar pathogenic mtDNA SNPs versus 419 gnomAD high-frequency benign
-variants (AUPR 0.440 vs. 0.220 random; Figure~\ref{fig:roc}). The ROC curve rises steeply at
-low false-positive rate (TPR 0.69 at FPR 0.21), indicating reliable high-confidence calls.
+variants (AUPR 0.440 vs. 0.220 random; Figure~\ref{fig:roc}). The operating point is
+TPR 0.69 at FPR 0.21.
 
 Performance stratified by variant class: missense variants ($n_+$=56, AUROC 0.727), tRNA
-variants ($n_+$=44, AUROC 0.718; AUPR 0.773 reflecting high precision), rRNA variants
-($n_+$=5, AUROC 0.639 with limited power). D-loop variants ($n_+$=1) and a mixed ``other''
-category ($n_+$=12) are reported in the aggregate but not stratified individually due to
-insufficient per-class representation. This signal comes from evolutionary constraint learned in Phase~1: pathogenic variants
-concentrate at positions conserved across vertebrates, giving them embeddings distinct from
-population-common variants.
+variants ($n_+$=44, AUROC 0.718; AUPR 0.773), rRNA variants ($n_+$=5, AUROC 0.639 with
+limited power). The tRNA class has 44 positives versus only 21 negatives
+(class-specific random AUPR $= 44/65 = 0.677$), so the observed AUPR of 0.773 represents a
+modest improvement (1.14$\times$ lift) above the class-adjusted baseline. D-loop variants
+($n_+$=1) and a mixed ``other'' category ($n_+$=12) are reported in the aggregate but not
+stratified individually due to insufficient per-class representation; both showed
+below-chance performance (D-loop AUROC 0.45, other AUROC 0.20), likely reflecting class
+sizes too small for reliable embedding-based discrimination. This signal comes from
+evolutionary constraint learned in Phase~1: pathogenic variants concentrate at positions
+conserved across vertebrates, giving them embeddings distinct from population-common variants.
+No supervised or tool-based comparison baseline (e.g., SIFT, PolyPhen-2, MitoTIP, APOGEE2)
+is included in this preprint; benchmarking against established variant effect predictors is
+deferred to the extended paper.
 
 
 \begin{figure}[h]
@@ -383,57 +403,10 @@ population-common variants.
 vs.\ 419 gnomAD high-frequency benign variants. AUROC 0.777 [95\% CI 0.731--0.821];
 the operating point at FPR 0.21, TPR 0.69 is marked.
 (b)~Precision-recall curve; AUPRC 0.440 vs.\ random baseline 0.220.
-(c)~AUROC and AUPRC by variant class: missense (AUROC 0.727), tRNA (AUROC 0.718, AUPRC 0.773),
-rRNA (AUROC 0.639). No pathogenicity labels were used in pre-training.}
+(c)~AUROC and AUPRC by variant class: missense (AUROC 0.727), tRNA (AUROC 0.718,
+AUPRC 0.773; class-specific random AUPR $= 0.677$), rRNA (AUROC 0.639).
+No pathogenicity labels were used in pre-training.}
 \label{fig:roc}
-\end{figure}
-
-\subsection{Zero-shot Experiments}
-
-\subsubsection{Ancient DNA Phylogenetic Placement}
-\label{sec:ancient}
-
-Without any task-specific supervision, \mtdnafm embeddings correctly place two archaic human mtDNA sequences
-in their expected phylogenetic positions (Figure~\ref{fig:umap}). The Neanderthal sequence (NC\_011137.1, Vindija Cave) and Denisovan sequence (FR695060.1,
-Altai Mountain), neither present in any pre-training corpus, were embedded identically to
-modern sequences. The mean pairwise L2 distance between modern human sequences is 0.075. The
-Neanderthal embedding is 0.111 from the modern human centroid (1.48$\times$ baseline); the
-Denisovan is 0.107 (1.43$\times$). Both cluster closest to African root haplogroups (L clades),
-consistent with the estimated 300,000--500,000~year divergence from the modern human
-mitochondrial lineage. No archaic DNA or evolutionary labels were used in training.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=\textwidth]{figures/fig5.png}
-\caption{\textbf{Archaic human sequences in mtDNA-FM embedding space.}
-(a)~UMAP of 100 modern human sequences coloured by major haplogroup. Archaic sequences
-(Neanderthal NC\_011137.1 and Denisovan FR695060.1) lie outside this cloud; see panel~(b).
-(b)~Mean L2 distance from the modern human embedding centroid. The modern pairwise baseline
-is 0.075; Neanderthal is 0.111 (1.48$\times$ baseline) and Denisovan is 0.107 (1.43$\times$).
-Neither archaic sequence appeared in pre-training.}
-\label{fig:umap}
-\end{figure}
-
-\subsubsection{Unsupervised Gene Structure in Embedding Space}
-
-t-SNE of embeddings for all 37 annotated mtDNA genes (13 protein-coding, 22 tRNA, 2 rRNA)
-shows gene-type structure in the embedding space, without any functional annotation
-in training (Figure~\ref{fig:gene_types}). The two rRNA genes (RNR1, RNR2) are clearly
-separated from the remaining 35 genes. Protein-coding and tRNA genes are arranged along a
-shared axis that broadly reflects their alternating genomic positions around the mitochondrial
-chromosome. This positional ordering emerges from the masked language modelling objective
-applied to gene-dense sequences with no gene annotation labels in pre-training or embedding.
-
-\begin{figure}[h]
-\centering
-\includegraphics[width=0.75\textwidth]{figures/fig6.png}
-\caption{\textbf{Unsupervised gene structure in mtDNA-FM embeddings.}
-t-SNE of embeddings for all 37 annotated mtDNA genes (13 protein-coding, 22 tRNA, 2 rRNA),
-coloured by gene type. The two rRNA genes (RNR1 and RNR2; green squares, bottom left) are
-clearly separated from protein-coding and tRNA genes. Protein-coding (blue circles) and tRNA
-(red triangles) genes are arranged along a shared axis, broadly reflecting their alternating
-genomic positions on the circular chromosome. No functional labels were used in pre-training.}
-\label{fig:gene_types}
 \end{figure}
 
 %% =========================================================================
@@ -493,7 +466,7 @@ clade ratios (7.2$\times$ vs 1.13$\times$) is not consistent with a uniform scal
 Not an Information-Access Failure}
 \label{sec:rep_failure}
 
-\mtdnafm{} processes all 16,569 positions of each genome across 33 overlapping windows.
+\mtdnafm{} processes all 16,569 positions of each genome across 65 overlapping windows.
 DNABERT-2 is truncated to the first 3,000~nt, covering the D-loop control region (positions
 1--576, including HV2 and HV3), the 12S rRNA gene (648--1601), and the first 1,329~nt of the
 16S rRNA gene (1671--3000). The ND1 coding gene does not begin until position 3307 and falls
@@ -506,9 +479,9 @@ defining D-loop variant at position 295 \citep{vanoven2009phylotree}, also withi
 Using only these early markers, DNABERT-2 achieves F1 = 0.643 on H and F1 = 0.947 on J: it
 correctly classifies 36 of 40 J test sequences and 27 of 40 H test sequences.
 
-\mtdnafm{} covers the same positions --- they fall within windows 1--4 of its 33-window
-representation --- yet achieves F1 = 0.055 on H (2 of 40 correct) and F1 = 0.149 on J (5
-of 40 correct). The discriminative information exists in positions 1--3,000~nt; DNABERT-2
+\mtdnafm{} covers the same positions --- they fall within the first $\sim$11 windows of its
+65-window representation (stride~256, window~512) --- yet achieves F1 = 0.055 on H (2 of 40
+correct) and F1 = 0.149 on J (5 of 40 correct). The discriminative information exists in positions 1--3,000~nt; DNABERT-2
 uses it; \mtdnafm{} does not. The failure is therefore in how \mtdnafm{} represents
 what it sees, not in what it is given access to.
 
@@ -525,11 +498,12 @@ five of six nucleotides). DNABERT-2's BPE vocabulary \citep{zhou2024dnabert2} of
 500 non-redundant tokens provides higher information density per token, particularly for
 haplogroup-diagnostic sequence patterns.
 
-\noindent\textbf{(c) Window mean-pooling.} \mtdnafm{} averages 33 window CLS representations into a
-single 256-dimensional vector. The diagnostic signal at D-loop position 295 (one of 33 windows)
-contributes equally to a conserved tRNA motif at position 7029 (a different window). This
-architectural dilution reduces the weight of position-specific markers to 1/33 of the total
-embedding.
+\noindent\textbf{(c) Window mean-pooling.} \mtdnafm{} uses overlapping 512-token windows with stride~256
+(50\% overlap), producing 65 windows for a 16,569-token genome. The mean of 65 window CLS
+representations forms a single 256-dimensional vector. The diagnostic signal at D-loop position
+295 (one window) contributes equally to a conserved tRNA motif at position 7029 (a different
+window). This architectural dilution reduces the weight of position-specific markers to
+$\sim$1/65 of the total embedding.
 
 %% ─────────────────────────────────────────────────────────────────────────
 \subsection{Observation 3: Bidirectional Precision and Recall Collapse Confirms Embedding
@@ -617,7 +591,7 @@ separable mechanisms. BPE tokenization trained on human mtDNA sequences would re
 autocorrelated 6-mer tokens to approximately 500 non-redundant tokens \citep{zhou2024dnabert2}
 and enable a single-window forward pass over the full genome. Hierarchical attention over
 window CLS representations would allow the model to learn position-specific window weights,
-ending the 1/33 dilution of diagnostic D-loop signal.
+ending the $\sim$1/65 dilution of diagnostic D-loop signal.
 
 \textbf{Observation 4} (full-genome advantage) establishes that the circular positional
 encoding, heteroplasmy channel, and full-genome coverage must be preserved in any scaled
@@ -632,10 +606,11 @@ general-purpose genomic model. A scaled successor should inherit both.
 %% =========================================================================
 \section{Discussion}
 
-\mtdnafm{} demonstrates that a 6M parameter encoder pre-trained exclusively on mitochondrial
-sequences encodes evolutionary structure without task-specific supervision: haplogroup identity,
-archaic sequence ancestry, and rRNA/protein-coding gene separation are all recoverable from the
-embedding space. Section~\ref{sec:analysis} derives four observations from the per-class
+\mtdnafm{} demonstrates that a compact 6M-parameter encoder pre-trained exclusively on
+mitochondrial sequences encodes evolutionary structure without task-specific supervision:
+haplogroup identity is recoverable from frozen embeddings at 37.9\% 26-class accuracy, and
+pathogenic variants are discriminated from population-common variants without labels (AUROC
+0.777). Section~\ref{sec:analysis} derives four observations from the per-class
 comparison against DNABERT-2: the gap is clade-specific (European HV haplogroups show
 complete non-overlap with African L haplogroups in \mtdnafm{}'s per-class performance); it is
 a representation failure rather than an information-access failure; bidirectional
@@ -643,21 +618,93 @@ precision/recall collapse confirms embedding-space overlap within the European H
 \mtdnafm{} outperforms DNABERT-2 on three haplogroups (C, F, E) whose diagnostic positions
 fall beyond DNABERT-2's truncation limit.
 
-\textbf{Circular PE generalizability.} The circular positional encoding is not specific to mtDNA.
-Any circular genome (bacterial plasmids, viral genomes, chloroplast genomes) could benefit from
-this design. We provide the implementation as a reusable \texttt{nn.Module} with a documented
-API.
+\textbf{Circular PE generalizability.} The circular positional encoding is not specific to
+mitochondrial DNA. Any sequence model applied to a circular DNA molecule benefits from
+eliminating the artificial positional discontinuity that linear encodings impose at the
+junction. Four biologically and clinically relevant domains are directly in scope.
+
+\textit{Prokaryotic genomes and synthetic biology.} Virtually all bacterial chromosomes
+(e.g., \textit{E.~coli}: 4.6~Mb; \textit{B.~subtilis}: 4.2~Mb) and all plasmids are
+circular. Synthetic biology designs expression circuits on circular plasmid backbones whose
+regulatory grammar --- promoter, coding sequence, terminator --- wraps around the junction.
+A foundation model encoding plasmid sequences with circular PE would correctly represent
+regulatory interactions that span the origin of replication.
+
+\textit{Extrachromosomal DNA (ecDNA) in cancer.} ecDNA --- large (0.1--10~Mb) circular DNA
+elements found in approximately 14\% of human cancers across 17 tumour types
+\citep{turner2017extrachromosomal} --- carries amplified oncogenes (MYC, EGFR, CDK4) and
+associated super-enhancers on a single circular molecule. Its circular topology enables
+multi-way chromatin interactions unavailable on linear chromosomes and underlies the rapid
+oncogene amplification that drives tumour evolution and treatment resistance
+\citep{kim2020extrachromosomal}. A sequence foundation model for ecDNA with circular PE would
+correctly represent the regulatory grammar at the oncogene--enhancer junction and could
+support ecDNA detection and characterisation from sequencing data.
+
+\textit{Minicircle DNA vectors in gene therapy.} Minicircle vectors are small (2--5~kb)
+circular DNA constructs derived from parental plasmids by removal of the bacterial backbone;
+they achieve more sustained transgene expression and lower immunogenicity than conventional
+plasmids \citep{kay2010minicircle}. The expression cassette (promoter, transgene, poly-A
+signal) forms a closed circle, and sequence models predicting transgene expression level or
+immunogenic potential would benefit from circular PE to correctly represent regulatory elements
+that are physically adjacent across the vector junction.
+
+\textit{Ring chromosomes.} Ring chromosomes arise when both telomeric ends of a chromosome
+fuse into a closed circle, eliminating centromere-distal genes and creating a novel junction.
+They are associated with multiple clinical syndromes (Ring~14 epilepsy, Ring~20 nocturnal
+epilepsy, Ring~22 intellectual disability) \citep{guilherme2011ring} and are recurrent in
+cancer cytogenetics. For sequence-level analysis of the ring junction region --- identifying
+breakpoint signatures, predicting which gene disruptions drive phenotype --- circular PE
+accurately reflects the physical topology that linear PE misrepresents.
+
+We provide the circular PE implementation as a reusable \texttt{nn.Module} with a documented
+API suitable for adaptation to any of these domains.
+
+\textbf{Why does biologically correct positional encoding not visibly overcome the performance
+gap?} The apparent paradox --- that a model with the topologically correct positional encoding
+for a circular genome underperforms a model with a structurally incorrect linear encoding ---
+is resolved by recognising that the correct inductive bias provides the right foundation, not a
+free performance guarantee. Three factors suppress the expected benefit in the current
+evaluation.
+
+First, the 20$\times$ parameter gap (5.8M vs.\ 117M) dominates: if the model lacks capacity to
+encode fine-grained haplogroup-discriminating features for closely related European HV
+haplogroups, the PE cannot compensate. Second, the D-loop region --- where circular PE is most
+consequential, since positions 16,024--576 span the physical junction --- is captured by both
+models. The critical failure identified in Observation~2 is in the \emph{representation} of
+diagnostic variants within the first 3,000~nt, not at the junction boundary itself. Third,
+Observation~4 provides directional evidence that full-genome design choices \emph{do} confer
+measurable advantage: \mtdnafm{} outperforms DNABERT-2 on all three haplogroups (C, F, E)
+whose defining markers lie beyond DNABERT-2's truncation limit. This double dissociation is
+consistent with circular coverage providing advantage precisely where truncation creates a hard
+ceiling.
+
+We therefore hypothesise that circular PE provides a latent advantage --- most visible at the
+D-loop junction and for distal haplogroups --- that is currently masked by the parameter budget
+gap. A controlled ablation (training an otherwise identical model with standard sinusoidal PE,
+comparing zero-shot k-NN accuracy) will isolate this contribution in the extended paper.
+Until that ablation is available, the correct characterisation is that circular PE is the
+principled, biologically motivated architectural choice for a circular genome, and that the
+current results provide no evidence \emph{against} this choice: they provide evidence that
+scale is the dominant variable at 5.8M parameters.
 
 \textbf{Limitations.}
 \begin{itemize}
+\item \textit{Phase~1 checkpoint only.} The haplogroup and pathogenicity evaluations both use
+the Phase~1 checkpoint (cross-species pre-training on 117,615 vertebrate sequences), which is
+the model published to HuggingFace Hub. Phase~2 human-specialisation training (34,975 HmtDB
+sequences, heteroplasmy loss) was executed but the resulting checkpoint was not evaluated for
+this preprint due to compute constraints. Ablation of Phase~1 vs.\ Phase~2 performance is
+deferred to the extended paper.
 \item \textit{Evaluation--pre-training overlap.} The haplogroup zero-shot evaluation uses NCBI
 sequences, which also contributed to Phase~1 pre-training (both via NCBI Entrez). No haplogroup
 labels were used during pre-training, but some evaluation sequences may have been seen during
 MLM training, potentially inflating zero-shot accuracy. We will quantify this overlap in the
-extended paper.
+extended paper. Critically, any such inflation affects only \mtdnafm{} (DNABERT-2 was
+pre-trained on nuclear genomes, not mtDNA), so the observed 28.4 percentage-point gap
+is a \emph{conservative lower bound} on the true performance difference.
 \item \textit{European cohort bias.} HmtDB contains approximately 60--70\% European-origin
 sequences; haplogroup H alone constitutes approximately 14.3\% of labeled sequences, and the
-European HV clade (H, HV, J, K, T, U) constitutes approximately 50\%. All nine European
+European HV clade (H, HV, J, K, T, U, V, W, X) constitutes approximately 50\%. All nine European
 HV-clade haplogroups show \mtdnafm{} F1 below 0.25; whether over-representation of closely
 related sequences during Phase 2 pre-training contributes to the observed embedding-space
 collapse is a testable hypothesis (Section~\ref{sec:clade_specific}).
@@ -672,8 +719,8 @@ finer-grained labels not included in this study.
 \textbf{Future work.} The extended paper will include architectural ablations (circular PE
 vs.\ sinusoidal PE; with vs.\ without het channel), a Phase~1 vs Phase~2 curriculum ablation,
 supervised fine-tuning experiments, and an expanded pathogenicity benchmark against MitoTIP
-and APOGEE2. The circular PE and het channel apply directly to other circular genomes:
-bacterial plasmids, viral genomes, and chloroplast DNA.
+and APOGEE2. The circular PE and het channel apply directly to any circular DNA context;
+see the Circular PE generalizability discussion above for specific application domains.
 
 %% =========================================================================
 \section{Conclusion}
@@ -682,9 +729,7 @@ We introduced \mtdnafm{}, the first foundation model for mitochondrial DNA, with
 positional encoding, a heteroplasmy projection channel, and a two-phase pre-training
 curriculum. Zero-shot 5-NN achieves 37.9\% on 26-class haplogroup classification
 (9.9$\times$ the 3.85\% random baseline) and AUROC 0.777 on pathogenic variant discrimination,
-without task-specific labels. Neanderthal and Denisovan sequences land outside modern human
-variation and rRNA genes separate from protein-coding and tRNA genes in the embedding space,
-both without supervision.
+without task-specific labels.
 
 Comparing against DNABERT-2 (117M parameters, nuclear-genome pre-training, 18\% of each
 genome seen) reveals a 28.4 percentage-point gap whose structure the per-class data makes
@@ -694,12 +739,14 @@ the six African L haplogroups in range 0.438--0.857); the failure is a represent
 (DNABERT-2 correctly classifies H and J from diagnostic positions within 3,000~nt that
 \mtdnafm{} also covers but cannot leverage); bidirectional precision/recall collapse across
 the European HV clade confirms embedding-space overlap; and \mtdnafm{} outperforms
-DNABERT-2 on haplogroups C and F, whose diagnostic positions lie beyond DNABERT-2's
+DNABERT-2 on haplogroups C, F, and E, whose diagnostic positions lie beyond DNABERT-2's
 truncation limit, confirming that full-genome access captures information unavailable to
 truncated models. The analysis points to BPE tokenization over the full genome, hierarchical
 window aggregation, and scaling to 100M parameters while preserving the circular positional
 encoding and heteroplasmy channel as the path to a model that captures both full-genome
 coverage and the per-position precision needed for recently diverged clades.
+All results are from the Phase~1 checkpoint (cross-species pre-training only; see
+Section~\ref{sec:pretraining} and Limitations).
 All code, model weights, and the DVC pipeline are publicly available.
 
 %% =========================================================================

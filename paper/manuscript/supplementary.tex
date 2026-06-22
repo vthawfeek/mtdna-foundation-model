@@ -131,8 +131,10 @@ gradients do not flow through the positional encoding.
 
 Per-class precision, recall, and F1 from zero-shot cosine 5-nearest-neighbour classification
 on 757 test sequences across 26 major PhyloTree haplogroup classes. No haplogroup labels
-were used in pre-training. Sequences from NCBI haplogroup-labeled human mitochondrial genomes
-(15,364 sequences; stratified 80/10/10 split, \texttt{random\_state=42}).
+were used in pre-training. Sequences from NCBI haplogroup-labeled human mitochondrial genomes:
+15,741 total records were retrieved; 15,364 had a non-null haplogroup field; 13,884 could be
+assigned to one of the 26 major PhyloTree classes and were used for evaluation
+(stratified 80/10/10 split, \texttt{random\_state=42}).
 
 \begin{table}[h]
 \centering

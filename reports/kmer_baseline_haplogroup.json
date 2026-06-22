@@ -1,0 +1,10 @@
+{
+  "model": "6-mer frequency logistic regression (supervised, C=1.0)",
+  "accuracy": 0.7873,
+  "macro_f1": 0.6775,
+  "n_train": 1509,
+  "n_test": 757,
+  "n_classes": 26,
+  "random_baseline": 0.0385,
+  "kmer_k": 6
+}
