@@ -1,4 +1,4 @@
-# Cover Letter — mtDNA-FM Preprint Submission
+# Cover Letter: mtDNA-FM Preprint Submission
 
 ---
 
@@ -18,7 +18,7 @@ Dear bioRxiv Team,
 
 I am submitting a new preprint entitled **"mtDNA-FM: A Domain-Specialized Foundation Model for Mitochondrial DNA with Circular Positional Encoding and Heteroplasmy Modeling"** for posting on bioRxiv in the Bioinformatics subject area.
 
-This manuscript presents the first foundation model dedicated to mitochondrial DNA (mtDNA). Existing genomic foundation models — DNABERT-2, HyenaDNA, and Nucleotide Transformer — are pre-trained exclusively on nuclear genomes and employ linear positional encodings that structurally misrepresent the circular topology of mtDNA. Our model addresses two specific architectural problems: (1) a circular positional encoding that enforces continuity at the genome junction, eliminating the artificial discontinuity at the D-loop boundary; and (2) a heteroplasmy projection channel that accepts continuous per-position variant allele fractions, enabling the model to distinguish heteroplasmic variant states.
+This manuscript presents the first foundation model dedicated to mitochondrial DNA (mtDNA). Existing genomic foundation models (DNABERT-2, HyenaDNA, and Nucleotide Transformer) are pre-trained exclusively on nuclear genomes and employ linear positional encodings that structurally misrepresent the circular topology of mtDNA. Our model addresses two specific architectural problems: (1) a circular positional encoding that enforces continuity at the genome junction, eliminating the artificial discontinuity at the D-loop boundary; and (2) a heteroplasmy projection channel that accepts continuous per-position variant allele fractions, enabling the model to distinguish heteroplasmic variant states.
 
 The key results reported in this preprint are entirely zero-shot (no task-specific labels in training):
 
@@ -62,7 +62,7 @@ ORCID: 0000-0002-7864-5971
 6. **License:** CC-BY 4.0 (recommended for maximum reuse)
 7. **Data Availability Statement:** Paste from paper Data Availability section
 8. **Code Availability Statement:** https://github.com/vthawfeek/mtdna-foundation-model
-9. Check "Yes, this manuscript is already available as a preprint" — NO (it isn't yet)
+9. Check "Yes, this manuscript is already available as a preprint": answer NO (not yet posted)
 10. Submit → expect 1–3 business day review
 11. After DOI issued:
     - Add DOI to HuggingFace Hub model card

@@ -73,7 +73,7 @@ uv run python paper/experiments/evaluation/create_eval_splits.py
 ### Step 3: Run ablation studies (G1)
 
 ```bash
-# Circular PE ablation (requires 3 trained models — ~24h total)
+# Circular PE ablation (requires 3 trained models, ~24h total)
 uv run python paper/experiments/ablations/ablate_circular_pe.py
 
 # Curriculum ablation (requires single-phase trained model)

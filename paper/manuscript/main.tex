@@ -621,7 +621,7 @@ fall beyond DNABERT-2's truncation limit.
 \textbf{Circular PE generalizability.} The circular positional encoding is not specific to
 mitochondrial DNA. Any sequence model applied to a circular DNA molecule benefits from
 eliminating the artificial positional discontinuity that linear encodings impose at the
-junction. Four biologically and clinically relevant domains are directly in scope.
+junction.
 
 \textit{Prokaryotic genomes and synthetic biology.} Virtually all bacterial chromosomes
 (e.g., \textit{E.~coli}: 4.6~Mb; \textit{B.~subtilis}: 4.2~Mb) and all plasmids are
@@ -660,11 +660,9 @@ We provide the circular PE implementation as a reusable \texttt{nn.Module} with 
 API suitable for adaptation to any of these domains.
 
 \textbf{Why does biologically correct positional encoding not visibly overcome the performance
-gap?} The apparent paradox --- that a model with the topologically correct positional encoding
-for a circular genome underperforms a model with a structurally incorrect linear encoding ---
-is resolved by recognising that the correct inductive bias provides the right foundation, not a
-free performance guarantee. Three factors suppress the expected benefit in the current
-evaluation.
+gap?} A correct inductive bias sets the right starting point; it does not guarantee superior
+performance against a model that is 20$\times$ larger. Three effects explain why the
+benefit is not visible in the current evaluation.
 
 First, the 20$\times$ parameter gap (5.8M vs.\ 117M) dominates: if the model lacks capacity to
 encode fine-grained haplogroup-discriminating features for closely related European HV
@@ -682,10 +680,9 @@ We therefore hypothesise that circular PE provides a latent advantage --- most v
 D-loop junction and for distal haplogroups --- that is currently masked by the parameter budget
 gap. A controlled ablation (training an otherwise identical model with standard sinusoidal PE,
 comparing zero-shot k-NN accuracy) will isolate this contribution in the extended paper.
-Until that ablation is available, the correct characterisation is that circular PE is the
-principled, biologically motivated architectural choice for a circular genome, and that the
-current results provide no evidence \emph{against} this choice: they provide evidence that
-scale is the dominant variable at 5.8M parameters.
+Until that ablation is available, circular PE remains the principled, biologically motivated
+architectural choice for a circular genome. The current results provide no evidence
+\emph{against} this choice: they show that scale is the dominant variable at 5.8M parameters.
 
 \textbf{Limitations.}
 \begin{itemize}
@@ -737,7 +734,7 @@ interpretable. Four observations are supported by the results: the gap is clade-
 (all nine European HV haplogroups in \mtdnafm{} F1 range 0.000--0.241 with no overlap with
 the six African L haplogroups in range 0.438--0.857); the failure is a representation failure
 (DNABERT-2 correctly classifies H and J from diagnostic positions within 3,000~nt that
-\mtdnafm{} also covers but cannot leverage); bidirectional precision/recall collapse across
+\mtdnafm{} also covers but does not use); bidirectional precision/recall collapse across
 the European HV clade confirms embedding-space overlap; and \mtdnafm{} outperforms
 DNABERT-2 on haplogroups C, F, and E, whose diagnostic positions lie beyond DNABERT-2's
 truncation limit, confirming that full-genome access captures information unavailable to
