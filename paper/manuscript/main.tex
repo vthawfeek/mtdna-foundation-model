@@ -60,10 +60,10 @@ tokenization, pre-trained on 32 vertebrate nuclear genomes, 18\% of each genome 
 identical zero-shot cosine 5-nearest-neighbour protocol on the same train/test split.
 \mtdnafm{} achieves 37.9\% on 26-class haplogroup classification versus 66.3\% for DNABERT-2
 (95\% CI 34.4--41.2\% vs 63.0--69.5\%; intervals do not overlap). Per-class analysis yields
-four observations: (1)~the gap is clade-specific --- within \mtdnafm{}, all nine European
+four observations: (1)~the gap is clade-specific: within \mtdnafm{}, all nine European
 HV haplogroups fall in F1 range 0.000--0.241 and all six African L haplogroups fall in range
 0.438--0.857, with no overlap across 15 independent class measurements; (2)~the failure is a
-representation failure --- DNABERT-2 correctly classifies H and J using diagnostic positions
+representation failure: DNABERT-2 correctly classifies H and J using diagnostic positions
 within 3,000~nt that \mtdnafm{} also covers; (3)~bidirectional precision and recall collapse
 for all nine European HV haplogroups confirms embedding-space overlap within the clade; and
 (4)~\mtdnafm{} outperforms DNABERT-2 on haplogroups C, F, and E, whose diagnostic positions fall
@@ -479,8 +479,8 @@ defining D-loop variant at position 295 \citep{vanoven2009phylotree}, also withi
 Using only these early markers, DNABERT-2 achieves F1 = 0.643 on H and F1 = 0.947 on J: it
 correctly classifies 36 of 40 J test sequences and 27 of 40 H test sequences.
 
-\mtdnafm{} covers the same positions --- they fall within the first $\sim$11 windows of its
-65-window representation (stride~256, window~512) --- yet achieves F1 = 0.055 on H (2 of 40
+\mtdnafm{} covers the same positions (within the first $\sim$11 of its 65 windows,
+stride~256, window~512) yet achieves F1 = 0.055 on H (2 of 40
 correct) and F1 = 0.149 on J (5 of 40 correct). The discriminative information exists in positions 1--3,000~nt; DNABERT-2
 uses it; \mtdnafm{} does not. The failure is therefore in how \mtdnafm{} represents
 what it sees, not in what it is given access to.
@@ -553,24 +553,22 @@ X  & 0.071 & 0.083 & 12 \\
 Is Truncated}
 \label{sec:coverage_advantage}
 
-Three haplogroups --- C, F, and E --- show \mtdnafm{} achieving higher F1 than DNABERT-2:
+Three haplogroups (C, F, and E) show \mtdnafm{} achieving higher F1 than DNABERT-2:
 C (0.632 vs 0.611), F (0.716 vs 0.613), and E (0.400 vs 0.222). These haplogroups have
 PhyloTree-documented diagnostic positions beyond position 3,000~nt \citep{vanoven2009phylotree}
 that fall outside DNABERT-2's truncation window; \mtdnafm{}'s full-genome coverage reaches them.
 
 The test set for haplogroups C (40 sequences), F (36 sequences), and E (4 sequences) is
-small relative to what would be required for formal per-class significance testing. The
-directional consistency across all three classes --- \mtdnafm{} outperforms on every one ---
-combined with the biological explanation (truncation misses key diagnostic positions),
-provides converging evidence that full-genome access confers an advantage on haplogroups
-whose discriminative information lies beyond position 3,000~nt.
+too small for formal per-class significance testing. That \mtdnafm{} outperforms on all
+three, combined with the biological explanation (truncation misses key diagnostic positions),
+supports the conclusion that full-genome access is advantageous for haplogroups whose
+discriminative information lies beyond position 3,000~nt.
 
-This double dissociation is directly relevant to the overall interpretation. If DNABERT-2's
-superior performance were attributable solely to scale or tokenization quality, it would
-outperform on every haplogroup. The existence of three haplogroups where the smaller,
-domain-specialized model outperforms the larger nuclear-genome model demonstrates that the
-content of the genome matters: truncation imposes a hard ceiling that scale cannot overcome
-for haplogroups whose defining variants fall in the excluded region.
+The double dissociation constrains interpretation: if DNABERT-2's advantage were solely
+attributable to scale or tokenization, it would outperform on every haplogroup. That the
+smaller, domain-specialized model outperforms on three shows that genome content matters.
+Truncation imposes a hard ceiling that scale cannot overcome for haplogroups whose defining
+variants fall in the excluded region.
 
 %% ─────────────────────────────────────────────────────────────────────────
 \subsection{Design Implications for Next-Generation mtDNA Models}
@@ -626,17 +624,15 @@ junction.
 \textit{Prokaryotic genomes and synthetic biology.} Virtually all bacterial chromosomes
 (e.g., \textit{E.~coli}: 4.6~Mb; \textit{B.~subtilis}: 4.2~Mb) and all plasmids are
 circular. Synthetic biology designs expression circuits on circular plasmid backbones whose
-regulatory grammar --- promoter, coding sequence, terminator --- wraps around the junction.
+regulatory grammar (promoter, coding sequence, terminator) wraps around the junction.
 A foundation model encoding plasmid sequences with circular PE would correctly represent
 regulatory interactions that span the origin of replication.
 
-\textit{Extrachromosomal DNA (ecDNA) in cancer.} ecDNA --- large (0.1--10~Mb) circular DNA
-elements found in approximately 14\% of human cancers across 17 tumour types
-\citep{turner2017extrachromosomal} --- carries amplified oncogenes (MYC, EGFR, CDK4) and
-associated super-enhancers on a single circular molecule. Its circular topology enables
-multi-way chromatin interactions unavailable on linear chromosomes and underlies the rapid
-oncogene amplification that drives tumour evolution and treatment resistance
-\citep{kim2020extrachromosomal}. A sequence foundation model for ecDNA with circular PE would
+\textit{Extrachromosomal DNA (ecDNA) in cancer.} ecDNA is found in approximately 14\% of
+human cancers across 17 tumour types \citep{turner2017extrachromosomal} as large (0.1--10~Mb)
+circular elements carrying amplified oncogenes (MYC, EGFR, CDK4) and associated
+super-enhancers. Its circular topology enables long-range enhancer contacts and rapid
+copy-number amplification through unequal chromosome segregation \citep{kim2020extrachromosomal}. A sequence foundation model for ecDNA with circular PE would
 correctly represent the regulatory grammar at the oncogene--enhancer junction and could
 support ecDNA detection and characterisation from sequencing data.
 
@@ -652,9 +648,9 @@ that are physically adjacent across the vector junction.
 fuse into a closed circle, eliminating centromere-distal genes and creating a novel junction.
 They are associated with multiple clinical syndromes (Ring~14 epilepsy, Ring~20 nocturnal
 epilepsy, Ring~22 intellectual disability) \citep{guilherme2011ring} and are recurrent in
-cancer cytogenetics. For sequence-level analysis of the ring junction region --- identifying
-breakpoint signatures, predicting which gene disruptions drive phenotype --- circular PE
-accurately reflects the physical topology that linear PE misrepresents.
+cancer cytogenetics. For sequence-level analysis of the ring junction region (identifying breakpoint signatures
+or predicting which disruptions drive phenotype), circular PE accurately reflects the
+physical topology that linear PE misrepresents.
 
 We provide the circular PE implementation as a reusable \texttt{nn.Module} with a documented
 API suitable for adaptation to any of these domains.
@@ -666,9 +662,8 @@ benefit is not visible in the current evaluation.
 
 First, the 20$\times$ parameter gap (5.8M vs.\ 117M) dominates: if the model lacks capacity to
 encode fine-grained haplogroup-discriminating features for closely related European HV
-haplogroups, the PE cannot compensate. Second, the D-loop region --- where circular PE is most
-consequential, since positions 16,024--576 span the physical junction --- is captured by both
-models. The critical failure identified in Observation~2 is in the \emph{representation} of
+haplogroups, the PE cannot compensate. Second, the D-loop region (positions 16,024--576, where circular PE is most consequential,
+spanning the physical junction) is captured by both models. The critical failure identified in Observation~2 is in the \emph{representation} of
 diagnostic variants within the first 3,000~nt, not at the junction boundary itself. Third,
 Observation~4 provides directional evidence that full-genome design choices \emph{do} confer
 measurable advantage: \mtdnafm{} outperforms DNABERT-2 on all three haplogroups (C, F, E)
@@ -676,9 +671,8 @@ whose defining markers lie beyond DNABERT-2's truncation limit. This double diss
 consistent with circular coverage providing advantage precisely where truncation creates a hard
 ceiling.
 
-We therefore hypothesise that circular PE provides a latent advantage --- most visible at the
-D-loop junction and for distal haplogroups --- that is currently masked by the parameter budget
-gap. A controlled ablation (training an otherwise identical model with standard sinusoidal PE,
+We therefore hypothesise that circular PE provides a latent advantage, most visible at the
+D-loop junction and for distal haplogroups, currently masked by the parameter budget gap. A controlled ablation (training an otherwise identical model with standard sinusoidal PE,
 comparing zero-shot k-NN accuracy) will isolate this contribution in the extended paper.
 Until that ablation is available, circular PE remains the principled, biologically motivated
 architectural choice for a circular genome. The current results provide no evidence
@@ -738,10 +732,9 @@ the six African L haplogroups in range 0.438--0.857); the failure is a represent
 the European HV clade confirms embedding-space overlap; and \mtdnafm{} outperforms
 DNABERT-2 on haplogroups C, F, and E, whose diagnostic positions lie beyond DNABERT-2's
 truncation limit, confirming that full-genome access captures information unavailable to
-truncated models. The analysis points to BPE tokenization over the full genome, hierarchical
-window aggregation, and scaling to 100M parameters while preserving the circular positional
-encoding and heteroplasmy channel as the path to a model that captures both full-genome
-coverage and the per-position precision needed for recently diverged clades.
+truncated models. The design improvements indicated are BPE tokenization of the full genome, hierarchical
+window aggregation, and scaling to 100M parameters, while preserving the circular PE
+and heteroplasmy channel.
 All results are from the Phase~1 checkpoint (cross-species pre-training only; see
 Section~\ref{sec:pretraining} and Limitations).
 All code, model weights, and the DVC pipeline are publicly available.
