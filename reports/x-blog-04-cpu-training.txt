@@ -2,7 +2,7 @@ I set out to build a foundation model on my laptop with no GPU budget. Here are 
 https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
 https://vthawfeek.github.io/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
 ---
-30 seconds per batch. 644 batches per epoch. 6.5 hours per epoch. 20 hours for 2 pre-training epochs. This is what CPU-only training looks like for a 6M parameter transformer.
+30 seconds per batch. 644 batches per epoch. 6.5 hours per epoch. 20 hours for 2 pre-training epochs. This is what CPU-only training looks like for a 5.8M parameter transformer.
 
 ---
 

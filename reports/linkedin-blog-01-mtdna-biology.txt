@@ -10,7 +10,7 @@ The m.3243A>G mutation is asymptomatic at low heteroplasmy and causes MELAS ence
 
 **The phylogenetic density problem**
 
-300,000 years of human maternal migration history encoded in 16,569 base pairs. mtDNA is strictly maternally inherited, never recombines, and mutations accumulate at a roughly constant rate. The tree is clean: L-clades at the African root, M and N marking out-of-Africa, H/J/T for Europe, B/A/C/D for East Asia and the Americas. For pre-training, this means the signal is dense and structured. Zero-shot k-NN on the encoder reaches ~50% on a 26-class haplogroup task against a 3.8% random baseline, no labels. One caveat: HmtDB is 60-70% European, so L-clade and Asian lineages are underrepresented.
+300,000 years of human maternal migration history encoded in 16,569 base pairs. mtDNA is strictly maternally inherited, never recombines, and mutations accumulate at a roughly constant rate. The tree is clean: L-clades at the African root, M and N marking out-of-Africa, H/J/T for Europe, B/A/C/D for East Asia and the Americas. For pre-training, this means the signal is dense and structured. Zero-shot k-NN on the encoder reaches 37.9% (95% CI 34.4–41.2%) on the 26-class haplogroup task against a 3.85% random baseline (9.9× lift), no labels. An earlier 8-class verification panel gave ~50% (4× above 12.5% baseline). One caveat: HmtDB is 60-70% European, so L-clade and Asian lineages are underrepresented.
 
 Full writeup:
 https://rokpayprsizors.wordpress.com/2026/06/04/this-genome-has-16569-base-pairs-and-runs-on-different-rules/

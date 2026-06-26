@@ -20,7 +20,7 @@ The math on 2 epochs: 644 gradient steps × 30 seconds = 5.4 hours per epoch. Tw
 ---
 Training loss after 2 epochs: 3.266. Random baseline (ln(26)): 3.258. The loss moved 0.008. Fifty epochs on CPU = ~270 hours. On an A100: ~25 minutes. The gap is compute, not method.
 ---
-The zero-shot k-NN result (no fine-tuning, just use the pre-trained embeddings directly) scores ~50% on the same problem. The pre-training learned something real. The fine-tuning just didn't get enough gradient steps.
+The zero-shot k-NN result (no fine-tuning): ~50% on an 8-class verification panel. The rigorous 26-class evaluation (per the preprint) gives 37.9% (95% CI 34.4–41.2%), 9.9× above the 3.85% random baseline. The pre-training learned something real. The fine-tuning just didn't get enough gradient steps.
 
 Full writeup: https://rokpayprsizors.wordpress.com/2026/06/04/my-haplogroup-classifier-scores-1-83-random-guessing-would-score-3-85/
 https://vthawfeek.github.io/2026/06/04/my-haplogroup-classifier-scores-183-random-guessing-would-score-385/

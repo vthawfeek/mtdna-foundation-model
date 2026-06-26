@@ -10,7 +10,7 @@ Before any training, a DataLoader config mistake cost me 13.5 hours. Set num_wor
 
 The arithmetic on 2 epochs: 644 gradient steps per epoch, ~30 seconds each, gives 5.4 hours per epoch. Fifty epochs = 270 hours, 11 days continuous on CPU. On an A100, 50 epochs take ~25 minutes. Two epochs validates infrastructure — architecture, class weights, LoRA insertion, data pipeline — but it cannot measure whether the model can classify.
 
-What makes this interesting rather than just discouraging: zero-shot k-NN using pre-trained embeddings scores ~50% on the same 26-class problem. The collapse is specific to the unconverged classifier head. The 1.83% is a statement about CPU time. The 50% is a statement about what the model actually knows.
+What makes this interesting rather than just discouraging: zero-shot k-NN using pre-trained embeddings scores 37.9% (95% CI 34.4–41.2%) on the 26-class problem (9.9× above the 3.85% random baseline) — and ~50% on an earlier 8-class verification panel. The collapse is specific to the unconverged classifier head. The 1.83% is a statement about CPU time. The 37.9% is a statement about what the model actually knows.
 
 Full writeup:
 https://rokpayprsizors.wordpress.com/2026/06/04/my-haplogroup-classifier-scores-1-83-random-guessing-would-score-3-85

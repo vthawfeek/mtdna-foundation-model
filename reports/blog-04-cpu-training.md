@@ -10,9 +10,9 @@ That constraint shapes every decision about model size, data strategy, and what 
 
 ## What 30 Seconds Per Batch Means
 
-The pre-training dataset is 152,484 genomes total: 117,000 cross-species vertebrate sequences for Phase 1, 34,975 human HmtDB sequences for Phase 2. After sliding-window tokenization (window size 512, stride 256), each genome becomes multiple 512-token windows.
+The pre-training dataset is 152,590 genomes total: 117,615 cross-species vertebrate sequences for Phase 1, 34,975 human HmtDB sequences for Phase 2. After sliding-window tokenization (window size 512, stride 256), each genome becomes multiple 512-token windows.
 
-For each batch of 32 windows on this model (6 layers, 8 heads, 256 hidden dim, ~6M parameters), a full forward and backward pass takes approximately 30 seconds on the CPU.
+For each batch of 32 windows on this model (6 layers, 8 heads, 256 hidden dim, ~5.8M parameters), a full forward and backward pass takes approximately 30 seconds on the CPU.
 
 Working through the math:
 
@@ -28,9 +28,9 @@ I'm not trying to hide this. CPU-only training is slow, and the first thing it f
 
 ## Design Choices Forced by CPU
 
-**Smaller model.** A 12-layer, 768-dim BERT-base would have approximately 110M parameters, roughly 18x more than what I'm using. Holding everything else constant, that would push per-batch time to over 8 minutes and make a 2-epoch pre-training run take weeks. I chose 6 layers, 256 hidden dim, ~6M parameters specifically because a 20-hour run is something I can actually complete.
+**Smaller model.** A 12-layer, 768-dim BERT-base would have approximately 110M parameters, roughly 18x more than what I'm using. Holding everything else constant, that would push per-batch time to over 8 minutes and make a 2-epoch pre-training run take weeks. I chose 6 layers, 256 hidden dim, ~5.8M parameters specifically because a 20-hour run is something I can actually complete.
 
-**Gradient checkpointing.** Implemented via `model.gradient_checkpointing_enable()`, which trades compute for memory by recomputing intermediate activations during the backward pass rather than storing them. This roughly halves peak activation memory. On a 6M model this matters: without it, a batch of 32 sequences at 512 tokens each requires keeping all 6 transformer layers' activations in memory simultaneously.
+**Gradient checkpointing.** Implemented via `model.gradient_checkpointing_enable()`, which trades compute for memory by recomputing intermediate activations during the backward pass rather than storing them. This roughly halves peak activation memory. On a 5.8M model this matters: without it, a batch of 32 sequences at 512 tokens each requires keeping all 6 transformer layers' activations in memory simultaneously.
 
 **Gradient accumulation.** The effective batch size I want for stable MLM training is 128. Physically running a batch of 128 windows would require 4x more peak RAM than a batch of 32. Instead, I accumulate gradients over 4 steps (each with batch_size=32) before updating weights. The model sees the same effective batch of 128 windows, but peak memory is that of 32. The training loop looks like:
 

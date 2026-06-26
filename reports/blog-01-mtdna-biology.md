@@ -60,7 +60,7 @@ I checked the existing models before starting. The question was: can I fine-tune
 
 All three use linear positional encoding. None handle the D-loop discontinuity. None have a heteroplasmy channel. All three were primarily trained on nuclear DNA, which has fundamentally different base composition, gene density, and intron/exon structure compared to the compact, intron-free, extremely gene-dense mitochondrial genome. Fine-tuning on mtDNA would mean the model inherits a flawed inductive bias for the circular topology, ignores the continuous per-position heteroplasmy signal entirely, and starts from representations calibrated to a very different genomic context.
 
-The reasonable conclusion is that a dedicated architecture is warranted. Not necessarily a large one. The 6-layer BERT encoder I am building has 256 hidden dimensions and approximately 6 million parameters. Small enough to pre-train on a laptop, large enough to learn sequence structure at the 6-mer level across 16,569 positions.
+The reasonable conclusion is that a dedicated architecture is warranted. Not necessarily a large one. The 6-layer BERT encoder I am building has 256 hidden dimensions and approximately 5.8 million parameters. Small enough to pre-train on a laptop, large enough to learn sequence structure at the 6-mer level across 16,569 positions.
 
 The three features that make this a different model rather than a fine-tuned existing one: circular positional encoding (positions wrap, so distance between position N-1 and position 0 is 1, not N-1), a heteroplasmy projection channel in the input, and pre-training exclusively on mitochondrial sequences so the base representations are calibrated to this specific genomic context.
 

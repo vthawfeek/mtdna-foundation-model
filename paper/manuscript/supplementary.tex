@@ -101,14 +101,17 @@ We replace $p$ with the circular angle $\phi_p = 2\pi p / L_\text{genome}$:
 \text{PE}_\text{circ}(p, 2i+1) &= \cos\!\left(\frac{2\pi p / L_\text{genome}}{10000^{2i/d}}\right)
 \end{align}
 
-At $p = L_\text{genome}$:
+The buffer stores positions $p \in \{0, 1, \ldots, L_\text{genome}-1\}$. At the last genomic
+position $p = L_\text{genome} - 1 = 16{,}568$:
 \[
-\phi_{L_\text{genome}} = \frac{2\pi L_\text{genome}}{L_\text{genome}} = 2\pi
+\phi_{16568} = \frac{2\pi \times 16568}{16569} = 2\pi - \frac{2\pi}{16569} \approx 2\pi - 3.8\times10^{-4}
 \]
-and $\sin(2\pi) = \sin(0) = 0$, $\cos(2\pi) = \cos(0) = 1$.
-
-Therefore $\text{PE}_\text{circ}(L_\text{genome}, \cdot) = \text{PE}_\text{circ}(0, \cdot)$,
-which is the desired circular continuity property.
+giving $|\text{PE}_\text{circ}(16568, 2i) - \text{PE}_\text{circ}(0, 2i)| \approx 3.8\times10^{-4}$
+per dimension for the lowest-frequency component. Positions~0 and~16,568 therefore receive
+\emph{approximately} identical encodings. The residual angular gap equals the spacing between any
+two adjacent positions ($\Delta\phi = 2\pi/16569$), so the junction is no more discontinuous than
+any other step in the sequence. Exact identity would require encoding position $p = L_\text{genome}$,
+which does not exist in the genome.
 
 \subsection*{S2.3 Properties}
 
@@ -116,9 +119,11 @@ which is the desired circular continuity property.
 \item \textit{Uniqueness:} Positions $p$ and $p'$ with $|p - p'| < L_\text{genome}/2$ receive
 distinct encodings (the mapping $p \mapsto \phi_p$ is injective on $[0, L_\text{genome})$).
 
-\item \textit{Smoothness at junction:} $\|\text{PE}_\text{circ}(p) - \text{PE}_\text{circ}(p+1)\|$
-is constant across all positions including $p = L_\text{genome} - 1$ (the circular junction),
-whereas for standard sinusoidal PE this distance jumps at position 0.
+\item \textit{Approximate smoothness at junction:}
+$\|\text{PE}_\text{circ}(L_\text{genome}-1) - \text{PE}_\text{circ}(0)\| \approx
+\|\text{PE}_\text{circ}(p) - \text{PE}_\text{circ}(p+1)\|$ for interior positions, with a
+residual error of $\varepsilon \approx 3.8\times10^{-4}$ per dimension. In contrast, standard
+sinusoidal PE has a large discontinuity at the junction.
 
 \item \textit{Non-learnable:} Implemented as \texttt{nn.Buffer}, not \texttt{nn.Parameter};
 gradients do not flow through the positional encoding.
@@ -129,12 +134,11 @@ gradients do not flow through the positional encoding.
 
 \subsection*{S3.1 Zero-shot 5-NN (26-class evaluation)}
 
-Per-class precision, recall, and F1 from zero-shot cosine 5-nearest-neighbour classification
-on 757 test sequences across 26 major PhyloTree haplogroup classes. No haplogroup labels
-were used in pre-training. Sequences from NCBI haplogroup-labeled human mitochondrial genomes:
-15,741 total records were retrieved; 15,364 had a non-null haplogroup field; 13,884 could be
-assigned to one of the 26 major PhyloTree classes and were used for evaluation
-(stratified 80/10/10 split, \texttt{random\_state=42}).
+Per-class precision, recall, and F1 from zero-shot cosine 5-nearest-neighbour classification on
+757 test sequences across 26 major PhyloTree haplogroup classes. No haplogroup labels were used
+in pre-training. We retrieved 15,741 NCBI records; 15,364 had a non-null haplogroup field; 13,884
+were assigned to one of the 26 major PhyloTree classes and used for evaluation (stratified 80/10/10
+split, \texttt{random\_state=42}).
 
 \begin{table}[h]
 \centering
@@ -181,24 +185,25 @@ X & 0.071 & 0.083 & 0.077 & 12 \\
 
 \subsection*{S3.2 Baseline: DNABERT-2 Zero-shot Haplogroup Classification}
 
-DNABERT-2 \citep{zhou2024dnabert2} (117M parameters, BPE tokenization, pre-trained on
-32 vertebrate nuclear genomes) was evaluated with the same cosine 5-NN protocol on the
-same train/test split as \mtdnafm. Each 16,569~bp sequence was truncated to at most
-3,000 nucleotides before tokenization; DNABERT-2's 512-token context limit applies after
-BPE tokenization. The CLS embedding from the final transformer layer was used as the
-sequence representation, matching the protocol for \mtdnafm.
+DNABERT-2 \citep{zhou2024dnabert2} (117M parameters, BPE tokenization, pre-trained on genomes
+from 32 multi-kingdom species) was evaluated with the same cosine 5-NN protocol on the same
+train/test split as \mtdnafm. Each 16,569~bp sequence was truncated to at most 3,000 nucleotides
+before tokenization (DNABERT-2's 512-token BPE context limit applies after tokenization). The CLS
+embedding from the final transformer layer was used as the sequence representation, matching the
+protocol for \mtdnafm.
 
 \begin{table}[h]
 \centering
 \caption{Zero-shot 26-class haplogroup classification: DNABERT-2 vs \mtdnafm.
 Both use cosine 5-NN on the same 1,509-sequence train library and 757-sequence test
 set. DNABERT-2's 512-token BPE context covers approximately 3,000 nt (18\%) of each
-16,569 bp genome; \mtdnafm encodes the full genome via overlapping 512-token windows.}
+16,569 bp genome; \mtdnafm{} was evaluated via 65 overlapping 512-token windows covering the
+full genome (full-genome DNABERT-2 sliding-window evaluation has not been tested).}
 \begin{tabular}{lccc}
 \toprule
 \textbf{Model} & \textbf{Params} & \textbf{Accuracy (\%)} & \textbf{Macro-F1} \\
 \midrule
-DNABERT-2 (nuclear-genome, 18\% of mtDNA seen) & 117M & 66.3 & 0.6593 \\
+DNABERT-2 (multi-kingdom pre-training, 18\% of mtDNA seen) & 117M & 66.3 & 0.6593 \\
 \mtdnafm (mtDNA-specialized, full genome) & 5.8M & \textbf{37.9} & 0.3703 \\
 \bottomrule
 \end{tabular}
@@ -243,12 +248,26 @@ The complete analysis pipeline is managed with DVC. The following stages are def
 Reproduce the full pipeline: \texttt{dvc repro}
 
 %% =========================================================================
+\section*{S5b. UMAP Visualisation Hyperparameters}
+
+The UMAP projections in Figure~3 were computed using the \texttt{umap-learn} library
+(\texttt{umap.UMAP}; \citealt{mcinnes2018umap}) with the following hyperparameters:
+\texttt{n\_neighbors=15}, \texttt{min\_dist=0.1}, \texttt{n\_components=2},
+\texttt{random\_state=42}; the distance metric was the \texttt{umap-learn} default
+(\texttt{metric='euclidean'}, applied to the 256-dimensional embedding vectors).
+Input embeddings are the 256-dimensional genome representations from \mtdnafm{}
+(mean of CLS-token hidden states across 65 overlapping windows).
+Haplogroup colours reflect major PhyloTree classes.
+UMAP provides a qualitative visualisation of embedding geometry; cluster separation is not
+formally quantified in this preprint.
+
+%% =========================================================================
 \section*{S6. Ablation Learning Curves}
 
 Supplementary Table~S3.2 reports the DNABERT-2 zero-shot baseline comparison (same k-NN
 protocol, same train/test split). Architectural ablations (circular PE vs.\ sinusoidal PE;
-with vs.\ without heteroplasmy channel) and the Phase~1 vs Phase~2 curriculum ablation
-require GPU compute and are deferred to the extended journal paper.
+with vs.\ without heteroplasmy channel) and the Phase~1 vs Phase~2 curriculum ablation require
+GPU compute. Both are deferred to the extended journal paper.
 
 %% =========================================================================
 \bibliographystyle{plainnat}

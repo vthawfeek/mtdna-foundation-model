@@ -4,13 +4,15 @@ Neanderthal and Denisovan sequences placed outside modern human variation. No an
 ---
 The geometry: modern human pairwise L2 = 0.0749. Neanderthal L2 to modern humans = 0.1110. Denisovan = 0.1070. Ancient sequences are 1.45-1.48x farther from modern humans than modern humans are from each other. They are geometrically outside the training distribution, not inside any haplogroup cluster.
 ---
-The same pre-training also produced a zero-shot k-NN result: 50% haplogroup accuracy with no task-specific training. Random baseline for 26-class classification is 3.85%.
+The rigorous 26-class zero-shot 5-NN evaluation gives 37.9% (95% CI 34.4–41.2%). Random baseline: 3.85%. That's 9.9× lift. An earlier 8-class verification panel gave ~50% (12.5% random; 4× lift). The 37.9% is the preprint number.
 ---
-How zero-shot k-NN works: embed each sequence with the pre-trained encoder, find the k nearest neighbors by L2 distance in 256-d space, predict the majority haplogroup. No labels during pre-training. No gradient updates at eval time. The model was trained on 152,484 genomes and never told which sequence belongs to which haplogroup.
+How zero-shot k-NN works: embed each sequence with the pre-trained encoder, find the k nearest neighbors by L2 distance in 256-d space, predict the majority haplogroup. No labels during pre-training. No gradient updates at eval time. The model was trained on 152,590 genomes and never told which sequence belongs to which haplogroup.
 ---
 The error structure confirms the representation isn't shallow: confused haplogroups are phylogenetically adjacent (L0/L1, H/HV). There are no L0-to-H confusion errors. That phylogenetic geometry came from sequence statistics alone, with no evolutionary tree in the training data.
 ---
 Gene-type recovery is a third signal: protein-coding genes, tRNA genes, and rRNA genes form distinct clusters in embedding space with no functional labels in training.
+---
+For comparison: DNABERT-2 (117M params) scores 66.3% on the same haplogroup task. The 28.4 pp gap is clade-specific: mtDNA-FM scores well on African L haplogroups (F1 avg 0.692) but fails on West Eurasian ones (F1 avg 0.096). On haplogroups C, F, E — diagnostic positions beyond nt 3,000 — mtDNA-FM outperforms DNABERT-2.
 
 #mtDNA #foundationmodels #ancientDNA
 

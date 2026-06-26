@@ -77,7 +77,7 @@ This is not a reason to declare the approach wrong. It's a statement about what'
 
 ## What the zero-shot k-NN result says
 
-The fine-tuned accuracy is 1.83%. The zero-shot k-NN accuracy, using the pre-trained embeddings with no fine-tuning at all, is approximately **50%** on an 8-haplogroup verification panel (12.5% random baseline; 4× lift).
+The fine-tuned accuracy is 1.83%. The zero-shot k-NN accuracy, using the pre-trained embeddings with no fine-tuning at all, is approximately **50%** on an 8-haplogroup verification panel (12.5% random baseline; 4× lift). A subsequent rigorous evaluation on the full 26-class PhyloTree benchmark (per the bioRxiv preprint) gives **37.9% (95% CI 34.4–41.2%)** — 9.9× above the 3.85% random baseline for 26 classes.
 
 ![Zero-shot k-NN vs fine-tuned haplogroup classification accuracy. The pre-trained embeddings, with no task-specific training, outperform the fine-tuned classifier by 27x.](../docs/figures/knn_haplogroup_accuracy.png)
 
@@ -115,7 +115,7 @@ The architecture is correct. LoRA r=8 with 98,304 trainable parameters on a 6-la
 
 Running 50 epochs on an A100 would take approximately 25 minutes and would likely produce a functional classifier. The GPU compute costs for a single fine-tuning run at that scale are a few dollars. The barrier is not algorithmic, it's a small compute budget decision.
 
-The zero-shot k-NN at 50% accuracy is the real takeaway from this part of the project. The pre-training produced representations that know something true about mtDNA evolutionary structure, without ever seeing a haplogroup label. That's the result that validates the pre-training approach.
+The zero-shot k-NN result is the real takeaway from this part of the project: 37.9% on the full 26-class evaluation (50% on the 8-class verification panel). The pre-training produced representations that know something true about mtDNA evolutionary structure, without ever seeing a haplogroup label. That's the result that validates the pre-training approach.
 
 The 1.83% fine-tuned accuracy is an accurate report of what happened. The honest framing: it is the best result achievable in 11 hours of CPU time on a 26-class classification task that needs 270 hours to converge.
 <!-- published: https://rokpayprsizors.wordpress.com/2026/06/04/my-haplogroup-classifier-scores-1-83-random-guessing-would-score-3-85/ -->

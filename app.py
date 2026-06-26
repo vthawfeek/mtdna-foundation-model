@@ -730,7 +730,8 @@ Novel architecture: **circular positional encoding** + **heteroplasmy projection
             gr.Markdown(
                 """
 Paste an mtDNA sequence (raw DNA or FASTA format) to classify it into one of **26 major haplogroups**.
-The model embeds all overlapping 512-bp windows of the genome and classifies based on mean-pooled CLS embeddings.
+This tab uses a supervised LoRA adapter fine-tuned on haplogroup labels. The paper's reported
+result (37.9% accuracy) uses a different protocol: frozen Phase 1 embeddings with zero-shot cosine 5-NN.
                 """
             )
             with gr.Row():

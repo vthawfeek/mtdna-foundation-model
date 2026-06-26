@@ -76,9 +76,11 @@ The three architecture-level failures I described are not addressable by fine-tu
 
 3. The pre-training distribution is calibrated to nuclear DNA. This is the only problem that fine-tuning directly addresses, but it would need to overcome two other structural failures to produce a useful model.
 
-Building from scratch is the right choice. The model does not need to be large. A 6-layer BERT encoder at 256 hidden dimensions is approximately 6 million parameters, small enough to pre-train on a laptop over a few days, large enough to capture 6-mer patterns across the 16,569 bp circular genome.
+Building from scratch is the right choice. The model does not need to be large. A 6-layer BERT encoder at 256 hidden dimensions is ~5.8 million parameters, small enough to pre-train on a laptop over a few days, large enough to capture 6-mer patterns across the 16,569 bp circular genome.
 
 The two non-standard components are: circular positional encoding (distance between positions wraps at the genome boundary, so pos 0 and pos 16,568 have a distance of 1, not 16,568) and a heteroplasmy projection channel in the input embedding layer. Everything else is standard BERT.
 
-Whether these two additions are worth the cost of not inheriting a large pre-trained checkpoint is the real question. The zero-shot experiments will answer it.
+Whether these two additions are worth the cost of not inheriting a large pre-trained checkpoint is the real question. The zero-shot experiments answer it — see the update below.
+
+*Update (bioRxiv preprint):* DNABERT-2 was evaluated on the same zero-shot 5-NN haplogroup task. DNABERT-2 (117M parameters) scores 66.3% (Macro-F1 0.659). mtDNA-FM (5.8M parameters) scores 37.9% (95% CI 34.4–41.2%). The overall 28.4 percentage-point gap favors DNABERT-2 for most haplogroups. However, mtDNA-FM outperforms DNABERT-2 on haplogroups C (F1 0.632 vs 0.611), F (F1 0.716 vs 0.613), and E (F1 0.400 vs 0.222), all haplogroups whose diagnostic positions fall beyond DNABERT-2's 3,000 nt processing window — the first empirical confirmation that full-genome circular encoding provides a measurable advantage exactly where the topology argument predicts it should.
 <!-- published: https://rokpayprsizors.wordpress.com/2026/06/06/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-problem/ -->

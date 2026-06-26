@@ -17,6 +17,8 @@ Same for the het channel. Projecting a continuous heteroplasmy float into embedd
 The masking rate question I'd also test: I used 15% (standard BERT). With a 4,096-token vocabulary covering only mtDNA, the reconstruction problem may be too easy. A 25-30% rate might force harder representations. One config change, one training run.
 ---
 What I'd keep unconditionally: the circular PE math is the right description of the molecule. The het channel design is the right architecture for continuous variant data. The two-phase pre-training structure is correct. The execution gaps are all fixable without changing the architecture.
+---
+Update on the baseline lesson: DNABERT-2 was run for the bioRxiv preprint. DNABERT-2 zero-shot: 66.3%. mtDNA-FM: 37.9% (26-class, 95% CI 34.4–41.2%). The gap is clade-specific: African L haplogroups (F1 avg 0.692), West Eurasian haplogroups (F1 avg 0.096). On haplogroups C, F, E (diagnostic positions >3,000 nt) mtDNA-FM outperforms DNABERT-2.
 
 #mtDNA #foundationmodels
 

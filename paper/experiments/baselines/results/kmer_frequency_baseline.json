@@ -1,0 +1,28 @@
+{
+  "k4_haplogroup": {
+    "status": "completed",
+    "k": 4,
+    "n_sequences": 1408,
+    "n_classes": 26,
+    "lr_5fold": {
+      "mean": 0.9808233007748417,
+      "std": 0.007318622359219925
+    }
+  },
+  "k4_pathogenicity": {
+    "status": "no_data"
+  },
+  "k6_haplogroup": {
+    "status": "completed",
+    "k": 6,
+    "n_sequences": 1408,
+    "n_classes": 26,
+    "lr_5fold": {
+      "mean": 0.9865046313823477,
+      "std": 0.0041432922947366455
+    }
+  },
+  "k6_pathogenicity": {
+    "status": "no_data"
+  }
+}

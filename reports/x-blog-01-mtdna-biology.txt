@@ -16,7 +16,7 @@ Third: mtDNA is strictly maternally inherited with no recombination. 300,000 yea
 
 L-clades at the African root. M and N expanding out ~65,000 years ago. H/HV/J/T marking the European expansion. B/A/C/D tracing East Asia and the Americas. All readable from sequence alone.
 
-Zero-shot k-NN on the pre-trained encoder already reaches ~50% on a 26-way haplogroup task, against a 3.8% random baseline. The pre-training signal is real.
+Zero-shot k-NN on the pre-trained encoder reaches 37.9% (95% CI 34.4–41.2%) on the 26-class haplogroup task, against a 3.85% random baseline (9.9× lift). The pre-training signal is real.
 
 One catch: HmtDB is 60-70% European. L-clade and Asian-lineage representations will be sparser. Worth knowing before drawing conclusions from the embeddings.
 ---

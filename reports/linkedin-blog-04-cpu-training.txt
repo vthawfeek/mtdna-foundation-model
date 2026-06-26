@@ -1,7 +1,7 @@
 I'm training a foundation model on a personal laptop with no cloud compute. Here are the actual numbers on what that costs in time and memory.
 https://rokpayprsizors.wordpress.com/2026/06/04/im-going-to-build-a-foundation-model-on-my-laptop/
 
-30 seconds per batch. 644 batches per epoch. About 6.5 hours per epoch. 20 hours for 2 pre-training epochs. That's the actual wall-clock timeline for pre-training a 6M parameter transformer on a laptop CPU, and it forced specific engineering decisions I wouldn't have made otherwise.
+30 seconds per batch. 644 batches per epoch. About 6.5 hours per epoch. 20 hours for 2 pre-training epochs. That's the actual wall-clock timeline for pre-training a 5.8M parameter transformer on a laptop CPU, and it forced specific engineering decisions I wouldn't have made otherwise.
 
 The first decision is model size. A standard BERT-base has 12 layers, 768 hidden dimensions, and roughly 110M parameters. At ~30 seconds per batch for my 6M model, scaling to 110M parameters would push per-batch time to over 8 minutes and make a 2-epoch run take weeks. I chose 6 layers, 256 hidden dimensions specifically because the training time is bounded to something I can complete.
 

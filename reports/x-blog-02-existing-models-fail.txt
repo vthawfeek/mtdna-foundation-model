@@ -11,6 +11,8 @@ The heteroplasmy gap: DNABERT2, HyenaDNA, and Nucleotide Transformer all accept 
 Fine-tuning on mtDNA data doesn't fix either problem. Positional encoding is structural, not learned from the training distribution. A missing input channel cannot be added by fine-tuning.
 ---
 Getting the D-loop right needs circular PE baked in. Heteroplasmy needs a new input dimension. Neither comes from fine-tuning. Building from scratch.
+---
+Update: DNABERT-2 was subsequently run on the same zero-shot haplogroup task (preprint). DNABERT-2: 66.3%. mtDNA-FM: 37.9% (26-class, 95% CI 34.4–41.2%). On haplogroups C, F, E — diagnostic positions beyond nt 3,000 — mtDNA-FM outperforms DNABERT-2. Full-genome circular encoding helps exactly where the topology argument predicts.
 
 Full writeup: https://rokpayprsizors.wordpress.com/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-problem/
 https://vthawfeek.github.io/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-p/

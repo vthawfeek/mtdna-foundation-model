@@ -4,9 +4,11 @@ A pre-trained mtDNA encoder, trained on modern vertebrate genomes, places Neande
 
 The geometry: modern human pairwise L2 distance averages 0.0749. Neanderthal (NC_011137.1, Vindija Cave) sits at L2 = 0.1110 from the modern human center. Denisovan (FR695060.1, Altai) at 0.1070. Ancient sequences are 1.45–1.48 times farther from modern humans than modern humans are from each other. They are outside the training distribution, not inside any haplogroup cluster. A model that learned nothing about evolutionary divergence would embed these sequences randomly within the modern human distribution. That is not what happened.
 
-The same pre-training produced a second result I didn't expect: 50% zero-shot k-NN accuracy on 26-class haplogroup classification. Random baseline is 3.85%.
+The rigorous 26-class zero-shot 5-NN evaluation (per the bioRxiv preprint) gives 37.9% (95% CI 34.4–41.2%), 9.9× above the 3.85% random baseline. An earlier 8-class verification panel gave ~50% (12.5% baseline; 4× lift) — a different, smaller evaluation. The 26-class result is the correct primary figure.
 
-Zero-shot k-NN: embed each sequence using the pre-trained encoder, find nearest neighbors by L2 distance in 256-dimensional space, predict the majority haplogroup. No labels during pre-training. No gradient updates at evaluation. The model was trained on 152,484 mitochondrial genomes with a masked language modeling objective and never told which sequence belongs to which haplogroup.
+For comparison: DNABERT-2 (117M parameters) scores 66.3% on the same task. The 28.4 pp gap is clade-specific: African L haplogroups perform well in mtDNA-FM (avg F1 0.692) while West Eurasian haplogroups fail (avg F1 0.096, 7.2× ratio). On haplogroups C, F, E — diagnostic positions beyond DNABERT-2's 3,000 nt window — mtDNA-FM outperforms DNABERT-2.
+
+Zero-shot k-NN: embed each sequence using the pre-trained encoder, find nearest neighbors by L2 distance in 256-dimensional space, predict the majority haplogroup. No labels during pre-training. No gradient updates at evaluation. The model was trained on 152,590 mitochondrial genomes with a masked language modeling objective and never told which sequence belongs to which haplogroup.
 
 The error structure confirms the representation is meaningful: confused haplogroups are phylogenetically adjacent (L0 confused with L1, H confused with HV). No cross-clade errors connecting African root haplogroups to European tip haplogroups. That structure emerged from sequence statistics alone, without any evolutionary tree or taxonomic label in training.
 

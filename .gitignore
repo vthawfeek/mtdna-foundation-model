@@ -10,6 +10,8 @@ build/
 data/raw/
 data/interim/
 data/processed/
+data/hmtdb/
+data/hmtdb_labeled/
 
 # Models
 models/
@@ -29,6 +31,16 @@ mlruns/
 .vscode/
 .idea/
 *.swp
+
+# LaTeX build artifacts
+*.aux
+*.bbl
+*.blg
+*.out
+*.txt.tex
+
+# Backup files
+*_bak.npz
 
 # Misc
 .env

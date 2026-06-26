@@ -10,9 +10,9 @@ This isn't a clean retrospective on a finished, polished project. It's what I'd 
 
 ## The setup
 
-mtDNA-FM is a 6-layer BERT encoder, 256 hidden dimensions, approximately 6M parameters. Pre-trained on 152,484 genomes (117k cross-species vertebrates plus 34,975 human sequences from HmtDB). Vocabulary of 4,102 tokens: 4,096 overlapping 6-mers plus 6 special tokens. Novel features: circular positional encoding for the genome's topology, and a heteroplasmy projection channel for continuous variant frequency data.
+mtDNA-FM is a 6-layer BERT encoder, 256 hidden dimensions, ~5.8M parameters. Pre-trained on 152,590 genomes (117,615 cross-species vertebrates plus 34,975 human sequences from HmtDB). Vocabulary of 4,102 tokens: 4,096 overlapping 6-mers plus 6 special tokens. Novel features: circular positional encoding for the genome's topology, and a heteroplasmy projection channel for continuous variant frequency data.
 
-Zero-shot k-NN haplogroup accuracy: ~50% on an 8-class verification panel with no fine-tuning labels, against a 12.5% random baseline (4× lift). Fine-tuned classifier after 2 CPU epochs: 1.83%, below random.
+Zero-shot k-NN haplogroup accuracy: 37.9% (95% CI 34.4–41.2%) on the full 26-class PhyloTree evaluation (9.9× above 3.85% random baseline), and ~50% on an 8-class verification panel (4× above 12.5% random). Fine-tuned classifier after 2 CPU epochs: 1.83%, below random.
 
 That gap between 50% and 1.83% is the organizing frame for everything below.
 
@@ -90,13 +90,13 @@ None of these ablations are expensive. Each is a configuration change and a new 
 
 ## Learning 6: Get a baseline before week 2
 
-I built the entire pre-training pipeline before asking: what would DNABERT2 score on this same zero-shot k-NN task if you just ran it on mtDNA sequences?
+I built the entire pre-training pipeline before asking: what would DNABERT-2 score on this same zero-shot k-NN task if you just ran it on mtDNA sequences?
 
-This matters because without an external comparison point, the 50% zero-shot k-NN result is ambiguous. It's clearly better than the 12.5% random baseline for the 8-class evaluation. But is it better than a general DNA model that happens to have been pre-trained on vertebrate sequences including mtDNA? Is the circular PE doing something above what a standard architecture would get? I don't know.
+*Update: this comparison was subsequently run for the bioRxiv preprint.* DNABERT-2 (117M parameters) scores 66.3% (Macro-F1 0.659) zero-shot. mtDNA-FM (5.8M parameters) scores 37.9% (95% CI 34.4–41.2%) — a 28.4 percentage-point gap.
 
-The right approach: in Week 1, before writing any model code, run DNABERT2 and one other baseline (nucleotide transformer, or even a simple k-mer frequency cosine similarity classifier) on the haplogroup task. Document those numbers. Then every subsequent result has a reference point.
+The gap is not uniform across haplogroups. African L haplogroups (L0–L5): mtDNA-FM average F1 0.692. West Eurasian haplogroups (H, HV, J, K, T, U, V, W, X): mtDNA-FM average F1 0.096 — a 7.2× ratio within mtDNA-FM vs. 1.13× for DNABERT-2. The lesson is sharpened: getting the baseline earlier would have identified this clade-specific failure before rather than after evaluation day. Three candidate mechanisms for the gap: (i) scale — 20× fewer parameters; (ii) stride-1 6-mer tokenization creates ~16,569 autocorrelated tokens vs. DNABERT-2's ~500 BPE tokens; (iii) mean-pooling across 65 windows dilutes position-specific signals by 1/65. mtDNA-FM outperforms DNABERT-2 on haplogroups C, F, and E — the ones whose diagnostic positions exceed DNABERT-2's 3,000 nt truncation limit — confirming the full-genome coverage advantage.
 
-Setting up a DNABERT2 inference run takes maybe half a day. The comparison would have made the entire evaluation section of this project more rigorous. I'd make it the first thing I did after finishing the tokenizer.
+The right approach: in Week 1, before writing any model code, run DNABERT-2 on the haplogroup task. The comparison takes half a day and changes every subsequent design decision.
 
 ---
 

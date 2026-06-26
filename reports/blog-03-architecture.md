@@ -6,7 +6,7 @@ The core design question for this project is: how do you represent a circular ge
 
 ## The Starting Point
 
-mtDNA-FM is a 6-layer BERT encoder, 8 attention heads, 256 hidden dimensions, approximately 6M parameters total. The vocabulary is 4,102 tokens: 4,096 6-mers plus 6 special tokens. If you squint, it looks like a small BERT.
+mtDNA-FM is a 6-layer BERT encoder, 8 attention heads, 256 hidden dimensions, approximately 5.8M parameters total. The vocabulary is 4,102 tokens: 4,096 6-mers plus 6 special tokens. If you squint, it looks like a small BERT.
 
 But three structural choices make it different from anything I could have downloaded off the shelf. None of them were obvious upfront.
 
@@ -110,11 +110,11 @@ The cost of 6-mers is a larger vocabulary than BPE would produce for equivalent 
 
 The reference BERT-base architecture is 12 layers, 768 hidden dimensions, 12 attention heads, approximately 110M parameters. DNABERT uses BERT-base. Nucleotide Transformer uses up to 2.5B parameters.
 
-I'm using 6 layers, 256 hidden dimensions, 8 attention heads, ~6M parameters. The reason is compute budget, and the calculation is explicit.
+I'm using 6 layers, 256 hidden dimensions, 8 attention heads, ~5.8M parameters. The reason is compute budget, and the calculation is explicit.
 
-A 12-layer, 768-dim BERT would have roughly 110M parameters. My model has 6M. The training time scales roughly with parameter count times the number of forward passes. On a CPU, a single forward-backward pass through my 6M model takes approximately 30 seconds per batch. Scaling to 110M parameters and holding everything else constant would push that to over 8 minutes per batch. A single pre-training epoch would take months.
+A 12-layer, 768-dim BERT would have roughly 110M parameters. My model has 5.8M. The training time scales roughly with parameter count times the number of forward passes. On a CPU, a single forward-backward pass through my 5.8M model takes approximately 30 seconds per batch. Scaling to 110M parameters and holding everything else constant would push that to over 8 minutes per batch. A single pre-training epoch would take months.
 
-The deeper question is whether 6M parameters is enough to learn useful representations of mtDNA. My prior is that it is, for this specific domain. mtDNA is a small, densely annotated genome. The sequence diversity is high enough across vertebrate species to provide a useful pre-training signal, but the total information content is far lower than the entire human transcriptome that large single-cell models are trained on. The representations I need are: which genomic region is this window from, what is the local sequence context, and how does the heteroplasmy level modify the expected signal. A 6-layer encoder has enough capacity to learn those.
+The deeper question is whether 5.8M parameters is enough to learn useful representations of mtDNA. My prior is that it is, for this specific domain. mtDNA is a small, densely annotated genome. The sequence diversity is high enough across vertebrate species to provide a useful pre-training signal, but the total information content is far lower than the entire human transcriptome that large single-cell models are trained on. The representations I need are: which genomic region is this window from, what is the local sequence context, and how does the heteroplasmy level modify the expected signal. A 6-layer encoder has enough capacity to learn those.
 
 Gradient checkpointing is also on by default, enabled via `model.gradient_checkpointing_enable()`. This halves peak memory usage by recomputing intermediate activations during the backward pass rather than storing them. It adds roughly 30% more compute time, but on CPU the bottleneck is the matrix multiplications, not memory bandwidth, so the practical slowdown is less than that.
 

@@ -7,5 +7,7 @@ Mitochondrial DNA is a circular chromosome. The D-loop control region wraps dire
 
 Neither of these problems is addressable by fine-tuning. Positional encoding is architectural, not learned from training data. A missing input dimension cannot be recovered from more training batches. That is the honest reason this project exists as a new architecture rather than a fine-tuned DNABERT2. Full analysis in the blog post below.
 
+Update (bioRxiv preprint): DNABERT-2 was evaluated on the same zero-shot haplogroup task. DNABERT-2 (117M parameters): 66.3%. mtDNA-FM (5.8M parameters): 37.9% (95% CI 34.4–41.2%). The full-genome circular encoding advantage is confirmed for haplogroups C, F, and E — all with diagnostic positions beyond DNABERT-2's 3,000 nt processing window, where mtDNA-FM outperforms DNABERT-2 despite its smaller size.
+
 https://rokpayprsizors.wordpress.com/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-problem/
 https://vthawfeek.github.io/2026/06/04/i-checked-whether-existing-dna-models-could-handle-mitochondrial-dna-heres-the-p/
