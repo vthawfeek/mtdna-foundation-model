@@ -28,7 +28,7 @@
 \begin{document}
 
 \title{\textbf{mtDNA-FM: A Domain-Specialized Foundation Model for Mitochondrial DNA
-       with Circular Positional Encoding and a Heteroplasmy Projection Channel}}
+       with Circular Positional Encoding}}
 
 \author{
   Thawfeek Varusai$^{1}$\\
@@ -171,8 +171,11 @@ for all mtDNA variant classes at nucleotide resolution.
 Standard sinusoidal PE \citep{vaswani2017attention} and its learnable counterpart treat position
 as a linear index. Relative PE methods (RoPE \citep{su2021rope}, ALiBi \citep{press2022alibi})
 encode pairwise distance between tokens, improving length generalization but not circular
-topology. To our knowledge, no prior sequence model uses circular positional encoding; our
-formulation is the first application to biological sequences.
+topology. Sinusoidal and rotary encodings are periodic in phase, but their period is not aligned
+to any physical sequence length, so a sequence's two endpoints do not become adjacent. To our
+knowledge, no prior genomic foundation model aligns the positional period to the length of a
+circular genome so that its two endpoints receive near-identical encodings; this alignment to
+circular topology is the specific contribution we claim.
 
 %% =========================================================================
 \section{Methods}
@@ -744,7 +747,7 @@ model weights are available at \url{https://huggingface.co/vthawfeek/mtdna-found
 \section*{Code Availability}
 
 All code is available at \url{https://github.com/vthawfeek/mtdna-foundation-model} under the
-MIT license. The full DVC pipeline for end-to-end reproducibility is included.
+Apache License 2.0. The full DVC pipeline for end-to-end reproducibility is included.
 
 \section*{Acknowledgements}
 
