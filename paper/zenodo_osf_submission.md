@@ -6,6 +6,34 @@ rejected for lack of institutional affiliation — MS ID# BIORXIV/2026/734309).
 
 ---
 
+## Revision history
+
+**rev2 — commit `fc47123` (pushed to `origin/main`) — the version to upload.**
+This is the current, polished submission package. Changes since the bioRxiv-submitted PDF:
+
+- **Code license standardized on Apache 2.0** (added repo-root `LICENSE`; fixed the manuscript's
+  Code Availability wording from "MIT" — see the section below for the full rationale).
+- **Title shortened** to *"...for Mitochondrial DNA with Circular Positional Encoding"* — dropped
+  "and a Heteroplasmy Projection Channel," which the preprint does not evaluate. The channel is
+  still described in the abstract and body as an architectural contribution, honestly hedged.
+  **When filling the Zenodo/OSF title field, use the shortened title in the metadata section below.**
+- **Circular-PE priority claim narrowed** from "first application to biological sequences" to a
+  defensible claim scoped to genomic foundation models, acknowledging periodic sinusoidal/rotary
+  PE. No new citations were fabricated; a verified literature search for cyclic/periodic-PE prior
+  art is still an open follow-up (worthwhile before a journal, optional for the preprint).
+- **Supplementary §S6** renamed "Ablation Learning Curves" → "Ablations (Deferred)" (it contained
+  no curves).
+- Both PDFs recompiled; the `paper/zenodo/` copies were refreshed from the recompiled source.
+
+**rev1 — the bioRxiv-submitted `BIORXIV-2026-734309v1-Varusai.pdf`.** Frozen historical snapshot.
+Still carries the old "MIT" license wording and the longer title. **Do not upload this file** —
+it is superseded by rev2.
+
+Not yet done (tracked separately, not blocking this upload): eval/pre-training overlap
+quantification, and the circular-vs-sinusoidal PE ablation. See the project notes for effort/value.
+
+---
+
 ## ✅ Code license — fixed
 
 The manuscript, README, and repo used to disagree on the code license (MIT in the manuscript's
