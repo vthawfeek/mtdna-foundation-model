@@ -321,8 +321,8 @@ effective batch size 128 (per-step batch 16, gradient accumulation 8). Phase~1: 
 $1\times10^{-4}$, 2,000-step warmup, 50,000 steps. Phase~2: peak LR $3\times10^{-5}$,
 500-step warmup, 25,000 steps, with a fresh optimizer state for domain-adaptive pre-training.
 Phase~1 training converged to a final MLM validation loss of 4.25 (perplexity~70), well below
-the uniform-prior random baseline of 8.32 (perplexity $\approx$4,087 over the 4,102-token
-vocabulary), confirming that the encoder learned non-trivial sequence representations prior
+the uniform-prior random baseline of $\ln(4102) = 8.32$ (perplexity 4,102, the vocabulary size),
+confirming that the encoder learned non-trivial sequence representations prior
 to any task-specific evaluation.
 
 
