@@ -8,29 +8,37 @@ rejected for lack of institutional affiliation — MS ID# BIORXIV/2026/734309).
 
 ## Revision history
 
-**rev2 — commit `fc47123` (pushed to `origin/main`) — the version to upload.**
-This is the current, polished submission package. Changes since the bioRxiv-submitted PDF:
+**rev2 — current `origin/main` HEAD (commit `198b96c`) — the version to upload.**
+The fully corrected and verified submission package. Cumulative changes since the
+bioRxiv-submitted PDF:
 
 - **Code license standardized on Apache 2.0** (added repo-root `LICENSE`; fixed the manuscript's
-  Code Availability wording from "MIT" — see the section below for the full rationale).
+  Code Availability from "MIT" — see the section below).
 - **Title shortened** to *"...for Mitochondrial DNA with Circular Positional Encoding"* — dropped
-  "and a Heteroplasmy Projection Channel," which the preprint does not evaluate. The channel is
-  still described in the abstract and body as an architectural contribution, honestly hedged.
-  **When filling the Zenodo/OSF title field, use the shortened title in the metadata section below.**
-- **Circular-PE priority claim narrowed** from "first application to biological sequences" to a
-  defensible claim scoped to genomic foundation models, acknowledging periodic sinusoidal/rotary
-  PE. No new citations were fabricated; a verified literature search for cyclic/periodic-PE prior
-  art is still an open follow-up (worthwhile before a journal, optional for the preprint).
-- **Supplementary §S6** renamed "Ablation Learning Curves" → "Ablations (Deferred)" (it contained
-  no curves).
-- Both PDFs recompiled; the `paper/zenodo/` copies were refreshed from the recompiled source.
+  the unevaluated heteroplasmy channel from the title (still described, honestly hedged, in the body).
+  **Use the shortened title in the metadata section below.**
+- **Scientific-accuracy corrections**, each verified against the report JSONs, the model code, and
+  the literature: circular-PE claim corrected to the *measured* endpoint cosine similarity
+  (≈0.74 vs ≈0, not "near-identical"), with Figures 1–2 regenerated from the real 256-dim encoding;
+  EVE citation fixed to Frazer et al. 2021 (was a mangled/incorrect entry); Nucleotide Transformer
+  year corrected to 2025; missense AUROC 0.726 and lift 1.6×; haplogroup-H markers 2706/7028;
+  tRNA example position 7,450; D-loop control region ≈1,122 bp and position-576 wording;
+  uniform-prior perplexity 4,102; parameter count 5.8M; 9.8× lift.
+- **Honest reframing** with new verification: added the gene-region-only pathogenicity baseline
+  (AUROC 0.754, matching the model's 0.777 — the signal is largely regional, not variant-level);
+  stated plainly that a supervised 6-mer LR (78.7%) and a model-free raw-sequence 1-NN lookup
+  (79.5%) both beat the model on haplogroups; quantified library↔test near-duplicate leakage
+  (`paper/experiments/evaluation/eval_overlap_analysis.py`); reframed the heteroplasmy channel as
+  inert in all reported (Phase-1) results.
+- Abstract, Discussion, and Conclusion reconciled with these findings; both PDFs recompiled and
+  the `paper/zenodo/` copies refreshed.
 
-**rev1 — the bioRxiv-submitted `BIORXIV-2026-734309v1-Varusai.pdf`.** Frozen historical snapshot.
-Still carries the old "MIT" license wording and the longer title. **Do not upload this file** —
-it is superseded by rev2.
+**rev1 — the bioRxiv-submitted `BIORXIV-2026-734309v1-Varusai.pdf`.** Frozen historical snapshot
+with the old "MIT" wording, the longer title, and pre-correction claims. **Do not upload this
+file** — it is superseded by rev2.
 
-Not yet done (tracked separately, not blocking this upload): eval/pre-training overlap
-quantification, and the circular-vs-sinusoidal PE ablation. See the project notes for effort/value.
+Still open (GPU-gated, not blocking this preprint): the circular-vs-sinusoidal PE ablation and
+the Phase-2 checkpoint evaluation.
 
 ---
 
@@ -175,4 +183,4 @@ needed to get the preprint out.
 
 1. Add the resulting DOI to the HuggingFace model card and the GitHub README.
 2. If your ORCID is linked to the Zenodo/OSF account, the work should auto-import to your ORCID record — verify it shows up.
-3. Commit the new `LICENSE` file, the `main.tex` fix, and the recompiled `main.pdf` (see git status) — these haven't been committed yet.
+3. (Optional) Tag the release (e.g. `v1.0`) and/or archive the GitHub repo to Zenodo for a separate code DOI. All manuscript source and PDFs are already committed and pushed to `origin/main`.
