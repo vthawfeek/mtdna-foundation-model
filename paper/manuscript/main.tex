@@ -443,7 +443,7 @@ mtDNA SNPs and 419 gnomAD high-frequency benign variants (AUPR 0.440 vs.\ 0.220 
 Figure~\ref{fig:roc}). The operating point is TPR 0.69 at FPR 0.21. No pathogenicity labels
 were used in pre-training.
 
-Per-class AUROC: missense ($n_+$=56, AUROC 0.727, AUPR 0.303 vs.\ 0.184 random; 1.6$\times$ lift),
+Per-class AUROC: missense ($n_+$=56, AUROC 0.726, AUPR 0.303 vs.\ 0.184 random; 1.6$\times$ lift),
 tRNA ($n_+$=44, AUROC 0.718, AUPR 0.773), rRNA ($n_+$=5, AUROC 0.639, limited by sample size).
 For tRNA variants, the class-specific random AUPR is $44/65 = 0.677$ because pathogenic tRNA
 variants are 68\% of the tRNA subset; the observed AUPR 0.773 is only 1.14$\times$ above this
@@ -466,7 +466,7 @@ available from region alone. A classifier using \emph{only} the five-way gene-re
 AUPRC 0.463 under the identical 5-fold stratified protocol --- statistically indistinguishable
 from the model's AUROC 0.777 (within its 95\% CI) and higher on AUPRC (0.440). At the level of
 overall ranking, the model does not exceed what gene region alone provides. The scientifically
-meaningful quantity is \emph{within}-region discrimination, which is modest: AUROC 0.727 within
+meaningful quantity is \emph{within}-region discrimination, which is modest: AUROC 0.726 within
 the missense class (AUPR lift 1.6$\times$) and only 1.14$\times$ over the base rate within tRNA.
 
 The within-region signal likely reflects evolutionary constraint learned in Phase~1: pathogenic
@@ -484,7 +484,7 @@ deferred to the extended paper.
 benign mtDNA SNPs. AUROC 0.777 (95\% CI 0.731--0.821); operating point at FPR 0.21, TPR 0.69
 is marked.
 (b) Precision-recall curve; AUPRC 0.440 vs.\ random baseline 0.220.
-(c) AUROC and AUPRC by variant class: missense (AUROC 0.727), tRNA (AUROC 0.718, AUPRC 0.773;
+(c) AUROC and AUPRC by variant class: missense (AUROC 0.726), tRNA (AUROC 0.718, AUPRC 0.773;
 class-specific random AUPR $= 0.677$), rRNA (AUROC 0.639).
 No pathogenicity labels were used in pre-training.}
 \label{fig:roc}
