@@ -91,19 +91,22 @@ Positional Encoding
 > junction but receive maximally different encodings.
 >
 > We present mtDNA-FM, the first foundation model dedicated to mitochondrial DNA. It
-> introduces two domain-specific design choices: (i) a circular positional encoding where
-> positions 0 and 16,568 receive near-identical encodings (ε ≈ 3.8×10⁻⁴ per dimension),
-> correctly representing their adjacency at the D-loop; and (ii) a heteroplasmy projection
-> channel that accepts a continuous per-position variant allele fraction alongside sequence
-> content. The model is pre-trained on 152,590 vertebrate mtDNA sequences in two phases
+> introduces two domain-specific design choices: (i) a circular positional encoding that wraps
+> the positional angle at the genome length, so positions 0 and 16,568 (adjacent across the
+> D-loop junction) receive similar rather than maximally different encodings (positional-encoding
+> cosine similarity ≈0.74, versus ≈0 under standard linear encoding); and (ii) a heteroplasmy
+> projection channel that accepts a continuous per-position variant allele fraction alongside
+> sequence content. The model is pre-trained on 152,590 vertebrate mtDNA sequences in two phases
 > (117,615 cross-species, then 34,975 human HmtDB).
 >
 > Zero-shot evaluation of the Phase 1 checkpoint achieves 37.9% on 26-class haplogroup
-> classification (95% CI 34.4-41.2%; random baseline 3.85%; 9.9x lift) and AUROC 0.777 (95%
-> CI 0.731-0.821) on pathogenic variant discrimination without labels. Comparison with
-> DNABERT-2 (66.3%, 117M parameters) reveals a clade-specific gap in West Eurasian
-> haplogroups. Per-class analysis yields four observations that identify specific
-> representation failures and map concrete improvements for a next-generation model.
+> classification (95% CI 34.4-41.2%; random baseline 3.85%; 9.8x lift), below both a supervised
+> 6-mer baseline (78.7%) and DNABERT-2 (66.3%), and AUROC 0.777 on pathogenic variant
+> discrimination without labels — a figure that a gene-region-only baseline matches (AUROC 0.75),
+> indicating the signal is largely regional rather than variant-level. Comparison with DNABERT-2
+> (66.3%, 117M parameters) reveals a clade-specific gap in West Eurasian haplogroups. Per-class
+> analysis yields four observations that identify specific representation failures and map
+> concrete improvements for a next-generation model.
 >
 > Availability: https://github.com/vthawfeek/mtdna-foundation-model,
 > https://huggingface.co/vthawfeek/mtdna-foundation-model,
