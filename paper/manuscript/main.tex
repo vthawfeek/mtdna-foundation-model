@@ -435,6 +435,7 @@ nor DNABERT-2 used haplogroup labels.}
 \end{figure}
 
 \subsection{Variant Pathogenicity Prediction}
+\label{sec:variant}
 
 A 5-fold stratified cross-validated cosine 5-nearest-neighbour classifier on variant-position
 token embeddings achieves AUROC 0.777 (95\% CI 0.731--0.821) against 118 ClinVar pathogenic
@@ -679,11 +680,13 @@ channel's effect directly.
 \section{Discussion}
 
 \mtdnafm{} shows that a compact 5.8M-parameter encoder pre-trained on mitochondrial sequences
-encodes evolutionary structure without supervision. Haplogroup identity is recoverable from
-frozen embeddings at 37.9\% 26-class accuracy. Pathogenic variants are discriminated from
-population-common variants without labels (AUROC 0.777). The four observations in
-Section~\ref{sec:analysis} identify specific causes of the gap with DNABERT-2 and point to
-concrete improvements.
+encodes some evolutionary structure without supervision, but does not yet yield competitive
+task performance. Haplogroup identity is recoverable from frozen embeddings at 37.9\% 26-class
+accuracy --- above chance, but below both a supervised 6-mer baseline (78.7\%) and DNABERT-2
+(66.3\%). On pathogenic-variant discrimination the model reaches AUROC 0.777, but a gene-region-only
+baseline matches this (Section~\ref{sec:variant}), so the signal is largely regional rather than
+variant-level. The four observations in Section~\ref{sec:analysis} identify specific causes of
+these gaps and point to concrete improvements.
 
 \textbf{Circular PE generalizability.} The circular positional encoding is not specific to
 mtDNA. Any circular DNA molecule benefits from reducing the artificial positional discontinuity
@@ -774,10 +777,11 @@ fine-tuning, and a pathogenicity benchmark against MitoTIP and APOGEE2.
 \mtdnafm{} is the first foundation model dedicated to mitochondrial DNA. Its circular positional
 encoding represents the circular topology of the genome at the D-loop junction more faithfully
 than standard linear encoding (endpoint cosine similarity $\approx$0.74 vs.\ $\approx$0), a
-property not addressed by any existing genomic model. Zero-shot evaluation confirms that the
-Phase~1 checkpoint encodes evolutionary structure without supervision: 37.9\% on 26-class
-haplogroup classification (9.8$\times$ the random baseline) and AUROC 0.777 on pathogenic
-variant discrimination.
+property not addressed by any existing genomic model. Zero-shot evaluation shows the Phase~1
+checkpoint encodes some evolutionary structure without supervision (37.9\% on 26-class haplogroup
+classification, 9.8$\times$ random), but does not reach competitive task performance: it trails a
+supervised 6-mer baseline and DNABERT-2 on haplogroups, and its AUROC 0.777 on pathogenic-variant
+discrimination is matched by a gene-region-only baseline.
 
 Comparison with DNABERT-2 reveals a 28.4 percentage-point gap that is clade-specific and
 traceable to representation quality, not information access. All nine West Eurasian haplogroups
