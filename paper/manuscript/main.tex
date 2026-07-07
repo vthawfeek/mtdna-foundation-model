@@ -290,9 +290,10 @@ mitochondrion[Filter]}). Sequences span mammals, birds, reptiles, amphibians, an
 \textbf{Phase~2 (human):} 34,975 human mtDNA sequences from HmtDB
 \citep{clima2017hmtdb}, with haplogroup labels (PhyloTree Build~17 \citep{vanoven2009phylotree})
 and geographic metadata. Sequences not exactly 16,569~bp in length were length-normalized
-before tokenization: sequences shorter than 16,569~bp had N characters inserted at the D-loop
-start position (rCRS position 576), preserving protein-coding gene coordinates; sequences longer
-than 16,569~bp were trimmed from the 3$'$ end. A quality filter retaining sequences with at most
+before tokenization: sequences shorter than 16,569~bp had N characters inserted at rCRS
+position 576 (the 3$'$ boundary of the control region, immediately upstream of \emph{MT-TF}),
+preserving downstream protein-coding gene coordinates; sequences longer than 16,569~bp were
+trimmed from the 3$'$ end. A quality filter retaining sequences with at most
 10\% ambiguous bases after normalization keeps 99.93\% of sequences.
 
 \subsubsection{Training Objective}
