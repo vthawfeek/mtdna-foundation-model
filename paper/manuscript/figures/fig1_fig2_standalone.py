@@ -38,6 +38,40 @@ def _save(fig, name: str) -> None:
     print(f"  Saved {name}.pdf / .png")
 
 
+# ------------------------------------------------------------------
+# Real positional encodings (matches mtdna_fm.model.embeddings exactly:
+# circular uses angle = 2*pi*pos/L; standard uses angle = pos; both use
+# the geometric div_term 10000^(-2i/d)). Computed in numpy so this figure
+# script stays dependency-light, but the values are identical to the model.
+# ------------------------------------------------------------------
+_L_GENOME = 16569
+_D_MODEL = 256
+
+
+def _build_pe(angle: np.ndarray) -> np.ndarray:
+    div_term = np.exp(np.arange(0, _D_MODEL, 2) * (-np.log(10000.0) / _D_MODEL))
+    pe = np.zeros((angle.shape[0], _D_MODEL))
+    pe[:, 0::2] = np.sin(angle[:, None] * div_term)
+    pe[:, 1::2] = np.cos(angle[:, None] * div_term)
+    return pe
+
+
+def _real_pe(kind: str) -> np.ndarray:
+    pos = np.arange(_L_GENOME).astype(float)
+    angle = 2 * np.pi * pos / _L_GENOME if kind == "circular" else pos
+    return _build_pe(angle)
+
+
+def _cosine_to_zero(pe: np.ndarray) -> np.ndarray:
+    p0 = pe[0]
+    return (pe @ p0) / (np.linalg.norm(pe, axis=1) * np.linalg.norm(p0))
+
+
+def _cosine_matrix(pe: np.ndarray) -> np.ndarray:
+    norm = pe / np.linalg.norm(pe, axis=1, keepdims=True)
+    return norm @ norm.T
+
+
 # ============================================================
 # Figure 1: Architecture + Circular PE
 # ============================================================
@@ -94,35 +128,34 @@ def figure1():
     ax_b = fig.add_subplot(gs[1])
     ax_b.set_title("(b)  Positional encoding at\ngenome junction", fontweight="bold", pad=8)
 
-    pos = np.linspace(0, L, 300)
-    # Distance of PE(p) from PE(0) — first dimension
-    std_dist = 1 - np.cos(pos / L * np.pi)           # goes 0→2→0 but we want 0→max for linear
-    std_dist = np.abs(pos - pos.max() / 2) / (pos.max() / 2)  # linear ramp then ramp down
-    # Simpler: use actual first PE component
-    circ_sim = (1 + np.cos(2 * np.pi * pos / L)) / 2  # similarity to pos=0
+    # Real full-vector cosine similarity to position 0 (actual model encodings)
+    idx = np.linspace(0, L - 1, 400).astype(int)
+    circ_sim0 = _cosine_to_zero(_real_pe("circular"))[idx]
+    std_sim0 = _cosine_to_zero(_real_pe("standard"))[idx]
+    junction_sim = float(circ_sim0[-1])  # ≈ 0.74
 
-    ax_b.plot(pos, 1 - circ_sim, color="#2166ac", lw=2.0,
+    ax_b.plot(idx, circ_sim0, color="#2166ac", lw=2.0,
               label="Circular PE\n(mtDNA-FM)")
-    lin_sim_to_zero = np.abs(pos) / L           # distance 0→1 linearly
-    ax_b.plot(pos, lin_sim_to_zero, color="#d73027", lw=2.0, ls="--",
+    ax_b.plot(idx, std_sim0, color="#d73027", lw=2.0, ls="--",
               label="Standard linear PE")
 
     ax_b.axvspan(0, 200, alpha=0.12, color="#c0392b", label="D-loop (junction)")
     ax_b.axvspan(L - 200, L, alpha=0.12, color="#c0392b")
 
+    ax_b.axhline(0.0, color="#999999", lw=0.8, ls=":")
     ax_b.set_xlabel("Genomic position (bp)")
-    ax_b.set_ylabel("Distance from position 0")
+    ax_b.set_ylabel("Cosine similarity to position 0")
     ax_b.set_xlim(0, L)
-    ax_b.set_ylim(-0.05, 1.1)
+    ax_b.set_ylim(-0.3, 1.05)
     ax_b.set_xticks([0, 4000, 8000, 12000, 16569])
     ax_b.set_xticklabels(["0", "4k", "8k", "12k", "16,569"])
 
-    # Annotation: at pos=16569, circular PE returns to 0
-    ax_b.annotate("PE(0) = PE(16,569)",
-                  xy=(L, 0.02), xytext=(L - 5200, 0.18),
+    # Annotation: circular PE keeps endpoints similar (≈0.74), linear ≈0
+    ax_b.annotate(f"endpoints stay similar\n(≈{junction_sim:.2f}, vs ≈0 linear)",
+                  xy=(L - 1, junction_sim), xytext=(L - 8600, junction_sim - 0.42),
                   arrowprops=dict(arrowstyle="->", color="#2166ac", lw=1.2),
-                  color="#2166ac", fontsize=8, fontstyle="italic")
-    ax_b.legend(fontsize=8, loc="center left")
+                  color="#2166ac", fontsize=7.5, fontstyle="italic")
+    ax_b.legend(fontsize=8, loc="lower left")
     ax_b.grid(True, alpha=0.2)
 
     # ── Panel C: Architecture block diagram ──────────────────────────────
@@ -170,21 +203,14 @@ def figure1():
 def figure2():
     N = 300   # downsample 16,569 → 300 grid points for display
     L = 16569
-    pos = np.linspace(0, L - 1, N)
+    idx = np.linspace(0, L - 1, N).astype(int)
+    pos = idx.astype(float)
 
-    # Compute pairwise positional similarity for first PE dimension only
-    # (generalises: use cosine similarity of full PE vector)
-    def linear_sim_matrix(pos):
-        diff = np.abs(pos[:, None] - pos[None, :])
-        max_diff = L
-        return 1 - diff / max_diff
-
-    def circular_sim_matrix(pos):
-        theta = 2 * np.pi * pos / L
-        return (1 + np.cos(theta[:, None] - theta[None, :])) / 2
-
-    lin_sim = linear_sim_matrix(pos)
-    circ_sim = circular_sim_matrix(pos)
+    # Real full-vector cosine similarity of the actual model encodings.
+    lin_sim = _cosine_matrix(_real_pe("standard")[idx])
+    circ_sim = _cosine_matrix(_real_pe("circular")[idx])
+    circ_corner = float(circ_sim[0, -1])   # ≈ 0.74
+    lin_corner = float(lin_sim[0, -1])     # ≈ 0
 
     fig, axes = plt.subplots(1, 3, figsize=(15, 5.2),
                               gridspec_kw={"width_ratios": [1, 1, 0.05]})
@@ -195,16 +221,16 @@ def figure2():
     tick_labels[0] = "0"
     tick_labels[-1] = "16,569"
 
-    vmin, vmax = 0.0, 1.0
+    vmin, vmax = -0.2, 1.0
     cmap = "RdBu_r"
 
     for ax, sim, title, subtitle in [
         (ax1, lin_sim,
          "(a)  Standard linear PE",
-         "positions 0 and 16,569 maximally\ndissimilar — D-loop region SPLIT"),
+         f"positions 0 and 16,568 nearly\northogonal (sim ≈ {lin_corner:.2f}) — D-loop SPLIT"),
         (ax2, circ_sim,
          "(b)  Circular PE (mtDNA-FM)",
-         "positions 0 and 16,569 identical —\nD-loop junction correctly closed"),
+         f"positions 0 and 16,568 sim ≈ {circ_corner:.2f}\n(vs ≈ 0 linear) — junction reconnected"),
     ]:
         im = ax.imshow(sim, aspect="auto", origin="lower",
                        cmap=cmap, vmin=vmin, vmax=vmax, interpolation="nearest")
@@ -230,18 +256,20 @@ def figure2():
     # Highlight the junction corner for each plot
     corner_px = int((L - 1) / L * N)
     ax1.scatter([0, corner_px], [corner_px, 0], c="#c0392b", s=50, zorder=5,
-                marker="x", linewidths=1.5, label="D-loop corners (similarity≈0)")
+                marker="x", linewidths=1.5,
+                label=f"D-loop corners (sim ≈ {lin_corner:.2f})")
     ax1.legend(fontsize=7.5, loc="upper right")
 
     ax2.scatter([0, corner_px], [corner_px, 0], c="#2166ac", s=50, zorder=5,
-                marker="o", linewidths=1.5, label="D-loop corners (similarity=1)")
+                marker="o", linewidths=1.5,
+                label=f"D-loop corners (sim ≈ {circ_corner:.2f})")
     ax2.legend(fontsize=7.5, loc="upper right")
 
-    plt.colorbar(im, cax=ax_cb, label="Positional similarity")
+    plt.colorbar(im, cax=ax_cb, label="Cosine similarity (full PE vector)")
 
     fig.suptitle(
         "Figure 2: Positional similarity matrix — standard vs circular positional encoding\n"
-        "Red dashed lines mark the D-loop region (positions 0 and ~16,024–16,569)",
+        "Full-vector cosine similarity of the actual encodings; dashed lines mark the D-loop region",
         fontsize=11, fontweight="bold", y=1.03
     )
     _save(fig, "fig2")

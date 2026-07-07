@@ -107,11 +107,13 @@ position $p = L_\text{genome} - 1 = 16{,}568$:
 \phi_{16568} = \frac{2\pi \times 16568}{16569} = 2\pi - \frac{2\pi}{16569} \approx 2\pi - 3.8\times10^{-4}
 \]
 giving $|\text{PE}_\text{circ}(16568, 2i) - \text{PE}_\text{circ}(0, 2i)| \approx 3.8\times10^{-4}$
-per dimension for the lowest-frequency component. Positions~0 and~16,568 therefore receive
-\emph{approximately} identical encodings. The residual angular gap equals the spacing between any
-two adjacent positions ($\Delta\phi = 2\pi/16569$), so the junction is no more discontinuous than
-any other step in the sequence. Exact identity would require encoding position $p = L_\text{genome}$,
-which does not exist in the genome.
+for the lowest-frequency component ($i=0$). The higher-frequency components use the geometric
+schedule $10000^{2i/d}$, which is not an integer multiple of the base frequency, so they do not
+return to their position-0 value at the junction. Empirically, the full-vector cosine similarity
+between positions~0 and~16,568 is $\approx$0.74 (versus $\approx$0 for standard sinusoidal PE),
+so the circular encoding substantially reduces --- but does not eliminate --- the junction
+discontinuity. Endpoint identity across \emph{all} channels would require an integer-harmonic
+(Fourier) frequency schedule, which we leave to future work.
 
 \subsection*{S2.3 Properties}
 
@@ -119,11 +121,11 @@ which does not exist in the genome.
 \item \textit{Uniqueness:} Positions $p$ and $p'$ with $|p - p'| < L_\text{genome}/2$ receive
 distinct encodings (the mapping $p \mapsto \phi_p$ is injective on $[0, L_\text{genome})$).
 
-\item \textit{Approximate smoothness at junction:}
-$\|\text{PE}_\text{circ}(L_\text{genome}-1) - \text{PE}_\text{circ}(0)\| \approx
-\|\text{PE}_\text{circ}(p) - \text{PE}_\text{circ}(p+1)\|$ for interior positions, with a
-residual error of $\varepsilon \approx 3.8\times10^{-4}$ per dimension. In contrast, standard
-sinusoidal PE has a large discontinuity at the junction.
+\item \textit{Reduced discontinuity at junction:} the full-vector cosine similarity between the
+two endpoints (positions~0 and~16,568) is $\approx$0.74 under the circular encoding, versus
+$\approx$0 under standard sinusoidal PE. Interior consecutive positions have cosine similarity
+$\approx$1.0, so a residual junction step remains; the circular encoding shrinks it roughly
+fourfold relative to linear PE.
 
 \item \textit{Non-learnable:} Implemented as \texttt{nn.Buffer}, not \texttt{nn.Parameter};
 gradients do not flow through the positional encoding.
@@ -137,8 +139,9 @@ gradients do not flow through the positional encoding.
 Per-class precision, recall, and F1 from zero-shot cosine 5-nearest-neighbour classification on
 757 test sequences across 26 major PhyloTree haplogroup classes. No haplogroup labels were used
 in pre-training. We retrieved 15,741 NCBI records; 15,364 had a non-null haplogroup field; 13,884
-were assigned to one of the 26 major PhyloTree classes and used for evaluation (stratified 80/10/10
-split, \texttt{random\_state=42}).
+were assigned to one of the 26 major PhyloTree classes. From these, a class-balanced subsample
+(up to 40 sequences per class) was split into a 1,509-sequence train library and a 757-sequence
+test set (\texttt{random\_state=42}); the remaining sequences were not used for the zero-shot k-NN.
 
 \begin{table}[h]
 \centering
