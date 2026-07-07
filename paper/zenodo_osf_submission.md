@@ -120,6 +120,27 @@ Positional Encoding
 > https://huggingface.co/vthawfeek/mtdna-foundation-model,
 > https://huggingface.co/spaces/vthawfeek/mtdna-fm-demo
 
+**Description** (brief summary for the Zenodo "Description" field; the full abstract above can
+also be used, but this is a tighter blurb):
+
+> mtDNA-FM is the first foundation model dedicated to mitochondrial DNA, a 16,569 bp circular
+> genome. It introduces a circular positional encoding that aligns the positional period to the
+> genome length, so the two endpoints at the D-loop junction are represented as adjacent rather
+> than maximally distant (endpoint cosine similarity ≈0.74, versus ≈0 for standard linear
+> encoding), together with a heteroplasmy projection channel. The 5.8M-parameter encoder is
+> pre-trained by masked-language modeling on 152,590 vertebrate mitochondrial genomes.
+>
+> This preprint reports an honest zero-shot evaluation of the Phase-1 checkpoint. The model
+> recovers some evolutionary structure without supervision but is not yet competitive: on 26-class
+> haplogroup classification it reaches 37.9% (9.8× above chance) yet trails a supervised 6-mer
+> baseline (78.7%), DNABERT-2 (66.3%), and even a model-free nearest-sequence lookup (79.5%); on
+> pathogenic-variant discrimination its AUROC of 0.777 is matched by a gene-region-only baseline,
+> indicating the signal is largely regional rather than variant-level. A per-class comparison with
+> DNABERT-2 yields four observations that localize the shortfall to representation quality —
+> tokenization, window aggregation, and parameter scale — and map concrete directions for a
+> next-generation model. Code, pre-trained weights, a reproducibility pipeline, and an interactive
+> demo are publicly available.
+
 **Keywords / tags:**
 mitochondrial DNA; foundation model; transformer; DNA language model; positional encoding;
 heteroplasmy; genomics; bioinformatics; haplogroup classification; pathogenic variant
