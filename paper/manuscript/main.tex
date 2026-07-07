@@ -746,13 +746,23 @@ to be measurable.
 training (34,975 HmtDB sequences, heteroplasmy loss) was executed but not evaluated for this
 preprint due to compute constraints. Phase~1 vs.\ Phase~2 ablation is deferred to the extended
 paper.
-\item \textit{Evaluation--pre-training overlap.} The haplogroup evaluation uses NCBI sequences,
-which also contributed to Phase~1 pre-training. No haplogroup labels were used in pre-training,
-but some evaluation sequences may have been seen during MLM training. The fraction of the
-757-sequence test set that appeared in Phase~1 pre-training has not been estimated. If
-substantial, the 37.9\% result may partly reflect sequence-level memorisation. DNABERT-2 had
-no such overlap, so the 28.4 percentage-point gap should be treated as a lower bound on
-DNABERT-2's advantage; the true gap on fully held-out sequences could be larger.
+\item \textit{Evaluation leakage and sequence redundancy.} Two distinct overlaps affect the
+haplogroup evaluation. (i)~\emph{Pre-training overlap (\mtdnafm{} only).} The NCBI human
+evaluation sequences are a subset of the record type captured by the Phase~1 query (vertebrate
+complete-genome mtDNA) and thus largely contributed to Phase~1 MLM training; no haplogroup labels
+were used. The exact fraction cannot be reconstructed --- the cross-species corpus was not retained
+--- but it is likely high. This can only advantage \mtdnafm{}, which nonetheless trails DNABERT-2
+by 28.4 points, so the gap is a lower bound on DNABERT-2's advantage. (ii)~\emph{Library--test
+redundancy (both models).} Human mitochondrial genomes within a haplogroup are near-identical, so
+the reference library and test queries overlap heavily at the sequence level. Reproducing the exact
+1,509/757 split, the median test sequence is 99.93\% identical to its nearest library sequence,
+4.5\% of test sequences have an \emph{exact} library duplicate (differing accession, identical
+sequence), and 66\% have a library twin within $\sim$16 SNPs. A model-free nearest-sequence lookup
+(1-NN on raw Hamming distance) consequently classifies haplogroup at 79.5\% --- more than double
+\mtdnafm{}'s 37.9\% and above the supervised 6-mer baseline (78.7\%). The zero-shot haplogroup task
+is therefore largely a near-duplicate retrieval problem, on which the model's lossy 256-dimensional
+embedding underperforms the raw sequence; 37.9\% should be read in that light. (Quantified by
+\texttt{paper/experiments/evaluation/eval\_overlap\_analysis.py}.)
 \item \textit{European cohort bias.} HmtDB contains approximately 60--70\% European-origin
 sequences; haplogroup H alone is approximately 14.3\% of labeled sequences. Whether this
 over-representation during Phase~2 contributes to embedding-space overlap for West Eurasian
